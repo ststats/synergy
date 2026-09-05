@@ -143,7 +143,7 @@ def apply_member_updates_to_archives(members: list, today_date_str: str) -> set:
 def _index_by_elo_id(sponsor_list: list) -> dict:
     return {item["id"]: item for item in sponsor_list if item.get("id")}
 
-def confirm_previous_month_if_needed(prev_year, prev_month, new_year, new_month, all_ids, now, existing_elo_ids, new_members_acc):
+def confirm_previous_month_if_needed(prev_year, prev_month, new_year, new_month, all_ids, now, existing_elo_ids, new_members_acc, skip_new_member_detection=False):
     if not prev_year or not prev_month or (prev_year, prev_month) == (new_year, new_month):
         return
     last_day = last_day_of_month(prev_year, prev_month)
@@ -176,7 +176,8 @@ def confirm_previous_month_if_needed(prev_year, prev_month, new_year, new_month,
         sponsor_list = []
         
     if sponsor_list:
-        new_members_acc.update(_collect_unknown_elo_players(sponsor_list, existing_elo_ids, now.strftime("%Y-%m-%d")))
+        if not skip_new_member_detection:
+            new_members_acc.update(_collect_unknown_elo_players(sponsor_list, existing_elo_ids, now.strftime("%Y-%m-%d")))
         lookup = _index_by_elo_id(sponsor_list)
         for m in archive.get("members", []):
             elo_id = m.get("elo_id")
@@ -228,22 +229,39 @@ def main():
                     }
 
     existing_elo_ids = set()
+    skip_new_member_detection = False
     if is_sheet_ready():
-        existing_elo_ids = {
-            str(fields["elo_id"]) for fields in load_sheet_members().values()
-            if fields.get("elo_id") is not None
-        }
-        # new_members(대기) 시트에 이미 올라와 검토를 기다리고 있는
-        # elo_id도 합쳐야, 아직 검토 안 끝난 같은 후보가 매 실행마다
-        # 또 대기 시트에 중복으로 쌓이는 걸 막을 수 있다.
-        existing_elo_ids |= {
-            fields["elo_id"] for fields in load_pending_members().values()
-            if fields.get("elo_id")
-        }
+        sheet_members = load_sheet_members()
+        if sheet_members is None:
+            # 읽기 실패를 "기존 회원 0명"으로 착각하면, 이미 등록된 회원
+            # 전원을 "신규 후보"로 오판해 new_members 시트에 통째로
+            # 밀어넣는 사고로 이어진다. 이번 실행에서는 신규 후보 판별
+            # 자체를 건너뛰고(별풍선/스폰전적 갱신 등 나머지 작업은
+            # 평소대로 계속 진행), 원인(탭 이름/권한 등)을 알 수 있게
+            # 경고를 남긴다.
+            print("[오류] members 시트를 읽지 못해 이번 실행에서는 신규 후보 판별을 건너뜁니다.", file=sys.stderr)
+            skip_new_member_detection = True
+        else:
+            existing_elo_ids = {
+                str(fields["elo_id"]) for fields in sheet_members.values()
+                if fields.get("elo_id") is not None
+            }
+            # new_members(대기) 시트에 이미 올라와 검토를 기다리고 있는
+            # elo_id도 합쳐야, 아직 검토 안 끝난 같은 후보가 매 실행마다
+            # 또 대기 시트에 중복으로 쌓이는 걸 막을 수 있다.
+            pending_members = load_pending_members()
+            if pending_members is None:
+                print(f"[오류] '{PENDING_SHEET_NAME}' 시트를 읽지 못해 이번 실행에서는 신규 후보 판별을 건너뜁니다.", file=sys.stderr)
+                skip_new_member_detection = True
+            else:
+                existing_elo_ids |= {
+                    fields["elo_id"] for fields in pending_members.values()
+                    if fields.get("elo_id")
+                }
     new_members_acc = {}
 
     archive_previous_day_if_needed(prev_latest, today_date_str)
-    confirm_previous_month_if_needed(prev_year, prev_month, year, month, all_ids, now, existing_elo_ids, new_members_acc)
+    confirm_previous_month_if_needed(prev_year, prev_month, year, month, all_ids, now, existing_elo_ids, new_members_acc, skip_new_member_detection)
     applied_correction_ids = apply_member_updates_to_archives(members, today_date_str)
 
     print(f"[수집] 풍고 별풍선 및 엘로보드 스폰전적 병렬 수집 시작...")
@@ -267,7 +285,8 @@ def main():
     sponsor_collection_succeeded = False
         
     if sponsor_list:
-        new_members_acc.update(_collect_unknown_elo_players(sponsor_list, existing_elo_ids, today_date_str))
+        if not skip_new_member_detection:
+            new_members_acc.update(_collect_unknown_elo_players(sponsor_list, existing_elo_ids, today_date_str))
         sponsor_data = _index_by_elo_id(sponsor_list)
         sponsor_collection_succeeded = True
         sponsor_updated_at = now.strftime(DATETIME_FORMAT)

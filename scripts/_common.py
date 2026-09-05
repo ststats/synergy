@@ -200,14 +200,20 @@ def sheet_parse_date_for_write(value):
     except (ValueError, TypeError):
         return ""
 
-def load_sheet_members() -> dict:
+def load_sheet_members():
+    """반환값은 성공하면 dict(사람이 진짜 0명이어도 {} - 정상)이고,
+    시트 읽기 자체가 실패하면 None이다. 이 둘을 구분해야 하는 이유:
+    실패를 빈 dict({})와 똑같이 취급하면 호출부(특히 sync_members.py)가
+    "기존 회원이 0명"이라고 착각해서, 이미 등록된 수백 명을 전부 "신규"로
+    오판해 new_members 시트에 통째로 다시 밀어넣는 사고로 이어진다(실제로
+    탭 이름 불일치/권한 문제 등으로 이런 일이 있었다)."""
     if not is_sheet_ready(): return {}
     try:
         ws = get_worksheet()
         all_values = ws.get_all_values()
     except Exception as e:
         print(f"[오류] 구글 시트를 읽어오는 중 에러 발생: {e}", file=sys.stderr)
-        return {}
+        return None
 
     if not all_values or len(all_values) < 2:
         return {}
@@ -338,12 +344,14 @@ def write_sheet(update_rows: dict, append_rows: list, delete_ids: set | None = N
 # "신규 후보" (new_members) 시트 관련 헬퍼
 # ---------------------------------------------------------------------------
 
-def load_pending_members() -> dict:
+def load_pending_members():
     """new_members 시트에 이미 대기 중인 후보 목록을 id(soop_id 또는
     elo_<elo_id> 형태의 placeholder) 기준으로 읽어온다. 호출부는 이 결과를
     이용해 "이미 대기 중인 후보"를 다시 추가하지 않게 걸러낸다 - 이게 없으면
     검토가 안 끝난 후보가 매 실행마다 new_members 시트에 중복으로 계속
-    쌓이게 된다."""
+    쌓이게 된다.
+    load_sheet_members()와 마찬가지로, 읽기 실패는 None으로 구분해서
+    반환한다(진짜로 대기 중인 후보가 0명인 것과는 다른 상황이므로)."""
     if not is_sheet_ready():
         return {}
     try:
@@ -353,7 +361,7 @@ def load_pending_members() -> dict:
         all_values = ws.get_all_values()
     except Exception as e:
         print(f"[오류] '{PENDING_SHEET_NAME}' 시트를 읽어오는 중 에러 발생: {e}", file=sys.stderr)
-        return {}
+        return None
 
     if not all_values or len(all_values) < 2:
         return {}
