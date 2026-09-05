@@ -3,7 +3,7 @@
     {
       "nickname": "조기석",
       "elo_id": 3,
-      "birthdate": "1992-06-15",
+      "birthdate": null,
       "gender": "m",
       "race": "테란",
       "tier": "킹",
@@ -15,7 +15,7 @@
     {
       "nickname": "구성훈",
       "elo_id": 54,
-      "birthdate": "1989-07-21",
+      "birthdate": null,
       "gender": "m",
       "race": "테란",
       "tier": "킹",
@@ -25,9 +25,9 @@
       "id": "rladuddo99"
     },
     {
-      "nickname": "홍구",
+      "nickname": "임홍규",
       "elo_id": 2,
-      "birthdate": "1994-07-19",
+      "birthdate": null,
       "gender": "m",
       "race": "저그",
       "tier": "킹",
@@ -39,7 +39,7 @@
     {
       "nickname": "김성대",
       "elo_id": 33,
-      "birthdate": "1992-04-23",
+      "birthdate": null,
       "gender": "m",
       "race": "저그",
       "tier": "킹",
@@ -51,7 +51,7 @@
     {
       "nickname": "김영진",
       "elo_id": 155,
-      "birthdate": "1995-05-24",
+      "birthdate": null,
       "gender": "m",
       "race": "테란",
       "tier": "잭",
@@ -63,7 +63,7 @@
     {
       "nickname": "김병수",
       "elo_id": 59,
-      "birthdate": "1994-01-27",
+      "birthdate": null,
       "gender": "m",
       "race": "저그",
       "tier": "잭",
@@ -75,7 +75,7 @@
     {
       "nickname": "김민우",
       "elo_id": 147,
-      "birthdate": "1990-02-03",
+      "birthdate": null,
       "gender": "m",
       "race": "프로토스",
       "tier": "조커",
@@ -87,19 +87,19 @@
     {
       "nickname": "시조새",
       "elo_id": 6194,
-      "birthdate": "1995-12-09",
+      "birthdate": null,
       "gender": "m",
       "race": "프로토스",
       "tier": "3",
       "team": "JSA",
-      "role": "수장",
+      "role": "",
       "info_updated_at": null,
       "id": "superbsw123"
     },
     {
       "nickname": "하블리",
       "elo_id": 325,
-      "birthdate": "1997-12-11",
+      "birthdate": null,
       "gender": "f",
       "race": "저그",
       "tier": "2",
@@ -111,7 +111,7 @@
     {
       "nickname": "소심",
       "elo_id": 431,
-      "birthdate": "1995-04-26",
+      "birthdate": null,
       "gender": "f",
       "race": "테란",
       "tier": "3",
@@ -123,7 +123,7 @@
     {
       "nickname": "라미",
       "elo_id": 482,
-      "birthdate": "1996-09-09",
+      "birthdate": null,
       "gender": "f",
       "race": "저그",
       "tier": "3",
@@ -135,7 +135,7 @@
     {
       "nickname": "나린",
       "elo_id": 561,
-      "birthdate": "1996-11-27",
+      "birthdate": null,
       "gender": "f",
       "race": "저그",
       "tier": "4",
@@ -145,9 +145,9 @@
       "id": "ftrudals"
     },
     {
-      "nickname": "려원",
+      "nickname": "려원님",
       "elo_id": 553,
-      "birthdate": "2001-01-03",
+      "birthdate": null,
       "gender": "f",
       "race": "테란",
       "tier": "6",
@@ -159,7 +159,7 @@
     {
       "nickname": "쟈닌",
       "elo_id": 732,
-      "birthdate": "1997-07-15",
+      "birthdate": null,
       "gender": "f",
       "race": "저그",
       "tier": "7",
@@ -171,7 +171,7 @@
     {
       "nickname": "백원이야",
       "elo_id": 784,
-      "birthdate": "1996-01-06",
+      "birthdate": null,
       "gender": "f",
       "race": "저그",
       "tier": "7",
@@ -183,7 +183,7 @@
     {
       "nickname": "모비",
       "elo_id": 777,
-      "birthdate": "2001-08-18",
+      "birthdate": null,
       "gender": "f",
       "race": "프로토스",
       "tier": "7",
@@ -207,7 +207,7 @@
     {
       "nickname": "미진이",
       "elo_id": 831,
-      "birthdate": "2001-08-24",
+      "birthdate": null,
       "gender": "f",
       "race": "프로토스",
       "tier": "8",
@@ -255,7 +255,7 @@
     {
       "nickname": "유승곤",
       "elo_id": 28,
-      "birthdate": "1993-10-14",
+      "birthdate": null,
       "gender": "m",
       "race": "테란",
       "tier": "킹",
@@ -267,19 +267,19 @@
     {
       "nickname": "흑운장",
       "elo_id": 87,
-      "birthdate": "1988-03-02",
+      "birthdate": null,
       "gender": "m",
       "race": "테란",
       "tier": "잭",
       "team": "흑카데미",
-      "role": "수장",
+      "role": "",
       "info_updated_at": null,
       "id": "firebathero"
     },
     {
-      "nickname": "배호연",
+      "nickname": "배호딱",
       "elo_id": 113,
-      "birthdate": "1995-11-27",
+      "birthdate": null,
       "gender": "m",
       "race": "테란",
       "tier": "잭",
@@ -291,7 +291,7 @@
     {
       "nickname": "민찬기",
       "elo_id": 42,
-      "birthdate": "1989-12-17",
+      "birthdate": null,
       "gender": "m",
       "race": "테란",
       "tier": "잭",
@@ -301,9 +301,9 @@
       "id": "ckmin706"
     },
     {
-      "nickname": "달그락영주",
+      "nickname": "김영주",
       "elo_id": 183,
-      "birthdate": "1994-03-18",
+      "birthdate": null,
       "gender": "m",
       "race": "테란",
       "tier": "조커",
@@ -315,7 +315,7 @@
     {
       "nickname": "팔레트",
       "elo_id": 6262,
-      "birthdate": "1994-04-02",
+      "birthdate": null,
       "gender": "m",
       "race": "테란",
       "tier": "스페이드",
@@ -327,7 +327,7 @@
     {
       "nickname": "빡재",
       "elo_id": 6432,
-      "birthdate": "1991-07-11",
+      "birthdate": null,
       "gender": "m",
       "race": "테란",
       "tier": "1",
@@ -339,7 +339,7 @@
     {
       "nickname": "히엉",
       "elo_id": 389,
-      "birthdate": "1996-11-02",
+      "birthdate": null,
       "gender": "f",
       "race": "테란",
       "tier": "2",
@@ -351,7 +351,7 @@
     {
       "nickname": "우힝이",
       "elo_id": 238,
-      "birthdate": "1992-02-15",
+      "birthdate": null,
       "gender": "f",
       "race": "테란",
       "tier": "2",
@@ -363,7 +363,7 @@
     {
       "nickname": "나예리",
       "elo_id": 278,
-      "birthdate": "1995-05-30",
+      "birthdate": null,
       "gender": "f",
       "race": "테란",
       "tier": "3",
@@ -375,7 +375,7 @@
     {
       "nickname": "링가",
       "elo_id": 587,
-      "birthdate": "1997-11-05",
+      "birthdate": null,
       "gender": "f",
       "race": "테란",
       "tier": "5",
@@ -387,7 +387,7 @@
     {
       "nickname": "유이",
       "elo_id": 616,
-      "birthdate": "1991-11-21",
+      "birthdate": null,
       "gender": "f",
       "race": "테란",
       "tier": "5",
@@ -399,7 +399,7 @@
     {
       "nickname": "메옹",
       "elo_id": 716,
-      "birthdate": "2001-04-03",
+      "birthdate": null,
       "gender": "f",
       "race": "테란",
       "tier": "6",
@@ -411,7 +411,7 @@
     {
       "nickname": "선정은",
       "elo_id": 632,
-      "birthdate": "1997-10-07",
+      "birthdate": null,
       "gender": "f",
       "race": "테란",
       "tier": "6",
@@ -423,7 +423,7 @@
     {
       "nickname": "경콩",
       "elo_id": 745,
-      "birthdate": "1999-05-16",
+      "birthdate": null,
       "gender": "f",
       "race": "테란",
       "tier": "7",
@@ -435,7 +435,7 @@
     {
       "nickname": "갱이다",
       "elo_id": 764,
-      "birthdate": "2002-05-04",
+      "birthdate": null,
       "gender": "f",
       "race": "테란",
       "tier": "7",
@@ -447,7 +447,7 @@
     {
       "nickname": "제갈츄빈",
       "elo_id": 794,
-      "birthdate": "1996-10-18",
+      "birthdate": null,
       "gender": "f",
       "race": "테란",
       "tier": "7",
@@ -459,7 +459,7 @@
     {
       "nickname": "오세은",
       "elo_id": 818,
-      "birthdate": "2004-12-25",
+      "birthdate": null,
       "gender": "f",
       "race": "테란",
       "tier": "8",
@@ -483,7 +483,7 @@
     {
       "nickname": "김유나",
       "elo_id": 829,
-      "birthdate": "2003-10-24",
+      "birthdate": null,
       "gender": "f",
       "race": "테란",
       "tier": "8",
@@ -495,7 +495,7 @@
     {
       "nickname": "정영재",
       "elo_id": 10,
-      "birthdate": "1993-01-24",
+      "birthdate": null,
       "gender": "m",
       "race": "테란",
       "tier": "갓",
@@ -507,7 +507,7 @@
     {
       "nickname": "김경모",
       "elo_id": 8,
-      "birthdate": "1988-09-08",
+      "birthdate": null,
       "gender": "m",
       "race": "저그",
       "tier": "갓",
@@ -519,7 +519,7 @@
     {
       "nickname": "장윤철",
       "elo_id": 25,
-      "birthdate": "1993-04-01",
+      "birthdate": null,
       "gender": "m",
       "race": "프로토스",
       "tier": "갓",
@@ -531,7 +531,7 @@
     {
       "nickname": "홍덕",
       "elo_id": 72,
-      "birthdate": "1995-08-21",
+      "birthdate": null,
       "gender": "m",
       "race": "프로토스",
       "tier": "킹",
@@ -543,7 +543,7 @@
     {
       "nickname": "정민기",
       "elo_id": 30,
-      "birthdate": "1995-03-16",
+      "birthdate": null,
       "gender": "m",
       "race": "테란",
       "tier": "잭",
@@ -555,7 +555,7 @@
     {
       "nickname": "고석현",
       "elo_id": 53,
-      "birthdate": "1988-01-15",
+      "birthdate": null,
       "gender": "m",
       "race": "저그",
       "tier": "잭",
@@ -567,7 +567,7 @@
     {
       "nickname": "김학수",
       "elo_id": 49,
-      "birthdate": "1989-04-23",
+      "birthdate": null,
       "gender": "m",
       "race": "프로토스",
       "tier": "조커",
@@ -579,7 +579,7 @@
     {
       "nickname": "유민",
       "elo_id": 179,
-      "birthdate": "2002-03-02",
+      "birthdate": null,
       "gender": "m",
       "race": "프로토스",
       "tier": "스페이드",
@@ -591,19 +591,19 @@
     {
       "nickname": "케이",
       "elo_id": 6161,
-      "birthdate": "1989-11-23",
+      "birthdate": null,
       "gender": "m",
       "race": "프로토스",
       "tier": "8",
       "team": "케이대",
-      "role": "수장",
+      "role": "",
       "info_updated_at": null,
       "id": "zpdl1313"
     },
     {
       "nickname": "정소윤",
       "elo_id": 311,
-      "birthdate": "1988-01-02",
+      "birthdate": null,
       "gender": "f",
       "race": "저그",
       "tier": "0",
@@ -615,7 +615,7 @@
     {
       "nickname": "보혜",
       "elo_id": 269,
-      "birthdate": "1997-03-20",
+      "birthdate": null,
       "gender": "f",
       "race": "프로토스",
       "tier": "0",
@@ -627,7 +627,7 @@
     {
       "nickname": "슬돌이",
       "elo_id": 498,
-      "birthdate": "1993-03-16",
+      "birthdate": null,
       "gender": "f",
       "race": "프로토스",
       "tier": "2",
@@ -639,7 +639,7 @@
     {
       "nickname": "늑대채린",
       "elo_id": 395,
-      "birthdate": "1998-11-12",
+      "birthdate": null,
       "gender": "f",
       "race": "저그",
       "tier": "4",
@@ -651,7 +651,7 @@
     {
       "nickname": "링고",
       "elo_id": 588,
-      "birthdate": "1997-11-05",
+      "birthdate": null,
       "gender": "f",
       "race": "프로토스",
       "tier": "4",
@@ -663,7 +663,7 @@
     {
       "nickname": "내가먼지",
       "elo_id": 697,
-      "birthdate": "2001-02-17",
+      "birthdate": null,
       "gender": "f",
       "race": "테란",
       "tier": "5",
@@ -675,7 +675,7 @@
     {
       "nickname": "박하악",
       "elo_id": 501,
-      "birthdate": "2001-03-26",
+      "birthdate": null,
       "gender": "f",
       "race": "저그",
       "tier": "6",
@@ -687,7 +687,7 @@
     {
       "nickname": "냥수디",
       "elo_id": 750,
-      "birthdate": "2001-09-24",
+      "birthdate": null,
       "gender": "f",
       "race": "저그",
       "tier": "6",
@@ -699,7 +699,7 @@
     {
       "nickname": "정서린",
       "elo_id": 751,
-      "birthdate": "1999-07-05",
+      "birthdate": null,
       "gender": "f",
       "race": "프로토스",
       "tier": "6",
@@ -711,7 +711,7 @@
     {
       "nickname": "단비송",
       "elo_id": 798,
-      "birthdate": "2001-03-05",
+      "birthdate": null,
       "gender": "f",
       "race": "테란",
       "tier": "8",
@@ -723,7 +723,7 @@
     {
       "nickname": "또아",
       "elo_id": 846,
-      "birthdate": "2002-10-13",
+      "birthdate": null,
       "gender": "f",
       "race": "저그",
       "tier": "8",
@@ -735,7 +735,7 @@
     {
       "nickname": "연또",
       "elo_id": 832,
-      "birthdate": "1997-07-14",
+      "birthdate": null,
       "gender": "f",
       "race": "프로토스",
       "tier": "8",
@@ -747,7 +747,7 @@
     {
       "nickname": "김민철",
       "elo_id": 15,
-      "birthdate": "1991-12-10",
+      "birthdate": null,
       "gender": "m",
       "race": "저그",
       "tier": "갓",
@@ -757,9 +757,9 @@
       "id": "minchul"
     },
     {
-      "nickname": "사테",
+      "nickname": "김태영",
       "elo_id": 21,
-      "birthdate": "1992-07-16",
+      "birthdate": null,
       "gender": "m",
       "race": "테란",
       "tier": "킹",
@@ -771,19 +771,19 @@
     {
       "nickname": "김윤환",
       "elo_id": 1,
-      "birthdate": "1989-06-13",
+      "birthdate": null,
       "gender": "m",
       "race": "저그",
       "tier": "킹",
       "team": "캄몬스타즈",
-      "role": "수장",
+      "role": "",
       "info_updated_at": null,
       "id": "brainzerg7"
     },
     {
       "nickname": "박준오",
       "elo_id": 43,
-      "birthdate": "1992-06-24",
+      "birthdate": null,
       "gender": "m",
       "race": "저그",
       "tier": "킹",
@@ -795,7 +795,7 @@
     {
       "nickname": "배성흠",
       "elo_id": 48,
-      "birthdate": "1991-08-17",
+      "birthdate": null,
       "gender": "m",
       "race": "저그",
       "tier": "잭",
@@ -805,9 +805,9 @@
       "id": "goodzerg"
     },
     {
-      "nickname": "왜냐맨",
+      "nickname": "장민철",
       "elo_id": 162,
-      "birthdate": "1991-06-17",
+      "birthdate": null,
       "gender": "m",
       "race": "프로토스",
       "tier": "잭",
@@ -819,7 +819,7 @@
     {
       "nickname": "남덕선",
       "elo_id": 209,
-      "birthdate": "1994-02-27",
+      "birthdate": null,
       "gender": "f",
       "race": "저그",
       "tier": "2",
@@ -831,7 +831,7 @@
     {
       "nickname": "지두두",
       "elo_id": 422,
-      "birthdate": "1997-09-01",
+      "birthdate": null,
       "gender": "f",
       "race": "테란",
       "tier": "3",
@@ -843,7 +843,7 @@
     {
       "nickname": "토마토",
       "elo_id": 367,
-      "birthdate": "1999-08-05",
+      "birthdate": null,
       "gender": "f",
       "race": "프로토스",
       "tier": "3",
@@ -855,7 +855,7 @@
     {
       "nickname": "햇살",
       "elo_id": 407,
-      "birthdate": "1996-11-21",
+      "birthdate": null,
       "gender": "f",
       "race": "테란",
       "tier": "4",
@@ -867,7 +867,7 @@
     {
       "nickname": "소주양",
       "elo_id": 619,
-      "birthdate": "1999-02-22",
+      "birthdate": null,
       "gender": "f",
       "race": "테란",
       "tier": "5",
@@ -879,7 +879,7 @@
     {
       "nickname": "주하랑",
       "elo_id": 649,
-      "birthdate": "1999-10-15",
+      "birthdate": null,
       "gender": "f",
       "race": "프로토스",
       "tier": "5",
@@ -891,7 +891,7 @@
     {
       "nickname": "비타밍",
       "elo_id": 694,
-      "birthdate": "2000-01-20",
+      "birthdate": null,
       "gender": "f",
       "race": "테란",
       "tier": "6",
@@ -903,7 +903,7 @@
     {
       "nickname": "임조이",
       "elo_id": 704,
-      "birthdate": "1998-11-11",
+      "birthdate": null,
       "gender": "f",
       "race": "저그",
       "tier": "6",
@@ -915,7 +915,7 @@
     {
       "nickname": "아리송이",
       "elo_id": 799,
-      "birthdate": "1999-01-02",
+      "birthdate": null,
       "gender": "f",
       "race": "프로토스",
       "tier": "6",
@@ -927,7 +927,7 @@
     {
       "nickname": "먼진",
       "elo_id": 695,
-      "birthdate": "2001-01-13",
+      "birthdate": null,
       "gender": "f",
       "race": "저그",
       "tier": "7",
@@ -951,7 +951,7 @@
     {
       "nickname": "이영한",
       "elo_id": 6,
-      "birthdate": "1991-08-24",
+      "birthdate": null,
       "gender": "m",
       "race": "저그",
       "tier": "갓",
@@ -963,7 +963,7 @@
     {
       "nickname": "만두호성",
       "elo_id": 88,
-      "birthdate": "1995-08-30",
+      "birthdate": null,
       "gender": "m",
       "race": "테란",
       "tier": "잭",
@@ -975,7 +975,7 @@
     {
       "nickname": "얍삽e",
       "elo_id": 27,
-      "birthdate": "1992-03-05",
+      "birthdate": null,
       "gender": "m",
       "race": "저그",
       "tier": "잭",
@@ -987,7 +987,7 @@
     {
       "nickname": "이창우",
       "elo_id": 156,
-      "birthdate": "1994-11-08",
+      "birthdate": null,
       "gender": "m",
       "race": "저그",
       "tier": "잭",
@@ -999,7 +999,7 @@
     {
       "nickname": "정경두",
       "elo_id": 130,
-      "birthdate": "1992-10-15",
+      "birthdate": null,
       "gender": "m",
       "race": "프로토스",
       "tier": "잭",
@@ -1011,7 +1011,7 @@
     {
       "nickname": "최재성",
       "elo_id": 135,
-      "birthdate": "1994-03-01",
+      "birthdate": null,
       "gender": "m",
       "race": "테란",
       "tier": "조커",
@@ -1023,7 +1023,7 @@
     {
       "nickname": "빡죠스",
       "elo_id": 150,
-      "birthdate": "1992-11-27",
+      "birthdate": null,
       "gender": "m",
       "race": "프로토스",
       "tier": "스페이드",
@@ -1035,7 +1035,7 @@
     {
       "nickname": "토스봇",
       "elo_id": 6218,
-      "birthdate": "1989-11-26",
+      "birthdate": null,
       "gender": "m",
       "race": "프로토스",
       "tier": "0",
@@ -1059,19 +1059,19 @@
     {
       "nickname": "마예준",
       "elo_id": 6473,
-      "birthdate": "1984-12-19",
+      "birthdate": null,
       "gender": "m",
       "race": "프로토스",
       "tier": "8",
       "team": "엠비대",
-      "role": "수장",
+      "role": "",
       "info_updated_at": null,
       "id": "tiger3006"
     },
     {
       "nickname": "카히리",
       "elo_id": 444,
-      "birthdate": "1996-10-29",
+      "birthdate": null,
       "gender": "f",
       "race": "저그",
       "tier": "2",
@@ -1083,7 +1083,7 @@
     {
       "nickname": "구보라",
       "elo_id": 384,
-      "birthdate": "1999-04-27",
+      "birthdate": null,
       "gender": "f",
       "race": "프로토스",
       "tier": "3",
@@ -1095,7 +1095,7 @@
     {
       "nickname": "최세상",
       "elo_id": 573,
-      "birthdate": "1999-02-02",
+      "birthdate": null,
       "gender": "f",
       "race": "테란",
       "tier": "5",
@@ -1107,7 +1107,7 @@
     {
       "nickname": "시녕뭉",
       "elo_id": 556,
-      "birthdate": "1996-02-16",
+      "birthdate": null,
       "gender": "f",
       "race": "저그",
       "tier": "5",
@@ -1119,7 +1119,7 @@
     {
       "nickname": "오하얀",
       "elo_id": 552,
-      "birthdate": "1997-05-24",
+      "birthdate": null,
       "gender": "f",
       "race": "프로토스",
       "tier": "5",
@@ -1131,7 +1131,7 @@
     {
       "nickname": "연수",
       "elo_id": 534,
-      "birthdate": "1996-12-02",
+      "birthdate": null,
       "gender": "f",
       "race": "테란",
       "tier": "6",
@@ -1143,7 +1143,7 @@
     {
       "nickname": "김채이",
       "elo_id": 667,
-      "birthdate": "1997-04-23",
+      "birthdate": null,
       "gender": "f",
       "race": "프로토스",
       "tier": "6",
@@ -1155,7 +1155,7 @@
     {
       "nickname": "정다닝",
       "elo_id": 789,
-      "birthdate": "2004-03-01",
+      "birthdate": null,
       "gender": "f",
       "race": "테란",
       "tier": "7",
@@ -1167,7 +1167,7 @@
     {
       "nickname": "권아온",
       "elo_id": 807,
-      "birthdate": "1997-05-30",
+      "birthdate": null,
       "gender": "f",
       "race": "저그",
       "tier": "8",
@@ -1179,7 +1179,7 @@
     {
       "nickname": "햄희",
       "elo_id": 827,
-      "birthdate": "2003-06-05",
+      "birthdate": null,
       "gender": "f",
       "race": "저그",
       "tier": "8",
@@ -1189,9 +1189,9 @@
       "id": "hamhee"
     },
     {
-      "nickname": "요구리",
+      "nickname": "요정너구리",
       "elo_id": 825,
-      "birthdate": "2002-11-13",
+      "birthdate": null,
       "gender": "f",
       "race": "프로토스",
       "tier": "8",
@@ -1203,7 +1203,7 @@
     {
       "nickname": "김수식",
       "elo_id": 145,
-      "birthdate": "1997-03-25",
+      "birthdate": null,
       "gender": "m",
       "race": "저그",
       "tier": "잭",
@@ -1215,7 +1215,7 @@
     {
       "nickname": "쿨지지",
       "elo_id": 141,
-      "birthdate": "1997-12-08",
+      "birthdate": null,
       "gender": "m",
       "race": "프로토스",
       "tier": "잭",
@@ -1227,7 +1227,7 @@
     {
       "nickname": "전상욱",
       "elo_id": 51,
-      "birthdate": "1987-02-21",
+      "birthdate": null,
       "gender": "m",
       "race": "테란",
       "tier": "조커",
@@ -1239,7 +1239,7 @@
     {
       "nickname": "허유",
       "elo_id": 89,
-      "birthdate": "1992-05-18",
+      "birthdate": null,
       "gender": "m",
       "race": "저그",
       "tier": "조커",
@@ -1251,7 +1251,7 @@
     {
       "nickname": "박성준",
       "elo_id": 178,
-      "birthdate": "1986-12-18",
+      "birthdate": null,
       "gender": "m",
       "race": "저그",
       "tier": "스페이드",
@@ -1263,19 +1263,19 @@
     {
       "nickname": "와이퍼",
       "elo_id": 6467,
-      "birthdate": "1994-06-28",
+      "birthdate": null,
       "gender": "m",
       "race": "프로토스",
       "tier": "8",
       "team": "와플대",
-      "role": "수장",
+      "role": "",
       "info_updated_at": null,
       "id": "tkdduddb06"
     },
     {
       "nickname": "애공",
       "elo_id": 279,
-      "birthdate": "1989-04-18",
+      "birthdate": null,
       "gender": "f",
       "race": "프로토스",
       "tier": "1",
@@ -1287,7 +1287,7 @@
     {
       "nickname": "최하니",
       "elo_id": 216,
-      "birthdate": "1990-11-26",
+      "birthdate": null,
       "gender": "f",
       "race": "프로토스",
       "tier": "3",
@@ -1299,7 +1299,7 @@
     {
       "nickname": "금선",
       "elo_id": 474,
-      "birthdate": "1998-05-19",
+      "birthdate": null,
       "gender": "f",
       "race": "테란",
       "tier": "4",
@@ -1311,7 +1311,7 @@
     {
       "nickname": "비재희",
       "elo_id": 621,
-      "birthdate": "1996-10-04",
+      "birthdate": null,
       "gender": "f",
       "race": "저그",
       "tier": "5",
@@ -1323,7 +1323,7 @@
     {
       "nickname": "삐약삐약",
       "elo_id": 811,
-      "birthdate": "1996-06-08",
+      "birthdate": null,
       "gender": "f",
       "race": "저그",
       "tier": "5",
@@ -1335,7 +1335,7 @@
     {
       "nickname": "태린",
       "elo_id": 608,
-      "birthdate": "1992-07-09",
+      "birthdate": null,
       "gender": "f",
       "race": "프로토스",
       "tier": "6",
@@ -1347,7 +1347,7 @@
     {
       "nickname": "하이현",
       "elo_id": 693,
-      "birthdate": "1997-09-07",
+      "birthdate": null,
       "gender": "f",
       "race": "테란",
       "tier": "7",
@@ -1359,7 +1359,7 @@
     {
       "nickname": "얌쭈",
       "elo_id": 675,
-      "birthdate": "1995-06-17",
+      "birthdate": null,
       "gender": "f",
       "race": "저그",
       "tier": "7",
@@ -1371,7 +1371,7 @@
     {
       "nickname": "루다",
       "elo_id": 748,
-      "birthdate": "1997-05-23",
+      "birthdate": null,
       "gender": "f",
       "race": "저그",
       "tier": "8",
@@ -1383,7 +1383,7 @@
     {
       "nickname": "구키",
       "elo_id": 733,
-      "birthdate": "1996-11-16",
+      "birthdate": null,
       "gender": "f",
       "race": "프로토스",
       "tier": "8",
@@ -1407,23 +1407,23 @@
     {
       "nickname": "신상문",
       "elo_id": 100,
-      "birthdate": "1989-11-21",
+      "birthdate": null,
       "gender": "m",
       "race": "테란",
       "tier": "갓",
-      "team": "FA",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "palko1"
     },
     {
-      "nickname": "짭제",
+      "nickname": "박상현",
       "elo_id": 22,
-      "birthdate": "1995-08-22",
+      "birthdate": null,
       "gender": "m",
       "race": "저그",
       "tier": "갓",
-      "team": "FA",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "thakzkf"
@@ -1431,11 +1431,11 @@
     {
       "nickname": "선우도현",
       "elo_id": 165,
-      "birthdate": "1997-08-17",
+      "birthdate": null,
       "gender": "m",
       "race": "저그",
       "tier": "잭",
-      "team": "FA",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "dohyeon97"
@@ -1443,7 +1443,7 @@
     {
       "nickname": "김기덕",
       "elo_id": 153,
-      "birthdate": "1991-01-02",
+      "birthdate": null,
       "gender": "m",
       "race": "저그",
       "tier": "조커",
@@ -1455,11 +1455,11 @@
     {
       "nickname": "전제민",
       "elo_id": 75,
-      "birthdate": "1993-08-21",
+      "birthdate": null,
       "gender": "m",
       "race": "프로토스",
       "tier": "조커",
-      "team": "FA",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "wjswpalssla1"
@@ -1467,19 +1467,19 @@
     {
       "nickname": "윤준석",
       "elo_id": 125,
-      "birthdate": "1986-02-01",
+      "birthdate": null,
       "gender": "m",
       "race": "프로토스",
       "tier": "조커",
-      "team": "FA",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "comcmxx"
     },
     {
-      "nickname": "이소룡",
+      "nickname": "소룡이",
       "elo_id": 78,
-      "birthdate": "1993-11-21",
+      "birthdate": null,
       "gender": "m",
       "race": "프로토스",
       "tier": "0",
@@ -1491,23 +1491,23 @@
     {
       "nickname": "정중만",
       "elo_id": 6353,
-      "birthdate": "1994-01-15",
+      "birthdate": null,
       "gender": "m",
       "race": "프로토스",
       "tier": "5",
       "team": "영정",
-      "role": "수장",
+      "role": "",
       "info_updated_at": null,
       "id": "ititit"
     },
     {
       "nickname": "다린",
       "elo_id": 202,
-      "birthdate": "1990-10-02",
+      "birthdate": null,
       "gender": "f",
       "race": "테란",
       "tier": "1",
-      "team": "FA",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "bijyu90"
@@ -1515,7 +1515,7 @@
     {
       "nickname": "공다츠",
       "elo_id": 512,
-      "birthdate": "1998-11-22",
+      "birthdate": null,
       "gender": "f",
       "race": "저그",
       "tier": "3",
@@ -1527,7 +1527,7 @@
     {
       "nickname": "파찌",
       "elo_id": 248,
-      "birthdate": "1988-06-25",
+      "birthdate": null,
       "gender": "f",
       "race": "저그",
       "tier": "3",
@@ -1539,7 +1539,7 @@
     {
       "nickname": "기나",
       "elo_id": 283,
-      "birthdate": "1997-07-05",
+      "birthdate": null,
       "gender": "f",
       "race": "프로토스",
       "tier": "3",
@@ -1551,11 +1551,11 @@
     {
       "nickname": "몽순",
       "elo_id": 562,
-      "birthdate": "1993-04-15",
+      "birthdate": null,
       "gender": "f",
       "race": "저그",
       "tier": "4",
-      "team": "FA",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "totlllsz"
@@ -1563,11 +1563,11 @@
     {
       "nickname": "깨림이",
       "elo_id": 581,
-      "birthdate": "1997-04-29",
+      "birthdate": null,
       "gender": "f",
       "race": "테란",
       "tier": "5",
-      "team": "FA",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "nerve89"
@@ -1575,11 +1575,11 @@
     {
       "nickname": "2라니",
       "elo_id": 689,
-      "birthdate": "1994-10-13",
+      "birthdate": null,
       "gender": "f",
       "race": "저그",
       "tier": "6",
-      "team": "FA",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "wlgua7272"
@@ -1587,11 +1587,11 @@
     {
       "nickname": "핑핑",
       "elo_id": 719,
-      "birthdate": "1999-02-15",
+      "birthdate": null,
       "gender": "f",
       "race": "저그",
       "tier": "6",
-      "team": "FA",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "nreupne"
@@ -1599,7 +1599,7 @@
     {
       "nickname": "밍가",
       "elo_id": 628,
-      "birthdate": "1998-11-04",
+      "birthdate": null,
       "gender": "f",
       "race": "프로토스",
       "tier": "6",
@@ -1611,11 +1611,11 @@
     {
       "nickname": "밥새",
       "elo_id": 720,
-      "birthdate": "2004-06-08",
+      "birthdate": null,
       "gender": "f",
       "race": "테란",
       "tier": "7",
-      "team": "FA",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "jiinii000"
@@ -1623,11 +1623,11 @@
     {
       "nickname": "면추가",
       "elo_id": 771,
-      "birthdate": "2003-06-06",
+      "birthdate": null,
       "gender": "f",
       "race": "저그",
       "tier": "7",
-      "team": "FA",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "min030606"
@@ -1635,11 +1635,11 @@
     {
       "nickname": "헤요이",
       "elo_id": 788,
-      "birthdate": "2000-01-20",
+      "birthdate": null,
       "gender": "f",
       "race": "프로토스",
       "tier": "7",
-      "team": "FA",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "heyyo0123"
@@ -1647,11 +1647,11 @@
     {
       "nickname": "아링",
       "elo_id": 768,
-      "birthdate": "2002-01-16",
+      "birthdate": null,
       "gender": "f",
       "race": "프로토스",
       "tier": "7",
-      "team": "FA",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "jungym0116"
@@ -1659,11 +1659,11 @@
     {
       "nickname": "봄덕이",
       "elo_id": 841,
-      "birthdate": "1996-12-12",
+      "birthdate": null,
       "gender": "f",
       "race": "프로토스",
       "tier": "8",
-      "team": "FA",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "zinsim"
@@ -1683,7 +1683,7 @@
     {
       "nickname": "도재욱",
       "elo_id": 14,
-      "birthdate": "1989-10-06",
+      "birthdate": null,
       "gender": "m",
       "race": "프로토스",
       "tier": "갓",
@@ -1695,7 +1695,7 @@
     {
       "nickname": "박성균",
       "elo_id": 61,
-      "birthdate": "1991-10-03",
+      "birthdate": null,
       "gender": "m",
       "race": "테란",
       "tier": "킹",
@@ -1707,7 +1707,7 @@
     {
       "nickname": "구라미스",
       "elo_id": 137,
-      "birthdate": "1997-07-25",
+      "birthdate": null,
       "gender": "m",
       "race": "프로토스",
       "tier": "잭",
@@ -1719,19 +1719,19 @@
     {
       "nickname": "기뉴다",
       "elo_id": 45,
-      "birthdate": "1988-10-22",
+      "birthdate": null,
       "gender": "m",
       "race": "테란",
       "tier": "조커",
       "team": "뉴캣슬",
-      "role": "수장",
+      "role": "",
       "info_updated_at": null,
       "id": "arinbbidol"
     },
     {
       "nickname": "김건욱",
       "elo_id": 56,
-      "birthdate": "1995-03-26",
+      "birthdate": null,
       "gender": "m",
       "race": "저그",
       "tier": "조커",
@@ -1743,7 +1743,7 @@
     {
       "nickname": "액션구드론",
       "elo_id": 93,
-      "birthdate": "1993-12-12",
+      "birthdate": null,
       "gender": "m",
       "race": "저그",
       "tier": "조커",
@@ -1755,7 +1755,7 @@
     {
       "nickname": "초난강",
       "elo_id": 84,
-      "birthdate": "1997-01-18",
+      "birthdate": null,
       "gender": "m",
       "race": "테란",
       "tier": "스페이드",
@@ -1767,7 +1767,7 @@
     {
       "nickname": "저그맨박성준",
       "elo_id": 188,
-      "birthdate": "1984-10-28",
+      "birthdate": null,
       "gender": "m",
       "race": "저그",
       "tier": "스페이드",
@@ -1779,7 +1779,7 @@
     {
       "nickname": "트슈",
       "elo_id": 6177,
-      "birthdate": "1993-12-19",
+      "birthdate": null,
       "gender": "m",
       "race": "프로토스",
       "tier": "스페이드",
@@ -1791,7 +1791,7 @@
     {
       "nickname": "박듀듀",
       "elo_id": 448,
-      "birthdate": "1996-07-05",
+      "birthdate": null,
       "gender": "f",
       "race": "프로토스",
       "tier": "3",
@@ -1803,7 +1803,7 @@
     {
       "nickname": "키링",
       "elo_id": 663,
-      "birthdate": "2000-04-19",
+      "birthdate": null,
       "gender": "f",
       "race": "프로토스",
       "tier": "4",
@@ -1815,7 +1815,7 @@
     {
       "nickname": "최도랑",
       "elo_id": 443,
-      "birthdate": "1997-01-24",
+      "birthdate": null,
       "gender": "f",
       "race": "프로토스",
       "tier": "4",
@@ -1827,7 +1827,7 @@
     {
       "nickname": "백갑숙",
       "elo_id": 698,
-      "birthdate": "2003-06-18",
+      "birthdate": null,
       "gender": "f",
       "race": "프로토스",
       "tier": "5",
@@ -1839,7 +1839,7 @@
     {
       "nickname": "이아깽",
       "elo_id": 627,
-      "birthdate": "1998-12-03",
+      "birthdate": null,
       "gender": "f",
       "race": "테란",
       "tier": "6",
@@ -1851,7 +1851,7 @@
     {
       "nickname": "진유성",
       "elo_id": 673,
-      "birthdate": "2002-11-02",
+      "birthdate": null,
       "gender": "f",
       "race": "프로토스",
       "tier": "6",
@@ -1863,7 +1863,7 @@
     {
       "nickname": "막내현진",
       "elo_id": 742,
-      "birthdate": "1998-04-23",
+      "birthdate": null,
       "gender": "f",
       "race": "프로토스",
       "tier": "6",
@@ -1875,7 +1875,7 @@
     {
       "nickname": "밍또얌",
       "elo_id": 774,
-      "birthdate": "2002-02-10",
+      "birthdate": null,
       "gender": "f",
       "race": "테란",
       "tier": "7",
@@ -1887,7 +1887,7 @@
     {
       "nickname": "퀸주",
       "elo_id": 792,
-      "birthdate": "2004-08-16",
+      "birthdate": null,
       "gender": "f",
       "race": "저그",
       "tier": "7",
@@ -1899,7 +1899,7 @@
     {
       "nickname": "냥냥코기",
       "elo_id": 780,
-      "birthdate": "2001-11-02",
+      "birthdate": null,
       "gender": "f",
       "race": "저그",
       "tier": "7",
@@ -1911,7 +1911,7 @@
     {
       "nickname": "유즈",
       "elo_id": 828,
-      "birthdate": "2002-02-09",
+      "birthdate": null,
       "gender": "f",
       "race": "저그",
       "tier": "8",
@@ -1923,7 +1923,7 @@
     {
       "nickname": "단솔",
       "elo_id": 833,
-      "birthdate": "1996-03-02",
+      "birthdate": null,
       "gender": "f",
       "race": "프로토스",
       "tier": "8",
@@ -1935,7 +1935,7 @@
     {
       "nickname": "으니",
       "elo_id": 830,
-      "birthdate": "2003-01-07",
+      "birthdate": null,
       "gender": "f",
       "race": "프로토스",
       "tier": "8",
@@ -1958,12 +1958,12 @@
     },
     {
       "nickname": "프발",
-      "elo_id": 91,
-      "birthdate": "1995-08-28",
+      "elo_id": 92,
+      "birthdate": null,
       "gender": "m",
       "race": "프로토스",
       "tier": "잭",
-      "team": "BGM",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "lky6407"
@@ -1971,7 +1971,7 @@
     {
       "nickname": "김범수",
       "elo_id": 20,
-      "birthdate": "1994-01-02",
+      "birthdate": null,
       "gender": "m",
       "race": "프로토스",
       "tier": "잭",
@@ -1983,7 +1983,7 @@
     {
       "nickname": "이윤열",
       "elo_id": 115,
-      "birthdate": "1984-11-20",
+      "birthdate": null,
       "gender": "m",
       "race": "테란",
       "tier": "스페이드",
@@ -1995,7 +1995,7 @@
     {
       "nickname": "난수",
       "elo_id": 79,
-      "birthdate": "1989-11-21",
+      "birthdate": null,
       "gender": "m",
       "race": "프로토스",
       "tier": "스페이드",
@@ -2019,7 +2019,7 @@
     {
       "nickname": "안아",
       "elo_id": 277,
-      "birthdate": "1993-04-02",
+      "birthdate": null,
       "gender": "f",
       "race": "프로토스",
       "tier": "1",
@@ -2031,7 +2031,7 @@
     {
       "nickname": "뚜미",
       "elo_id": 470,
-      "birthdate": "1993-04-20",
+      "birthdate": null,
       "gender": "f",
       "race": "테란",
       "tier": "3",
@@ -2043,7 +2043,7 @@
     {
       "nickname": "꼬니부깅",
       "elo_id": 201,
-      "birthdate": "1991-08-12",
+      "birthdate": null,
       "gender": "f",
       "race": "프로토스",
       "tier": "4",
@@ -2053,9 +2053,9 @@
       "id": "kitty1029"
     },
     {
-      "nickname": "뽀누나",
+      "nickname": "옆집뽀누나",
       "elo_id": 399,
-      "birthdate": "1981-09-13",
+      "birthdate": null,
       "gender": "f",
       "race": "테란",
       "tier": "5",
@@ -2067,7 +2067,7 @@
     {
       "nickname": "슈슈",
       "elo_id": 547,
-      "birthdate": "1990-12-14",
+      "birthdate": null,
       "gender": "f",
       "race": "저그",
       "tier": "5",
@@ -2079,7 +2079,7 @@
     {
       "nickname": "라운이",
       "elo_id": 314,
-      "birthdate": "1995-07-15",
+      "birthdate": null,
       "gender": "f",
       "race": "프로토스",
       "tier": "5",
@@ -2091,7 +2091,7 @@
     {
       "nickname": "엔돌핀",
       "elo_id": 463,
-      "birthdate": "1996-04-03",
+      "birthdate": null,
       "gender": "f",
       "race": "테란",
       "tier": "6",
@@ -2103,7 +2103,7 @@
     {
       "nickname": "다라츄",
       "elo_id": 744,
-      "birthdate": "1998-04-10",
+      "birthdate": null,
       "gender": "f",
       "race": "저그",
       "tier": "7",
@@ -2115,7 +2115,7 @@
     {
       "nickname": "제티",
       "elo_id": 773,
-      "birthdate": "1992-08-27",
+      "birthdate": null,
       "gender": "f",
       "race": "프로토스",
       "tier": "7",
@@ -2127,7 +2127,7 @@
     {
       "nickname": "황단비",
       "elo_id": 629,
-      "birthdate": "1996-10-03",
+      "birthdate": null,
       "gender": "f",
       "race": "저그",
       "tier": "8",
@@ -2139,7 +2139,7 @@
     {
       "nickname": "예담",
       "elo_id": 580,
-      "birthdate": "1997-04-29",
+      "birthdate": null,
       "gender": "f",
       "race": "프로토스",
       "tier": "8",
@@ -2163,19 +2163,19 @@
     {
       "nickname": "임진묵",
       "elo_id": 5,
-      "birthdate": "1988-01-29",
+      "birthdate": null,
       "gender": "m",
       "race": "테란",
       "tier": "킹",
       "team": "DM",
-      "role": "수장",
+      "role": "",
       "info_updated_at": null,
       "id": "organ333"
     },
     {
       "nickname": "이예훈",
       "elo_id": 70,
-      "birthdate": "1992-02-18",
+      "birthdate": null,
       "gender": "m",
       "race": "저그",
       "tier": "킹",
@@ -2187,7 +2187,7 @@
     {
       "nickname": "원선재",
       "elo_id": 26,
-      "birthdate": "1993-07-12",
+      "birthdate": null,
       "gender": "m",
       "race": "프로토스",
       "tier": "킹",
@@ -2199,19 +2199,19 @@
     {
       "nickname": "전태규",
       "elo_id": 110,
-      "birthdate": "1984-02-13",
+      "birthdate": null,
       "gender": "m",
       "race": "프로토스",
       "tier": "스페이드",
       "team": "DM",
-      "role": "수장",
+      "role": "",
       "info_updated_at": null,
       "id": "70jeontaekyu"
     },
     {
       "nickname": "서지수",
       "elo_id": 247,
-      "birthdate": "1985-05-21",
+      "birthdate": null,
       "gender": "f",
       "race": "테란",
       "tier": "0",
@@ -2223,7 +2223,7 @@
     {
       "nickname": "다나짱",
       "elo_id": 339,
-      "birthdate": "1998-10-01",
+      "birthdate": null,
       "gender": "f",
       "race": "프로토스",
       "tier": "2",
@@ -2235,7 +2235,7 @@
     {
       "nickname": "빵리나",
       "elo_id": 274,
-      "birthdate": "1995-02-08",
+      "birthdate": null,
       "gender": "f",
       "race": "프로토스",
       "tier": "3",
@@ -2247,7 +2247,7 @@
     {
       "nickname": "정소이",
       "elo_id": 513,
-      "birthdate": "1996-01-05",
+      "birthdate": null,
       "gender": "f",
       "race": "저그",
       "tier": "4",
@@ -2259,7 +2259,7 @@
     {
       "nickname": "수니양",
       "elo_id": 707,
-      "birthdate": "1997-06-20",
+      "birthdate": null,
       "gender": "f",
       "race": "테란",
       "tier": "6",
@@ -2271,7 +2271,7 @@
     {
       "nickname": "김말랑",
       "elo_id": 687,
-      "birthdate": "1996-01-11",
+      "birthdate": null,
       "gender": "f",
       "race": "테란",
       "tier": "7",
@@ -2283,7 +2283,7 @@
     {
       "nickname": "다뉴",
       "elo_id": 601,
-      "birthdate": "1999-06-19",
+      "birthdate": null,
       "gender": "f",
       "race": "저그",
       "tier": "7",
@@ -2295,7 +2295,7 @@
     {
       "nickname": "은서",
       "elo_id": 728,
-      "birthdate": "2000-10-28",
+      "birthdate": null,
       "gender": "f",
       "race": "프로토스",
       "tier": "7",
@@ -2307,7 +2307,7 @@
     {
       "nickname": "은조",
       "elo_id": 814,
-      "birthdate": "2005-01-05",
+      "birthdate": null,
       "gender": "f",
       "race": "저그",
       "tier": "8",
@@ -2317,9 +2317,9 @@
       "id": "eunjo0105"
     },
     {
-      "nickname": "몽군",
+      "nickname": "윤찬희",
       "elo_id": 24,
-      "birthdate": "1992-05-17",
+      "birthdate": null,
       "gender": "m",
       "race": "테란",
       "tier": "킹",
@@ -2331,7 +2331,7 @@
     {
       "nickname": "윤수철",
       "elo_id": 9,
-      "birthdate": "1993-12-14",
+      "birthdate": null,
       "gender": "m",
       "race": "프로토스",
       "tier": "킹",
@@ -2343,7 +2343,7 @@
     {
       "nickname": "권혁진",
       "elo_id": 55,
-      "birthdate": "1991-11-23",
+      "birthdate": null,
       "gender": "m",
       "race": "프로토스",
       "tier": "잭",
@@ -2367,7 +2367,7 @@
     {
       "nickname": "또봉순",
       "elo_id": 206,
-      "birthdate": "1991-06-03",
+      "birthdate": null,
       "gender": "f",
       "race": "저그",
       "tier": "2",
@@ -2379,7 +2379,7 @@
     {
       "nickname": "연애인",
       "elo_id": 350,
-      "birthdate": "1987-10-31",
+      "birthdate": null,
       "gender": "f",
       "race": "프로토스",
       "tier": "4",
@@ -2391,7 +2391,7 @@
     {
       "nickname": "예실",
       "elo_id": 677,
-      "birthdate": "2000-12-05",
+      "birthdate": null,
       "gender": "f",
       "race": "프로토스",
       "tier": "5",
@@ -2403,7 +2403,7 @@
     {
       "nickname": "지우리",
       "elo_id": 786,
-      "birthdate": "2004-08-05",
+      "birthdate": null,
       "gender": "f",
       "race": "테란",
       "tier": "7",
@@ -2415,7 +2415,7 @@
     {
       "nickname": "요시",
       "elo_id": 734,
-      "birthdate": "1997-01-21",
+      "birthdate": null,
       "gender": "f",
       "race": "프로토스",
       "tier": "7",
@@ -2427,7 +2427,7 @@
     {
       "nickname": "밤하밍",
       "elo_id": 821,
-      "birthdate": "2006-06-24",
+      "birthdate": null,
       "gender": "f",
       "race": "테란",
       "tier": "8",
@@ -2439,7 +2439,7 @@
     {
       "nickname": "혜냥",
       "elo_id": 824,
-      "birthdate": "1997-03-27",
+      "birthdate": null,
       "gender": "f",
       "race": "프로토스",
       "tier": "8",
@@ -2451,7 +2451,7 @@
     {
       "nickname": "윤진규",
       "elo_id": 122,
-      "birthdate": "1996-05-22",
+      "birthdate": null,
       "gender": "m",
       "race": "저그",
       "tier": "잭",
@@ -2463,7 +2463,7 @@
     {
       "nickname": "박재혁",
       "elo_id": 19,
-      "birthdate": "1987-04-11",
+      "birthdate": null,
       "gender": "m",
       "race": "저그",
       "tier": "잭",
@@ -2475,12 +2475,12 @@
     {
       "nickname": "빵훈",
       "elo_id": 6187,
-      "birthdate": "1994-02-18",
+      "birthdate": null,
       "gender": "m",
       "race": "저그",
       "tier": "2",
       "team": "더블비",
-      "role": "수장",
+      "role": "",
       "info_updated_at": null,
       "id": "vlfvlf789"
     },
@@ -2499,7 +2499,7 @@
     {
       "nickname": "두디",
       "elo_id": 576,
-      "birthdate": "1997-08-04",
+      "birthdate": null,
       "gender": "f",
       "race": "저그",
       "tier": "4",
@@ -2511,7 +2511,7 @@
     {
       "nickname": "아라미",
       "elo_id": 504,
-      "birthdate": "1993-12-13",
+      "birthdate": null,
       "gender": "f",
       "race": "저그",
       "tier": "5",
@@ -2523,7 +2523,7 @@
     {
       "nickname": "예슬",
       "elo_id": 544,
-      "birthdate": "1995-08-11",
+      "birthdate": null,
       "gender": "f",
       "race": "프로토스",
       "tier": "5",
@@ -2535,7 +2535,7 @@
     {
       "nickname": "또해영",
       "elo_id": 724,
-      "birthdate": "2000-01-06",
+      "birthdate": null,
       "gender": "f",
       "race": "저그",
       "tier": "6",
@@ -2547,7 +2547,7 @@
     {
       "nickname": "한쪼니",
       "elo_id": 715,
-      "birthdate": "1995-03-28",
+      "birthdate": null,
       "gender": "f",
       "race": "프로토스",
       "tier": "7",
@@ -2559,7 +2559,7 @@
     {
       "nickname": "허로아",
       "elo_id": 731,
-      "birthdate": "2004-02-16",
+      "birthdate": null,
       "gender": "f",
       "race": "테란",
       "tier": "8",
@@ -2571,7 +2571,7 @@
     {
       "nickname": "박쭈이",
       "elo_id": 806,
-      "birthdate": "1999-01-17",
+      "birthdate": null,
       "gender": "f",
       "race": "저그",
       "tier": "8",
@@ -2595,19 +2595,19 @@
     {
       "nickname": "김윤중",
       "elo_id": 4,
-      "birthdate": "1990-07-04",
+      "birthdate": null,
       "gender": "m",
       "race": "프로토스",
       "tier": "갓",
       "team": "드림즈",
-      "role": "수장",
+      "role": "",
       "info_updated_at": null,
       "id": "jk890202"
     },
     {
       "nickname": "황병영",
       "elo_id": 31,
-      "birthdate": "1991-07-24",
+      "birthdate": null,
       "gender": "m",
       "race": "테란",
       "tier": "킹",
@@ -2619,7 +2619,7 @@
     {
       "nickname": "어윤수",
       "elo_id": 180,
-      "birthdate": "1992-09-24",
+      "birthdate": null,
       "gender": "m",
       "race": "저그",
       "tier": "킹",
@@ -2631,7 +2631,7 @@
     {
       "nickname": "윤용태",
       "elo_id": 69,
-      "birthdate": "1988-07-14",
+      "birthdate": null,
       "gender": "m",
       "race": "프로토스",
       "tier": "킹",
@@ -2655,7 +2655,7 @@
     {
       "nickname": "요닝",
       "elo_id": 326,
-      "birthdate": "2000-09-22",
+      "birthdate": null,
       "gender": "f",
       "race": "저그",
       "tier": "3",
@@ -2667,7 +2667,7 @@
     {
       "nickname": "주서리",
       "elo_id": 475,
-      "birthdate": "1990-07-24",
+      "birthdate": null,
       "gender": "f",
       "race": "프로토스",
       "tier": "5",
@@ -2679,7 +2679,7 @@
     {
       "nickname": "모리",
       "elo_id": 661,
-      "birthdate": "2002-03-28",
+      "birthdate": null,
       "gender": "f",
       "race": "테란",
       "tier": "6",
@@ -2691,7 +2691,7 @@
     {
       "nickname": "오리꿍",
       "elo_id": 723,
-      "birthdate": "2001-02-19",
+      "birthdate": null,
       "gender": "f",
       "race": "저그",
       "tier": "6",
@@ -2703,7 +2703,7 @@
     {
       "nickname": "효짱",
       "elo_id": 706,
-      "birthdate": "1998-05-08",
+      "birthdate": null,
       "gender": "f",
       "race": "프로토스",
       "tier": "6",
@@ -2715,7 +2715,7 @@
     {
       "nickname": "진땅콩",
       "elo_id": 775,
-      "birthdate": "2001-01-13",
+      "birthdate": null,
       "gender": "f",
       "race": "프로토스",
       "tier": "7",
@@ -2763,11 +2763,11 @@
     {
       "nickname": "이재호",
       "elo_id": 32,
-      "birthdate": "1990-03-28",
+      "birthdate": null,
       "gender": "m",
       "race": "테란",
       "tier": "갓",
-      "team": "FA",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "scv6256"
@@ -2775,23 +2775,23 @@
     {
       "nickname": "유영진",
       "elo_id": 12,
-      "birthdate": "1991-11-30",
+      "birthdate": null,
       "gender": "m",
       "race": "테란",
       "tier": "갓",
-      "team": "FA",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "yoo376"
     },
     {
-      "nickname": "샤이니",
+      "nickname": "김재현",
       "elo_id": 77,
-      "birthdate": "1992-04-16",
+      "birthdate": null,
       "gender": "m",
       "race": "테란",
       "tier": "갓",
-      "team": "FA",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "onlysibar"
@@ -2799,11 +2799,11 @@
     {
       "nickname": "조일장",
       "elo_id": 13,
-      "birthdate": "1990-06-20",
+      "birthdate": null,
       "gender": "m",
       "race": "저그",
       "tier": "갓",
-      "team": "FA",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "byhero"
@@ -2811,11 +2811,11 @@
     {
       "nickname": "김정우",
       "elo_id": 39,
-      "birthdate": "1991-01-30",
+      "birthdate": null,
       "gender": "m",
       "race": "저그",
       "tier": "갓",
-      "team": "FA",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "momo130"
@@ -2823,11 +2823,11 @@
     {
       "nickname": "이제동",
       "elo_id": 41,
-      "birthdate": "1990-01-09",
+      "birthdate": null,
       "gender": "m",
       "race": "저그",
       "tier": "갓",
-      "team": "FA",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "jaedong23"
@@ -2835,11 +2835,11 @@
     {
       "nickname": "김명운",
       "elo_id": 35,
-      "birthdate": "1990-02-18",
+      "birthdate": null,
       "gender": "m",
       "race": "저그",
       "tier": "갓",
-      "team": "FA",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "kimmyungwun"
@@ -2847,11 +2847,11 @@
     {
       "nickname": "최호선",
       "elo_id": 11,
-      "birthdate": "1990-02-28",
+      "birthdate": null,
       "gender": "m",
       "race": "테란",
       "tier": "킹",
-      "team": "FA",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "ghtjs3833"
@@ -2859,11 +2859,11 @@
     {
       "nickname": "이영호",
       "elo_id": 37,
-      "birthdate": "1992-07-05",
+      "birthdate": null,
       "gender": "m",
       "race": "테란",
       "tier": "킹",
-      "team": "FA",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "byflash"
@@ -2871,11 +2871,11 @@
     {
       "nickname": "김지성",
       "elo_id": 29,
-      "birthdate": "1995-08-10",
+      "birthdate": null,
       "gender": "m",
       "race": "테란",
       "tier": "킹",
-      "team": "FA",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "ho1godme"
@@ -2883,11 +2883,11 @@
     {
       "nickname": "이영웅",
       "elo_id": 17,
-      "birthdate": "1994-01-24",
+      "birthdate": null,
       "gender": "m",
       "race": "테란",
       "tier": "킹",
-      "team": "FA",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "rfvtgb778"
@@ -2895,11 +2895,11 @@
     {
       "nickname": "방태수",
       "elo_id": 151,
-      "birthdate": "1992-04-15",
+      "birthdate": null,
       "gender": "m",
       "race": "저그",
       "tier": "킹",
-      "team": "FA",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "bts150"
@@ -2907,11 +2907,11 @@
     {
       "nickname": "변현제",
       "elo_id": 34,
-      "birthdate": "1994-01-28",
+      "birthdate": null,
       "gender": "m",
       "race": "프로토스",
       "tier": "킹",
-      "team": "FA",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "bye1013"
@@ -2919,11 +2919,11 @@
     {
       "nickname": "김택용",
       "elo_id": 36,
-      "birthdate": "1989-11-03",
+      "birthdate": null,
       "gender": "m",
       "race": "프로토스",
       "tier": "킹",
-      "team": "FA",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "rlaxordyd"
@@ -2931,11 +2931,11 @@
     {
       "nickname": "송병구",
       "elo_id": 16,
-      "birthdate": "1988-08-04",
+      "birthdate": null,
       "gender": "m",
       "race": "프로토스",
       "tier": "킹",
-      "team": "FA",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "koreasbg"
@@ -2943,11 +2943,11 @@
     {
       "nickname": "지동원",
       "elo_id": 71,
-      "birthdate": "1993-02-04",
+      "birthdate": null,
       "gender": "m",
       "race": "테란",
       "tier": "잭",
-      "team": "FA",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "rondobba"
@@ -2955,11 +2955,11 @@
     {
       "nickname": "서문지훈",
       "elo_id": 73,
-      "birthdate": "1993-03-19",
+      "birthdate": null,
       "gender": "m",
       "race": "저그",
       "tier": "잭",
-      "team": "FA",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "jh3697"
@@ -2967,11 +2967,11 @@
     {
       "nickname": "배병우",
       "elo_id": 18,
-      "birthdate": "1987-10-10",
+      "birthdate": null,
       "gender": "m",
       "race": "저그",
       "tier": "잭",
-      "team": "FA",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "bwstar"
@@ -2979,11 +2979,11 @@
     {
       "nickname": "박수범",
       "elo_id": 64,
-      "birthdate": "1990-12-10",
+      "birthdate": null,
       "gender": "m",
       "race": "프로토스",
       "tier": "잭",
-      "team": "FA",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "jihoon002"
@@ -2991,11 +2991,11 @@
     {
       "nickname": "이경민",
       "elo_id": 46,
-      "birthdate": "1992-01-15",
+      "birthdate": null,
       "gender": "m",
       "race": "프로토스",
       "tier": "잭",
-      "team": "FA",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "rudals5467"
@@ -3003,11 +3003,11 @@
     {
       "nickname": "진영화",
       "elo_id": 62,
-      "birthdate": "1990-08-30",
+      "birthdate": null,
       "gender": "m",
       "race": "프로토스",
       "tier": "잭",
-      "team": "FA",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "jyh8610"
@@ -3027,11 +3027,11 @@
     {
       "nickname": "원지훈",
       "elo_id": 83,
-      "birthdate": "1992-05-18",
+      "birthdate": null,
       "gender": "m",
       "race": "프로토스",
       "tier": "잭",
-      "team": "FA",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "wonjoon1814"
@@ -3039,11 +3039,11 @@
     {
       "nickname": "이인극",
       "elo_id": 81,
-      "birthdate": "1992-03-17",
+      "birthdate": null,
       "gender": "m",
       "race": "테란",
       "tier": "조커",
-      "team": "FA",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "toozi0317"
@@ -3051,11 +3051,11 @@
     {
       "nickname": "김대한",
       "elo_id": 58,
-      "birthdate": "1979-12-08",
+      "birthdate": null,
       "gender": "m",
       "race": "저그",
       "tier": "조커",
-      "team": "FA",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "daehan7224"
@@ -3063,11 +3063,11 @@
     {
       "nickname": "김상곤",
       "elo_id": 146,
-      "birthdate": "1995-01-28",
+      "birthdate": null,
       "gender": "m",
       "race": "저그",
       "tier": "조커",
-      "team": "FA",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "byspire"
@@ -3075,11 +3075,11 @@
     {
       "nickname": "인치호",
       "elo_id": 138,
-      "birthdate": "1996-09-02",
+      "birthdate": null,
       "gender": "m",
       "race": "저그",
       "tier": "조커",
-      "team": "FA",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "spark123"
@@ -3099,11 +3099,11 @@
     {
       "nickname": "킁식",
       "elo_id": 98,
-      "birthdate": "1988-12-23",
+      "birthdate": null,
       "gender": "m",
       "race": "프로토스",
       "tier": "조커",
-      "team": "FA",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "zealotmaru"
@@ -3111,11 +3111,11 @@
     {
       "nickname": "박준혁",
       "elo_id": 149,
-      "birthdate": "1994-01-13",
+      "birthdate": null,
       "gender": "m",
       "race": "프로토스",
       "tier": "조커",
-      "team": "FA",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "jhyhlli123"
@@ -3123,11 +3123,11 @@
     {
       "nickname": "손찬웅",
       "elo_id": 173,
-      "birthdate": "1989-05-09",
+      "birthdate": null,
       "gender": "m",
       "race": "프로토스",
       "tier": "조커",
-      "team": "FA",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "cksdnddldhkd"
@@ -3135,11 +3135,11 @@
     {
       "nickname": "미동미동",
       "elo_id": 127,
-      "birthdate": "1994-12-20",
+      "birthdate": null,
       "gender": "m",
       "race": "프로토스",
       "tier": "조커",
-      "team": "FA",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "qhkrwns12"
@@ -3169,13 +3169,13 @@
       "id": "parkjaehyeon"
     },
     {
-      "nickname": "박지호",
+      "nickname": "라박이",
       "elo_id": 85,
-      "birthdate": "1985-01-14",
+      "birthdate": null,
       "gender": "m",
       "race": "프로토스",
       "tier": "조커",
-      "team": "FA",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "jou1025"
@@ -3183,11 +3183,11 @@
     {
       "nickname": "김상수",
       "elo_id": 109,
-      "birthdate": "1990-04-11",
+      "birthdate": null,
       "gender": "m",
       "race": "테란",
       "tier": "스페이드",
-      "team": "FA",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "k1s2s3"
@@ -3195,11 +3195,11 @@
     {
       "nickname": "이완",
       "elo_id": 132,
-      "birthdate": "1984-02-08",
+      "birthdate": null,
       "gender": "m",
       "race": "테란",
       "tier": "스페이드",
-      "team": "FA",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "john06911"
@@ -3207,11 +3207,11 @@
     {
       "nickname": "박태민",
       "elo_id": 60,
-      "birthdate": "1984-12-24",
+      "birthdate": null,
       "gender": "m",
       "race": "저그",
       "tier": "스페이드",
-      "team": "FA",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "cztaemin"
@@ -3231,11 +3231,11 @@
     {
       "nickname": "강민",
       "elo_id": 124,
-      "birthdate": "1982-03-15",
+      "birthdate": null,
       "gender": "m",
       "race": "프로토스",
       "tier": "스페이드",
-      "team": "FA",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "nalra82"
@@ -3243,11 +3243,11 @@
     {
       "nickname": "파도",
       "elo_id": 6385,
-      "birthdate": "1992-07-15",
+      "birthdate": null,
       "gender": "m",
       "race": "프로토스",
       "tier": "스페이드",
-      "team": "FA",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "kthrs9207"
@@ -3255,11 +3255,11 @@
     {
       "nickname": "김성제",
       "elo_id": 174,
-      "birthdate": "1984-02-08",
+      "birthdate": null,
       "gender": "m",
       "race": "프로토스",
       "tier": "스페이드",
-      "team": "FA",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "erosrainbow"
@@ -3267,11 +3267,11 @@
     {
       "nickname": "탱크",
       "elo_id": 170,
-      "birthdate": "1995-11-18",
+      "birthdate": null,
       "gender": "m",
       "race": "프로토스",
       "tier": "스페이드",
-      "team": "FA",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "dkwkal"
@@ -3279,11 +3279,11 @@
     {
       "nickname": "서기수",
       "elo_id": 175,
-      "birthdate": "1984-11-29",
+      "birthdate": null,
       "gender": "m",
       "race": "프로토스",
       "tier": "스페이드",
-      "team": "FA",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "momjin"
@@ -3291,11 +3291,11 @@
     {
       "nickname": "안정우",
       "elo_id": 186,
-      "birthdate": "1992-07-06",
+      "birthdate": null,
       "gender": "m",
       "race": "프로토스",
       "tier": "스페이드",
-      "team": "FA",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "dkswjddn92"
@@ -3327,23 +3327,23 @@
     {
       "nickname": "파메",
       "elo_id": 6290,
-      "birthdate": "1987-09-17",
+      "birthdate": null,
       "gender": "m",
       "race": "프로토스",
       "tier": "0",
-      "team": "FA",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "heksd"
     },
     {
-      "nickname": "멍이",
+      "nickname": "멍이에요",
       "elo_id": 6134,
-      "birthdate": "1994-06-27",
+      "birthdate": null,
       "gender": "m",
       "race": "프로토스",
       "tier": "0",
-      "team": "FA",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "rlawhdwns6"
@@ -3351,11 +3351,11 @@
     {
       "nickname": "유성민",
       "elo_id": 101,
-      "birthdate": "1993-07-16",
+      "birthdate": null,
       "gender": "m",
       "race": "프로토스",
       "tier": "0",
-      "team": "FA",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "goodgame07"
@@ -3363,11 +3363,11 @@
     {
       "nickname": "카리스",
       "elo_id": 6193,
-      "birthdate": "1986-11-27",
+      "birthdate": null,
       "gender": "m",
       "race": "테란",
       "tier": "1",
-      "team": "FA",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "igoldtree"
@@ -3375,11 +3375,11 @@
     {
       "nickname": "모토케이",
       "elo_id": 6210,
-      "birthdate": "1990-11-02",
+      "birthdate": null,
       "gender": "m",
       "race": "테란",
       "tier": "1",
-      "team": "FA",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "chs9011"
@@ -3387,11 +3387,11 @@
     {
       "nickname": "나도현",
       "elo_id": 6462,
-      "birthdate": "1983-09-08",
+      "birthdate": null,
       "gender": "m",
       "race": "테란",
       "tier": "1",
-      "team": "FA",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "dohyun83"
@@ -3399,11 +3399,11 @@
     {
       "nickname": "라히",
       "elo_id": 6181,
-      "birthdate": "1988-11-09",
+      "birthdate": null,
       "gender": "m",
       "race": "테란",
       "tier": "1",
-      "team": "FA",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "khc2566"
@@ -3423,11 +3423,11 @@
     {
       "nickname": "채린쟝",
       "elo_id": 6172,
-      "birthdate": "1993-07-30",
+      "birthdate": null,
       "gender": "f",
       "race": "저그",
       "tier": "0",
-      "team": "FA",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "kcl903"
@@ -3435,11 +3435,11 @@
     {
       "nickname": "김쵸아",
       "elo_id": 233,
-      "birthdate": "1993-01-06",
+      "birthdate": null,
       "gender": "f",
       "race": "테란",
       "tier": "2",
-      "team": "FA",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "s1on0106"
@@ -3447,11 +3447,11 @@
     {
       "nickname": "나무늘봉순",
       "elo_id": 371,
-      "birthdate": "1999-01-15",
+      "birthdate": null,
       "gender": "f",
       "race": "저그",
       "tier": "2",
-      "team": "FA",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "yjk011599"
@@ -3459,11 +3459,11 @@
     {
       "nickname": "이유란",
       "elo_id": 412,
-      "birthdate": "1997-05-22",
+      "birthdate": null,
       "gender": "f",
       "race": "저그",
       "tier": "3",
-      "team": "FA",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "forweourus"
@@ -3471,11 +3471,11 @@
     {
       "nickname": "사랑e",
       "elo_id": 230,
-      "birthdate": "1985-06-29",
+      "birthdate": null,
       "gender": "f",
       "race": "프로토스",
       "tier": "3",
-      "team": "FA",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "sr629"
@@ -3483,11 +3483,11 @@
     {
       "nickname": "디임",
       "elo_id": 386,
-      "birthdate": "1999-07-09",
+      "birthdate": null,
       "gender": "f",
       "race": "프로토스",
       "tier": "3",
-      "team": "FA",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "qpqpro"
@@ -3495,11 +3495,11 @@
     {
       "nickname": "조은",
       "elo_id": 380,
-      "birthdate": "1997-01-03",
+      "birthdate": null,
       "gender": "f",
       "race": "테란",
       "tier": "4",
-      "team": "FA",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "zalalz"
@@ -3507,11 +3507,11 @@
     {
       "nickname": "찌킹",
       "elo_id": 574,
-      "birthdate": "1997-05-14",
+      "birthdate": null,
       "gender": "f",
       "race": "저그",
       "tier": "4",
-      "team": "FA",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "alaelddl97"
@@ -3519,11 +3519,11 @@
     {
       "nickname": "구루미",
       "elo_id": 438,
-      "birthdate": "1993-12-12",
+      "birthdate": null,
       "gender": "f",
       "race": "저그",
       "tier": "4",
-      "team": "FA",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "9rumee"
@@ -3543,11 +3543,11 @@
     {
       "nickname": "앵지",
       "elo_id": 193,
-      "birthdate": "1997-03-31",
+      "birthdate": null,
       "gender": "f",
       "race": "저그",
       "tier": "4",
-      "team": "FA",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "gks2wl"
@@ -3555,11 +3555,11 @@
     {
       "nickname": "슬아",
       "elo_id": 5969,
-      "birthdate": "1991-08-23",
+      "birthdate": null,
       "gender": "f",
       "race": "저그",
       "tier": "4",
-      "team": "FA",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "ekfrqkf"
@@ -3567,11 +3567,11 @@
     {
       "nickname": "졈니",
       "elo_id": 473,
-      "birthdate": "2001-04-02",
+      "birthdate": null,
       "gender": "f",
       "race": "프로토스",
       "tier": "4",
-      "team": "FA",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "yochba0402"
@@ -3579,11 +3579,11 @@
     {
       "nickname": "강덕구",
       "elo_id": 392,
-      "birthdate": "1995-01-06",
+      "birthdate": null,
       "gender": "f",
       "race": "테란",
       "tier": "5",
-      "team": "FA",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "sdkels"
@@ -3591,11 +3591,11 @@
     {
       "nickname": "치리",
       "elo_id": 672,
-      "birthdate": "2000-12-02",
+      "birthdate": null,
       "gender": "f",
       "race": "저그",
       "tier": "5",
-      "team": "FA",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "db001202"
@@ -3603,11 +3603,11 @@
     {
       "nickname": "설둥이",
       "elo_id": 524,
-      "birthdate": "2000-12-15",
+      "birthdate": null,
       "gender": "f",
       "race": "프로토스",
       "tier": "5",
-      "team": "FA",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "snowssa"
@@ -3615,11 +3615,11 @@
     {
       "nickname": "남수댕",
       "elo_id": 668,
-      "birthdate": "2003-02-08",
+      "birthdate": null,
       "gender": "f",
       "race": "프로토스",
       "tier": "5",
-      "team": "FA",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "mew030709"
@@ -3627,11 +3627,11 @@
     {
       "nickname": "연블비",
       "elo_id": 518,
-      "birthdate": "1992-05-30",
+      "birthdate": null,
       "gender": "f",
       "race": "저그",
       "tier": "6",
-      "team": "FA",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "ynblbee"
@@ -3639,11 +3639,11 @@
     {
       "nickname": "김설",
       "elo_id": 541,
-      "birthdate": "1995-03-11",
+      "birthdate": null,
       "gender": "f",
       "race": "저그",
       "tier": "6",
-      "team": "FA",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "rnfma14"
@@ -3663,11 +3663,11 @@
     {
       "nickname": "진니",
       "elo_id": 610,
-      "birthdate": "1993-11-29",
+      "birthdate": null,
       "gender": "f",
       "race": "저그",
       "tier": "6",
-      "team": "FA",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "youaregood"
@@ -3675,11 +3675,11 @@
     {
       "nickname": "하두링",
       "elo_id": 387,
-      "birthdate": "1991-09-18",
+      "birthdate": null,
       "gender": "f",
       "race": "프로토스",
       "tier": "6",
-      "team": "FA",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "busky3"
@@ -3687,11 +3687,11 @@
     {
       "nickname": "김무아",
       "elo_id": 605,
-      "birthdate": "1996-02-24",
+      "birthdate": null,
       "gender": "f",
       "race": "프로토스",
       "tier": "6",
-      "team": "FA",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "mooaoom"
@@ -3699,11 +3699,11 @@
     {
       "nickname": "키모야",
       "elo_id": 360,
-      "birthdate": "1993-01-15",
+      "birthdate": null,
       "gender": "f",
       "race": "테란",
       "tier": "7",
-      "team": "FA",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "kittysh1"
@@ -3711,11 +3711,11 @@
     {
       "nickname": "김세주",
       "elo_id": 660,
-      "birthdate": "1999-08-06",
+      "birthdate": null,
       "gender": "f",
       "race": "테란",
       "tier": "7",
-      "team": "FA",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "chanmeyo"
@@ -3723,11 +3723,11 @@
     {
       "nickname": "햄찌야",
       "elo_id": 332,
-      "birthdate": "1993-05-02",
+      "birthdate": null,
       "gender": "f",
       "race": "저그",
       "tier": "7",
-      "team": "FA",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "toy2053"
@@ -3759,11 +3759,11 @@
     {
       "nickname": "이응씨",
       "elo_id": 823,
-      "birthdate": "1993-05-13",
+      "birthdate": null,
       "gender": "f",
       "race": "테란",
       "tier": "8",
-      "team": "FA",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "onzzang"
@@ -3807,11 +3807,11 @@
     {
       "nickname": "정윤종",
       "elo_id": 38,
-      "birthdate": "1992-08-14",
+      "birthdate": null,
       "gender": "m",
       "race": "프로토스",
       "tier": "킹",
-      "team": "휴면",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "ioioiobb"
@@ -3819,11 +3819,11 @@
     {
       "nickname": "염보성",
       "elo_id": 44,
-      "birthdate": "1990-03-29",
+      "birthdate": null,
       "gender": "m",
       "race": "테란",
       "tier": "잭",
-      "team": "휴면",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "yuambo"
@@ -3867,11 +3867,11 @@
     {
       "nickname": "오메킴",
       "elo_id": 47,
-      "birthdate": "1989-11-08",
+      "birthdate": null,
       "gender": "m",
       "race": "프로토스",
       "tier": "잭",
-      "team": "휴면",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "rlatldgus"
@@ -3951,11 +3951,11 @@
     {
       "nickname": "철구",
       "elo_id": 23,
-      "birthdate": "1989-10-19",
+      "birthdate": null,
       "gender": "m",
       "race": "저그",
       "tier": "조커",
-      "team": "휴면",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "y1026"
@@ -4035,11 +4035,11 @@
     {
       "nickname": "박성진",
       "elo_id": 76,
-      "birthdate": "1989-12-11",
+      "birthdate": null,
       "gender": "m",
       "race": "테란",
       "tier": "스페이드",
-      "team": "휴면",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "tjdwnls123"
@@ -4059,11 +4059,11 @@
     {
       "nickname": "김봉준",
       "elo_id": 74,
-      "birthdate": "1991-08-14",
+      "birthdate": null,
       "gender": "m",
       "race": "프로토스",
       "tier": "스페이드",
-      "team": "휴면",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "khm11903"
@@ -4227,11 +4227,11 @@
     {
       "nickname": "클템",
       "elo_id": 6121,
-      "birthdate": "1988-11-09",
+      "birthdate": null,
       "gender": "m",
       "race": "테란",
       "tier": "2",
-      "team": "휴면",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "killgusdnk"
@@ -6159,11 +6159,11 @@
     {
       "nickname": "태영",
       "elo_id": 536,
-      "birthdate": "1998-09-22",
+      "birthdate": null,
       "gender": "f",
       "race": "테란",
       "tier": "4",
-      "team": "휴면",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "xodud1898"
@@ -6171,11 +6171,11 @@
     {
       "nickname": "우리밍",
       "elo_id": 520,
-      "birthdate": "1997-05-31",
+      "birthdate": null,
       "gender": "f",
       "race": "테란",
       "tier": "4",
-      "team": "휴면",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "kmj05317"
@@ -6219,11 +6219,11 @@
     {
       "nickname": "림예이",
       "elo_id": 528,
-      "birthdate": "1997-02-10",
+      "birthdate": null,
       "gender": "f",
       "race": "저그",
       "tier": "4",
-      "team": "휴면",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "yeeeahm97"
@@ -6315,11 +6315,11 @@
     {
       "nickname": "임밍지",
       "elo_id": 591,
-      "birthdate": "1996-07-22",
+      "birthdate": null,
       "gender": "f",
       "race": "프로토스",
       "tier": "4",
-      "team": "휴면",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "dlaalswl22"
@@ -6435,11 +6435,11 @@
     {
       "nickname": "뚜비",
       "elo_id": 582,
-      "birthdate": "1999-05-18",
+      "birthdate": null,
       "gender": "f",
       "race": "테란",
       "tier": "5",
-      "team": "휴면",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "lkim12"
@@ -6555,11 +6555,11 @@
     {
       "nickname": "란란",
       "elo_id": 372,
-      "birthdate": "1994-03-13",
+      "birthdate": null,
       "gender": "f",
       "race": "저그",
       "tier": "5",
-      "team": "휴면",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "rhf104"
@@ -6807,11 +6807,11 @@
     {
       "nickname": "으냉이",
       "elo_id": 658,
-      "birthdate": "1999-04-29",
+      "birthdate": null,
       "gender": "f",
       "race": "테란",
       "tier": "6",
-      "team": "휴면",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "rhakdncjs90"
@@ -7095,11 +7095,11 @@
     {
       "nickname": "하랑",
       "elo_id": 595,
-      "birthdate": "2000-09-20",
+      "birthdate": null,
       "gender": "f",
       "race": "프로토스",
       "tier": "6",
-      "team": "휴면",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "candyrang00"
@@ -7171,7 +7171,7 @@
       "gender": "f",
       "race": "프로토스",
       "tier": "6",
-      "team": "휴면",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "lemondrops"
@@ -7383,11 +7383,11 @@
     {
       "nickname": "빵지니",
       "elo_id": 532,
-      "birthdate": "2000-11-18",
+      "birthdate": null,
       "gender": "f",
       "race": "테란",
       "tier": "7",
-      "team": "휴면",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "son4069"
@@ -7935,11 +7935,11 @@
     {
       "nickname": "흑설",
       "elo_id": 424,
-      "birthdate": "1990-02-07",
+      "birthdate": null,
       "gender": "f",
       "race": "프로토스",
       "tier": "7",
-      "team": "휴면",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "s2appeal"
@@ -8247,11 +8247,11 @@
     {
       "nickname": "브희",
       "elo_id": 449,
-      "birthdate": "1997-11-03",
+      "birthdate": null,
       "gender": "f",
       "race": "테란",
       "tier": "8",
-      "team": "휴면",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "jinhi1004"
@@ -8811,11 +8811,11 @@
     {
       "nickname": "땃쥐",
       "elo_id": 820,
-      "birthdate": "1995-05-16",
+      "birthdate": null,
       "gender": "f",
       "race": "저그",
       "tier": "8",
-      "team": "휴면",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "dlwjddls30"
@@ -8823,11 +8823,11 @@
     {
       "nickname": "히요코",
       "elo_id": 714,
-      "birthdate": "2005-04-01",
+      "birthdate": null,
       "gender": "f",
       "race": "프로토스",
       "tier": "8",
-      "team": "휴면",
+      "team": null,
       "role": "",
       "info_updated_at": null,
       "id": "hiyoko040"
