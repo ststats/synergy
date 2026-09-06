@@ -1231,7 +1231,7 @@
       "gender": "m",
       "race": "테란",
       "tier": "조커",
-      "team": "와플대",
+      "team": "FA",
       "role": "",
       "info_updated_at": null,
       "id": "isangwk"
@@ -1291,7 +1291,7 @@
       "gender": "f",
       "race": "프로토스",
       "tier": "3",
-      "team": "와플대",
+      "team": "FA",
       "role": "",
       "info_updated_at": null,
       "id": "soonhani"
@@ -1303,7 +1303,7 @@
       "gender": "f",
       "race": "테란",
       "tier": "4",
-      "team": "와플대",
+      "team": "FA",
       "role": "",
       "info_updated_at": null,
       "id": "kwbm123081"
@@ -3319,7 +3319,7 @@
       "gender": "m",
       "race": "저그",
       "tier": "0",
-      "team": "FA",
+      "team": "휴면",
       "role": "",
       "info_updated_at": null,
       "id": "jipsh2"
@@ -3505,13 +3505,13 @@
       "id": "zalalz"
     },
     {
-      "nickname": "찌킹",
+      "nickname": "민지",
       "elo_id": 574,
       "birthdate": "1997-05-14",
       "gender": "f",
       "race": "저그",
       "tier": "4",
-      "team": "FA",
+      "team": "드림즈",
       "role": "",
       "info_updated_at": null,
       "id": "alaelddl97"
