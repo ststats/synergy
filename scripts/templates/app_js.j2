@@ -1,0 +1,554 @@
+<script src="{{ logo_prefix }}data/dates.js"></script>
+<script>
+(function () {
+  const STATIC_INFO = {{ static_json }};
+  const TEAM_COLORS = {{ colors_json }};
+  const TARGET_TEAM = {{ target_team_js }};
+  const LOGO_PREFIX = "{{ logo_prefix }}";
+  const IS_PROFILE = {{ 'true' if is_profile else 'false' }};
+  // 프로필 페이지의 뒤로가기 목적지 계산용 - URL에 한 번만 실려오는 값이라
+  // 페이지 로드 시점에 딱 한 번만 읽어서 상수로 둔다(날짜/지표처럼 나중에
+  // 또 바뀌는 값이 아님). document.referrer(브라우저가 알려주는 "직전 페이지")
+  // 대신 이걸 쓰는 이유: referrer는 새 탭에서 열거나 브라우저 프라이버시
+  // 설정에 따라 아예 안 올 수도 있어서 불안정했다. fromTeam은 프로필 링크를
+  // 만드는 쪽(renderFaBar/renderDashboard)에서 항상 명시적으로 실어 보낸다.
+  const FROM_TEAM = new URLSearchParams(window.location.search).get('fromTeam');
+
+  const metricDefs = {
+      balloon: { field: 'balloons', label: '별풍선', unit: '별풍선', format: v => v ? v.toLocaleString('ko-KR') : '', excludeRoles: true, rankByFemale: false, source: '풍고', url: 'https://poonggo.com' },
+      broadcast: { field: 'broadcast_seconds', label: '방송시간', unit: '방송시간', format: formatTime, excludeRoles: true, rankByFemale: false, source: '풍고', url: 'https://poonggo.com' },
+      viewer: { field: 'cumulative_viewers', label: '누적시청자', unit: '누적시청자', format: v => v ? v.toLocaleString('ko-KR') : '', excludeRoles: true, rankByFemale: false, source: '풍고', url: 'https://poonggo.com' },
+      sponsor: { field: 'sponsor_games', label: '스폰판수', unit: '스폰판수', format: v => v ? v + '판' : '', excludeRoles: true, rankByFemale: true, source: 'Elo', url: 'https://eloboard.co.kr/' }
+  };
+
+  function soopPhotoUrl(id) {
+      return `https://profile.img.sooplive.com/LOGO/${(id || '').substring(0, 2)}/${id}/${id}.jpg`;
+  }
+
+  async function checkIsLiveRealtime(soopId) {
+      try {
+          const res = await fetch(`https://bjapi.afreecatv.com/api/${soopId}/station`);
+          if (!res.ok) return null;
+          const data = await res.json();
+          if (!data || !data.broad) return null;
+          return {
+              broad: data.broad,
+              broadStart: (data.station && data.station.broad_start) || null,
+          };
+      } catch (e) {
+          return null;
+      }
+  }
+
+  function fitTextToWidth(el, fullText) {
+      fullText = fullText || '';
+      el.dataset.fullText = fullText;
+      el.textContent = fullText;
+      if (!fullText || el.scrollWidth <= el.clientWidth) return;
+      let text = fullText;
+      while (text.length > 1 && el.scrollWidth > el.clientWidth) {
+          text = text.slice(0, -1);
+          el.textContent = text + '…';
+      }
+  }
+
+  function refitLiveTexts() {
+      document.querySelectorAll('#profile-live-embed [data-full-text]').forEach(el => {
+          fitTextToWidth(el, el.dataset.fullText);
+      });
+  }
+
+  let liveFitResizeTimer = null;
+  window.addEventListener('resize', () => {
+      clearTimeout(liveFitResizeTimer);
+      liveFitResizeTimer = setTimeout(refitLiveTexts, 150);
+  });
+
+  const LIVE_STATUS_PROXY_URL = "https://synergy.ststats.workers.dev/";
+
+  async function refreshLiveDots() {
+      const dotEls = Array.from(document.querySelectorAll('.live-dot[data-live-id]'));
+      if (dotEls.length === 0) return;
+
+      const idToEls = {};
+      dotEls.forEach(el => {
+          const id = el.dataset.liveId;
+          (idToEls[id] = idToEls[id] || []).push(el);
+      });
+      const ids = Object.keys(idToEls);
+
+      try {
+          const res = await fetch(`${LIVE_STATUS_PROXY_URL}?ids=${encodeURIComponent(ids.join(','))}`);
+          if (!res.ok) return;
+          const data = await res.json();
+          const live = data.live || {};
+          ids.forEach(id => {
+              if (live[id]) idToEls[id].forEach(el => el.classList.add('is-live'));
+          });
+      } catch (e) {}
+  }
+
+  function withDerivedFields(data) {
+      (data.members || []).forEach(m => { m.sponsor_games = (m.sponsor_wins || 0) + (m.sponsor_losses || 0); });
+      return data;
+  }
+
+  function formatTime(sec) {
+      if (!sec) return '';
+      let h = Math.floor(sec / 3600);
+      let m = Math.floor((sec % 3600) / 60);
+      let s = Math.floor(sec % 60);
+      return (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+  }
+
+  function fitSelectWidth(selectEl) {
+      if (!selectEl || selectEl.selectedIndex < 0) return;
+      const text = selectEl.options[selectEl.selectedIndex].text;
+      const probe = document.createElement('span');
+      probe.style.cssText = 'position:absolute;visibility:hidden;white-space:pre;';
+      probe.style.font = getComputedStyle(selectEl).font;
+      probe.textContent = text;
+      document.body.appendChild(probe);
+      selectEl.style.width = (probe.getBoundingClientRect().width + 2) + 'px';
+      document.body.removeChild(probe);
+  }
+
+  let currentDateStr = AVAILABLE_DATES[0];
+  let currentMetric = "balloon";
+  let fetchedData = {};
+
+  const calBtn = document.getElementById('calendar-btn');
+  const datePicker = document.getElementById('date-picker');
+  datePicker.min = AVAILABLE_DATES[AVAILABLE_DATES.length - 1];
+  datePicker.max = AVAILABLE_DATES[0];
+
+  window.addEventListener('DOMContentLoaded', () => {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('date') && AVAILABLE_DATES.includes(params.get('date'))) currentDateStr = params.get('date');
+      if (params.get('metric') && metricDefs[params.get('metric')]) currentMetric = params.get('metric');
+
+      const metricSel = document.getElementById('ms-metric-select');
+      if(metricSel) {
+          metricSel.value = currentMetric;
+          fitSelectWidth(metricSel);
+
+          const wrapper = metricSel.closest('.select-wrapper');
+          const revealSelect = () => {
+              fitSelectWidth(metricSel);
+              if (wrapper) wrapper.classList.add('ready');
+          };
+
+          if (document.fonts && document.fonts.ready) {
+              document.fonts.ready.then(revealSelect);
+          } else {
+              revealSelect();
+          }
+      }
+
+      AVAILABLE_DATES.slice(1, 4).forEach(d => {
+          fetch(LOGO_PREFIX + 'data/daily/' + d + '.json').then(r=>r.json()).then(data => fetchedData[d] = withDerivedFields(data)).catch(()=>{});
+      });
+
+      applyData();
+  });
+
+  function applyData() {
+      const parts = currentDateStr.split('-');
+      calBtn.innerHTML = parts[0].slice(-2) + '년 ' + parts[1] + '월 ' + parts[2] + '일 <span class="nav-chevron">▾</span>';
+      datePicker.value = currentDateStr;
+
+      if (TARGET_TEAM && !IS_PROFILE) {
+          document.getElementById('back-link').href = 'index.html?date=' + currentDateStr + '&metric=' + currentMetric;
+      } else if (IS_PROFILE) {
+          // 날짜/지표가 바뀔 때마다 applyData()가 매번 호출되므로, 여기서
+          // 매번 다시 계산해야 뒤로가기 링크가 항상 지금 보고 있는 날짜를
+          // 그대로 들고 돌아간다(페이지 처음 열 때 딱 한 번만 계산하면,
+          // 그 이후 날짜를 바꿔도 뒤로가기는 예전 날짜로 남는 문제가 있었다).
+          const backHref = FROM_TEAM
+              ? `team.html?team=${encodeURIComponent(FROM_TEAM)}&date=${currentDateStr}&metric=${currentMetric}`
+              : `index.html?date=${currentDateStr}&metric=${currentMetric}`;
+          const backLinkEl = document.getElementById('back-link');
+          if (backLinkEl) backLinkEl.href = LOGO_PREFIX + backHref;
+      }
+
+      if (fetchedData[currentDateStr]) {
+          IS_PROFILE ? renderProfile(fetchedData[currentDateStr]) : renderDashboard(fetchedData[currentDateStr]);
+      } else {
+          if(!IS_PROFILE) document.getElementById('grid-container').innerHTML = '<div style="padding:40px;text-align:center;">불러오는 중...</div>';
+          fetch(LOGO_PREFIX + 'data/daily/' + currentDateStr + '.json')
+              .then(r => r.json())
+              .then(data => {
+                  fetchedData[currentDateStr] = withDerivedFields(data);
+                  IS_PROFILE ? renderProfile(data) : renderDashboard(data);
+              })
+              .catch(e => {
+                  if(!IS_PROFILE) document.getElementById('grid-container').innerHTML = '<div style="padding:40px;text-align:center;color:#c23636;">오류 발생</div>';
+              });
+      }
+  }
+
+  function findPrevMonthDate(dateStr) {
+      const [y, m] = dateStr.split('-').map(Number);
+      const prevYM = (m === 1) ? `${y - 1}-12` : `${y}-${String(m - 1).padStart(2, '0')}`;
+      const candidates = AVAILABLE_DATES.filter(d => d.startsWith(prevYM));
+      if (candidates.length === 0) return null;
+      return candidates.slice().sort().reverse()[0];
+  }
+
+  function computeTeamAggregates(members, def) {
+      const teams = {};
+      members.forEach(m => {
+          const t = m.team || '미분류';
+          if (['FA', '휴면', '미분류'].includes(t)) return;
+          if (!teams[t]) teams[t] = [];
+          teams[t].push(m);
+      });
+
+      const result = [];
+      for (const [tName, tMembers] of Object.entries(teams)) {
+          let mSum = 0, fSum = 0, mCount = 0, fCount = 0, tCount = 0;
+          let males = [], females = [];
+
+          tMembers.forEach(m => {
+              const sInfo = STATIC_INFO[m.id] || {gender: 'm', birthdate: null};
+              const v = m[def.field] || 0;
+              const counted = v !== 0 && !(def.excludeRoles && ['수장', '전력외'].includes(m.role));
+              m._gender = sInfo.gender;
+              m._bday = sInfo.birthdate;
+              m._val = v;
+              m._counted = counted;
+
+              if (m._gender === 'm') { males.push(m); if (counted) { mSum += v; mCount++; tCount++; } }
+              else { females.push(m); if (counted) { fSum += v; fCount++; tCount++; } }
+          });
+
+          males.sort((a, b) => b._val - a._val);
+          females.sort((a, b) => b._val - a._val);
+          const fAvg = fCount > 0 ? Math.round(fSum / fCount) : 0;
+          const tAvg = tCount > 0 ? Math.round((mSum + fSum) / tCount) : 0;
+
+          result.push({ name: tName, males, females, fAvg, tAvg, totalSum: mSum + fSum, rankVal: def.rankByFemale ? fAvg : tAvg });
+      }
+      return result;
+  }
+
+  function computeTeamRanks(data, metricKey) {
+      const def = metricDefs[metricKey];
+      const teamStats = computeTeamAggregates(data.members, def);
+      teamStats.sort((a, b) => b.rankVal - a.rankVal);
+      const ranks = {};
+      teamStats.forEach((s, i) => { ranks[s.name] = i + 1; });
+      return ranks;
+  }
+
+  async function attachRankBadges(teamStats, dateStr, metricKey) {
+      if (TARGET_TEAM) return;
+      const currentRanks = {};
+      teamStats.forEach((s, i) => { currentRanks[s.name] = i + 1; });
+
+      const prevDate = findPrevMonthDate(dateStr);
+      if (!prevDate) return;
+
+      let prevData = fetchedData[prevDate];
+      if (!prevData) {
+          try {
+              const res = await fetch(LOGO_PREFIX + 'data/daily/' + prevDate + '.json');
+              prevData = withDerivedFields(await res.json());
+              fetchedData[prevDate] = prevData;
+          } catch (e) { return; }
+      }
+
+      const prevRanks = computeTeamRanks(prevData, metricKey);
+      teamStats.forEach(s => {
+          const slot = document.querySelector('.rank-badge-slot[data-team="' + CSS.escape(s.name) + '"]');
+          if (!slot) return;
+          const curRank = currentRanks[s.name];
+          if (!(s.name in prevRanks)) {
+              slot.innerHTML = '<span class="rank-change new">NEW</span>';
+          } else {
+              const prevRank = prevRanks[s.name];
+              if (curRank < prevRank) slot.innerHTML = '<span class="rank-change up">▲' + (prevRank - curRank) + '</span>';
+              else if (curRank > prevRank) slot.innerHTML = '<span class="rank-change down">▼' + (curRank - prevRank) + '</span>';
+              else slot.innerHTML = '<span class="rank-change same">-</span>';
+          }
+      });
+  }
+
+  const TIER_ORDER = ['갓', '킹', '잭', '조커', '스페이드', '0', '1', '2', '3', '4', '5', '6', '7', '8', '유스'];
+
+  let faBarCollapsed = true;
+
+  function renderFaBar(data) {
+      if (TARGET_TEAM) return;
+      const faBar = document.getElementById('fa-bar');
+      if (!faBar) return;
+
+      const faMembers = data.members.filter(m => m.team === 'FA').slice();
+      if (faMembers.length === 0) { faBar.style.display = 'none'; faBar.innerHTML = ''; return; }
+
+      faMembers.sort((a, b) => {
+          const ai = TIER_ORDER.indexOf(a.tier);
+          const bi = TIER_ORDER.indexOf(b.tier);
+          return (ai === -1 ? TIER_ORDER.length : ai) - (bi === -1 ? TIER_ORDER.length : bi);
+      });
+
+      const itemsHtml = faMembers.map(m => {
+          const photoUrl = soopPhotoUrl(m.id);
+          const photoImg = `<img class="fa-bar-photo" src="${photoUrl}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">`;
+          const liveDot = m.id ? `<span class="live-dot" data-live-id="${m.id}"></span>` : '';
+          const inner = `${photoImg}${liveDot}<span class="member-name">${m.nickname}</span>`;
+          return m.id
+              ? `<div class="fa-bar-item"><a href="${LOGO_PREFIX}profile.html?id=${m.id}&date=${currentDateStr}&metric=${currentMetric}&fromTeam=${encodeURIComponent(TARGET_TEAM || '')}">${inner}</a></div>`
+              : `<div class="fa-bar-item"><span class="fa-bar-static">${inner}</span></div>`;
+      }).join('');
+
+      const collapsedClass = faBarCollapsed ? ' collapsed' : '';
+      faBar.innerHTML = `<button type="button" class="fa-bar-title${collapsedClass}" id="fa-bar-toggle"><span class="fa-bar-chevron">▾</span><span class="fa-bar-label">FA</span><span class="fa-bar-sub">${faMembers.length}명</span></button><div class="fa-bar-list${collapsedClass}" id="fa-bar-list">${itemsHtml}</div>`;
+      faBar.style.display = '';
+
+      document.getElementById('fa-bar-toggle').addEventListener('click', () => {
+          faBarCollapsed = !faBarCollapsed;
+          document.getElementById('fa-bar-toggle').classList.toggle('collapsed', faBarCollapsed);
+          document.getElementById('fa-bar-list').classList.toggle('collapsed', faBarCollapsed);
+      });
+  }
+
+  function renderDashboard(data) {
+      const def = metricDefs[currentMetric];
+      const monthNum = parseInt(currentDateStr.split('-')[1], 10);
+      const upd = (currentMetric === 'sponsor' && data.sponsor_updated_at) ? data.sponsor_updated_at : data.updated_at;
+
+      const validTeams = new Set(data.members.map(m=>m.team).filter(t => t && t !== 'FA' && t !== '휴면'));
+      // 팀페이지(TARGET_TEAM 있음)에서는 이미 그 팀 하나만 보고 있는 화면이라
+      // "N팀 · M명" 전체 집계 문구는 안 보여준다 - 전체페이지에서만 표시.
+      const teamCountHtml = TARGET_TEAM ? '' : (validTeams.size + '팀 · ' +
+        data.members.filter(m => m.team && m.team !== 'FA' && m.team !== '휴면').length + '명 · ');
+      const inquiryHtml = ' <span style="color:#c2c5cc;">·</span> <a href="https://ygosu.com/board/pan_prison" target="_blank" class="source-link">문의</a>';
+      document.getElementById('top-meta-text').innerHTML = teamCountHtml +
+        '업데이트 ' + upd + ' · 출처: <a href="'+def.url+'" target="_blank" class="source-link">'+def.source+'</a>' + inquiryHtml;
+
+      const roleLegend = document.getElementById('role-legend-item');
+      if(roleLegend) roleLegend.style.display = def.excludeRoles ? '' : 'none';
+
+      const tiers = {};
+      const pool = data.members.filter(m => {
+          const v = m[def.field] || 0;
+          if (v === 0) return false;
+          if (def.excludeRoles && ['수장', '전력외'].includes(m.role)) return false;
+          if (!m.team || ['FA', '휴면'].includes(m.team)) return false;
+          return true;
+      }).sort((a,b) => (b[def.field] || 0) - (a[def.field] || 0));
+
+      const n = pool.length;
+      const t1 = Math.max(1, Math.round(n * 0.01));
+      const t5 = Math.max(1, Math.round(n * 0.05));
+      const t10 = Math.max(1, Math.round(n * 0.10));
+      pool.forEach((m, i) => {
+          if (i < t1) tiers[m.nickname + '|' + m.team] = 'tier1';
+          else if (i < t5) tiers[m.nickname + '|' + m.team] = 'tier5';
+          else if (i < t10) tiers[m.nickname + '|' + m.team] = 'tier10';
+      });
+
+      const teamStats = computeTeamAggregates(data.members, def);
+      teamStats.sort((a, b) => b.rankVal - a.rankVal);
+
+      let html = '';
+      const targetTeamStats = TARGET_TEAM ? teamStats.filter(t => t.name === TARGET_TEAM) : teamStats;
+
+      if (TARGET_TEAM && targetTeamStats.length === 0) {
+          html = '<div class="team-card" style="padding:24px;text-align:center;color:#999;font-size:13px;">이 날짜에는 팀 정보가 없습니다.</div>';
+      } else {
+          targetTeamStats.forEach(ts => {
+              const logoHtml = `<img src="${LOGO_PREFIX}logos/${ts.name}.webp" class="team-logo" alt="" onerror="this.style.display='none'">`;
+              const topColor = TEAM_COLORS[ts.name] || '#4a5ce0';
+              const countHtml = `<span class="team-count">총 ${ts.males.length + ts.females.length}명 · 남 ${ts.males.length} · 여 ${ts.females.length}</span>`;
+              const headerLeft = TARGET_TEAM ? `<div class="team-header-left">${logoHtml}<span class="team-name">${ts.name}</span>${countHtml}</div>`
+                  : `<div class="team-header-left">${logoHtml}<a class="team-link team-name" href="team.html?team=${encodeURIComponent(ts.name)}&date=${currentDateStr}&metric=${currentMetric}">${ts.name}</a>${countHtml}</div>`;
+              const rankSlot = TARGET_TEAM ? '' : `<span class="rank-badge-slot" data-team="${ts.name}"></span>`;
+
+              const makeRows = (list, padLen) => {
+                  let rHtml = list.map(m => {
+                      let cClass = [];
+                      if (def.excludeRoles && ['수장', '전력외'].includes(m.role)) {
+                          cClass.push('excluded');
+                      } else if (!m._counted && m._val !== 0) {
+                          cClass.push('excluded');
+                      }
+                      
+                      const tier = tiers[m.nickname + '|' + m.team];
+                      if (tier) cClass.push(tier);
+
+                      const isBday = m._bday && parseInt(m._bday.split('-')[1], 10) === monthNum;
+                      const liveDot = m.id ? `<span class="live-dot" data-live-id="${m.id}"></span>` : '';
+                      const bdayMark = isBday ? '<span class="bday-mark">🎂</span>' : '';
+                      const nameContent = m.id
+                          ? `${liveDot}<a class="member-name-link" href="${LOGO_PREFIX}profile.html?id=${m.id}&date=${currentDateStr}&metric=${currentMetric}&fromTeam=${encodeURIComponent(TARGET_TEAM || '')}">${m.nickname}</a>${bdayMark}`
+                          : liveDot + m.nickname + bdayMark;
+                      return `<div class="member-row ${cClass.join(' ')}"><span class="member-name">${nameContent}</span><span class="member-value">${def.format(m._val)}</span></div>`;
+                  }).join('');
+
+                  for(let i=0; i < padLen - list.length; i++) rHtml += `<div class="member-row empty"><span class="member-name"></span><span class="member-value"></span></div>`;
+                  return rHtml;
+              };
+
+              const maxLen = Math.max(ts.males.length, ts.females.length);
+              html += `
+              <div class="team-card">
+                <div class="team-card-topbar" style="background:${topColor};"></div>
+                <div class="team-header">${headerLeft}${rankSlot}</div>
+                <div class="member-columns">
+                  <div class="member-col"><div class="member-col-label"><span class="col-label-text">남자</span><span class="unit-label">${def.unit}</span></div>${makeRows(ts.males, maxLen)}</div>
+                  <div class="member-col"><div class="member-col-label"><span class="col-label-text">여자</span><span class="unit-label">${def.unit}</span></div>${makeRows(ts.females, maxLen)}</div>
+                </div>
+                <div class="team-footer">
+                  <div class="stat-card"><div class="stat-card-header"><svg class="stat-icon" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v5c0 1.66 3.13 3 7 3s7-1.34 7-3V6"/><path d="M5 11v5c0 1.66 3.13 3 7 3s7-1.34 7-3v-5"/></svg><span class="stat-label">전체 합계</span></div><div class="stat-value">${def.format(ts.totalSum)}</div></div>
+                  <div class="stat-card female-avg"><div class="stat-card-header"><svg class="stat-icon" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="5"/><path d="M12 14v7M9 18h6"/></svg><span class="stat-label">여자 평균</span></div><div class="stat-value">${def.format(ts.fAvg)}</div></div>
+                  <div class="stat-card total-avg"><div class="stat-card-header"><svg class="stat-icon" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M12 20V4M20 20v-7"/></svg><span class="stat-label">전체 평균</span></div><div class="stat-value">${def.format(ts.tAvg)}</div></div>
+                </div>
+              </div>`;
+          });
+      }
+      document.getElementById('grid-container').innerHTML = `<div class="grid ${TARGET_TEAM ? 'single-team' : ''}">${html}</div>`;
+      attachRankBadges(teamStats, currentDateStr, currentMetric);
+      renderFaBar(data);
+      if (TARGET_TEAM) document.title = TARGET_TEAM + ' 현황';
+      refreshLiveDots();
+  }
+
+  function renderProfile(data) {
+      const tid = new URLSearchParams(window.location.search).get('id');
+      const member = data.members.find(m => m.id === tid);
+      if (!member) {
+          document.getElementById('profile-card').style.display = 'none';
+          document.getElementById('top-meta-text').innerHTML = '데이터 없음';
+          return;
+      }
+
+      document.getElementById('profile-topbar').style.background = TEAM_COLORS[member.team] || '#4a5ce0';
+      document.getElementById('profile-nickname').textContent = member.nickname || '';
+      document.getElementById('profile-card').style.display = '';
+
+      const photoImg = document.getElementById('profile-photo');
+      photoImg.onerror = function() { this.style.visibility = 'hidden'; };
+      photoImg.onload = function() { this.style.visibility = ''; };
+      photoImg.src = soopPhotoUrl(tid);
+
+      const liveEmbedEl = document.getElementById('profile-live-embed');
+      if (tid) {
+          checkIsLiveRealtime(tid).then(result => {
+              if (result) {
+                  const { broad, broadStart } = result;
+                  const viewerText = broad.current_sum_viewer != null
+                      ? broad.current_sum_viewer.toLocaleString('ko-KR') + '명 시청 중' : '';
+                  let elapsedText = '';
+                  if (broadStart) {
+                      const startDate = new Date(broadStart.replace(' ', 'T'));
+                      if (!isNaN(startDate.getTime())) {
+                          const elapsedSec = Math.max(0, Math.floor((Date.now() - startDate.getTime()) / 1000));
+                          const eh = Math.floor(elapsedSec / 3600);
+                          const em = Math.floor((elapsedSec % 3600) / 60);
+                          elapsedText = (eh > 0 ? `${eh}시간 ${em}분` : `${em}분`) + ' 방송중';
+                      }
+                  }
+                  liveEmbedEl.innerHTML = `
+                    <div class="profile-live-row">
+                      <a class="profile-live-thumb-link" href="https://play.sooplive.co.kr/${tid}" target="_blank" rel="noopener">
+                        <img class="profile-live-thumb" src="https://liveimg.sooplive.co.kr/m/${broad.broad_no}" alt="방송 화면">
+                        <span class="profile-live-badge">LIVE</span>
+                      </a>
+                      <div class="profile-live-info">
+                        <span class="profile-live-title"></span>
+                        <span class="profile-live-viewer"></span>
+                        <span class="profile-live-elapsed"></span>
+                      </div>
+                    </div>`;
+                  liveEmbedEl.style.display = '';
+                  fitTextToWidth(liveEmbedEl.querySelector('.profile-live-title'), broad.broad_title);
+                  fitTextToWidth(liveEmbedEl.querySelector('.profile-live-viewer'), viewerText);
+                  fitTextToWidth(liveEmbedEl.querySelector('.profile-live-elapsed'), elapsedText);
+              } else {
+                  liveEmbedEl.innerHTML = '';
+                  liveEmbedEl.style.display = 'none';
+              }
+          });
+      }
+
+      const sInfo = STATIC_INFO[tid] || {gender:'m', birthdate:'-'};
+      document.getElementById('profile-gender').textContent = sInfo.gender === 'f' ? '여' : '남';
+      document.getElementById('profile-birthdate').textContent = sInfo.birthdate || '-';
+      document.getElementById('profile-team').textContent = member.team || '-';
+      document.getElementById('profile-role').textContent = member.role || '-';
+      document.getElementById('profile-race').textContent = member.race || '-';
+      document.getElementById('profile-tier').textContent = member.tier || '-';
+      document.getElementById('profile-station-link').href = `https://www.sooplive.com/station/${tid}`;
+
+      const fmt = n => n ? n.toLocaleString('ko-KR') : '-';
+      document.getElementById('profile-balloons').textContent = fmt(member.balloons);
+      document.getElementById('profile-viewers').textContent = fmt(member.cumulative_viewers);
+      document.getElementById('profile-broadcast').textContent = formatTime(member.broadcast_seconds) || '-';
+
+      const sponsorEl = document.getElementById('profile-sponsor');
+      if (window.__sponsorToggleTimer) clearInterval(window.__sponsorToggleTimer);
+      const sGames = member.sponsor_games || 0;
+      if (sGames > 0) {
+          const sWins = member.sponsor_wins || 0;
+          const sLosses = member.sponsor_losses || 0;
+          const sRate = Math.round((sWins/sGames)*100);
+          const texts = [sWins + '승 ' + sLosses + '패', sRate + '%'];
+          let idx = 0;
+          sponsorEl.textContent = texts[0];
+          sponsorEl.style.color = '';
+          window.__sponsorToggleTimer = setInterval(() => {
+              sponsorEl.style.opacity = '0';
+              setTimeout(() => {
+                  idx = 1 - idx;
+                  sponsorEl.textContent = texts[idx];
+                  sponsorEl.style.opacity = '1';
+              }, 300);
+          }, 2000);
+      } else {
+          sponsorEl.textContent = '-';
+          sponsorEl.style.color = '#a4a8b2';
+      }
+
+      document.title = (member.nickname || tid) + ' 프로필';
+      document.getElementById('top-meta-text').innerHTML = '업데이트 ' + data.updated_at + ' · 출처: <a href="https://poonggo.com" target="_blank" class="source-link">풍고</a>, <a href="https://eloboard.co.kr/" target="_blank" class="source-link">Elo</a>';
+  }
+
+  calBtn.onclick = function() {
+      // 보이는 버튼("2026년 09월 04일 ▾")을 클릭하면, 화면엔 안 보이지만
+      // 뒤에 숨겨둔 네이티브 date input의 브라우저 기본 달력을 대신 열어준다
+      // (showPicker는 비교적 최신 API라 없는 구형 브라우저에서는 그냥
+      // 포커스+클릭으로 대체 시도한다).
+      if (datePicker.showPicker) {
+          datePicker.showPicker();
+      } else {
+          datePicker.focus();
+          datePicker.click();
+      }
+  };
+
+  datePicker.addEventListener('change', function() {
+      const picked = datePicker.value;
+      if (AVAILABLE_DATES.includes(picked)) {
+          currentDateStr = picked;
+          applyData();
+      } else {
+          // 네이티브 date input은 min/max 범위 안의 특정 날짜만 콕 집어서
+          // 선택 못 하게 막는 기능 자체가 없다(브라우저 표준의 한계) - 그래서
+          // 범위 안이지만 실제 데이터가 없는 날짜(드물게 워크플로우가 하루
+          // 건너뛴 경우 등)를 고르면, 여기서 즉시 원래 날짜로 되돌린다.
+          datePicker.value = currentDateStr;
+      }
+  });
+
+  const metricSel = document.getElementById('ms-metric-select');
+  if(metricSel) {
+      metricSel.addEventListener('change', function() {
+          currentMetric = metricSel.value;
+          fitSelectWidth(metricSel);
+          applyData();
+      });
+  }
+})();
+</script>
