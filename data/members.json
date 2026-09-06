@@ -955,7 +955,7 @@
       "gender": "m",
       "race": "저그",
       "tier": "갓",
-      "team": "엠비대",
+      "team": "마범대",
       "role": "",
       "info_updated_at": null,
       "id": "lyh8808"
@@ -967,7 +967,7 @@
       "gender": "m",
       "race": "테란",
       "tier": "잭",
-      "team": "엠비대",
+      "team": "마범대",
       "role": "",
       "info_updated_at": null,
       "id": "rlarnfk24"
@@ -979,7 +979,7 @@
       "gender": "m",
       "race": "저그",
       "tier": "잭",
-      "team": "엠비대",
+      "team": "FA",
       "role": "",
       "info_updated_at": null,
       "id": "wnsgur2da"
@@ -991,7 +991,7 @@
       "gender": "m",
       "race": "저그",
       "tier": "잭",
-      "team": "엠비대",
+      "team": "마범대",
       "role": "",
       "info_updated_at": null,
       "id": "jackpot"
@@ -1003,7 +1003,7 @@
       "gender": "m",
       "race": "프로토스",
       "tier": "잭",
-      "team": "엠비대",
+      "team": "마범대",
       "role": "",
       "info_updated_at": null,
       "id": "paralyze92"
@@ -1015,7 +1015,7 @@
       "gender": "m",
       "race": "테란",
       "tier": "조커",
-      "team": "엠비대",
+      "team": "FA",
       "role": "",
       "info_updated_at": null,
       "id": "byromantic"
@@ -1027,7 +1027,7 @@
       "gender": "m",
       "race": "프로토스",
       "tier": "스페이드",
-      "team": "엠비대",
+      "team": "마범대",
       "role": "",
       "info_updated_at": null,
       "id": "askl021"
@@ -1039,7 +1039,7 @@
       "gender": "m",
       "race": "프로토스",
       "tier": "0",
-      "team": "엠비대",
+      "team": "FA",
       "role": "",
       "info_updated_at": null,
       "id": "kalmian"
@@ -1075,7 +1075,7 @@
       "gender": "f",
       "race": "저그",
       "tier": "2",
-      "team": "엠비대",
+      "team": "마범대",
       "role": "",
       "info_updated_at": null,
       "id": "ghkdud1617"
@@ -1087,7 +1087,7 @@
       "gender": "f",
       "race": "프로토스",
       "tier": "3",
-      "team": "엠비대",
+      "team": "마범대",
       "role": "",
       "info_updated_at": null,
       "id": "bora99"
@@ -1123,7 +1123,7 @@
       "gender": "f",
       "race": "프로토스",
       "tier": "5",
-      "team": "엠비대",
+      "team": "FA",
       "role": "",
       "info_updated_at": null,
       "id": "gkdud3294"
@@ -1291,7 +1291,7 @@
       "gender": "f",
       "race": "프로토스",
       "tier": "3",
-      "team": "FA",
+      "team": "휴면",
       "role": "",
       "info_updated_at": null,
       "id": "soonhani"
