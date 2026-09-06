@@ -1,5 +1,5 @@
 """
-ststats 프로젝트의 엘로보드(ELO) 스폰전적 fetch 모듈.
+synergy 프로젝트의 엘로보드(ELO) 스폰전적 fetch 모듈.
 
 이전에는 ZenRows(안티봇 우회 프록시) + JS 주입으로 게시판 HTML을 긁어서
 afreecatv 핸들을 정규식으로 추출하는 방식이었으나, EloBoard가 공식 API

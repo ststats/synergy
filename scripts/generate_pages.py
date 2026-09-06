@@ -1,5 +1,5 @@
 """
-ststats 프로젝트의 CSR 페이지 생성 스크립트.
+synergy 프로젝트의 CSR 페이지 생성 스크립트.
 """
 
 import json
@@ -171,7 +171,7 @@ def main():
     atomic_write_json(TEAM_LOGO_COLOR_CACHE_PATH, team_color_cache)
     team_colors["FA"], team_colors["휴면"] = "#8b8f99", "#8b8f99"
 
-    index_html = generate_html("스타대학", "", False, "", static_info, team_colors)
+    index_html = generate_html("시너지", "", False, "", static_info, team_colors)
     OUTPUT_INDEX.parent.mkdir(parents=True, exist_ok=True)
     _write_if_changed(OUTPUT_INDEX, index_html)
 

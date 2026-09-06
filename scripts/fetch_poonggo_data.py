@@ -1,5 +1,5 @@
 """
-ststats 프로젝트의 풍고(poonggo.com) 데이터 fetch 모듈.
+synergy 프로젝트의 풍고(poonggo.com) 데이터 fetch 모듈.
 
 여기는 풍고 API에서 별풍선/방송시간/누적시청자를 가져오는 순수 함수만 있습니다.
 
