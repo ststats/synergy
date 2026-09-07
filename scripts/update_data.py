@@ -21,7 +21,12 @@ MEMBERS_PATH = ROOT / "data" / "members.json"
 OUTPUT_PATH = ROOT / "data" / "latest.json"
 ARCHIVE_DIR = ROOT / "data" / "archive"
 APPLIED_CORRECTIONS_PATH = ROOT / "data" / "archive_corrections_applied.json"
+CONFIRMED_MONTHS_PATH = ROOT / "data" / "archive_month_confirmed.json"
 PRUNE_GRACE_MONTHS = 6
+# 워크플로우가 아주 오랫동안(수개월) 안 돌다가 재개된 극단적인 경우에도
+# 한 번에 너무 많은 달을 몰아서 처리하다 25분 타임아웃을 넘기지 않도록
+# 상한을 둔다 - 다 못 채운 나머지 달은 다음 실행에서 계속 이어서 처리된다.
+MAX_MONTHS_TO_CONFIRM_PER_RUN = 12
 
 # --- 아카이브 폴더 구조화 헬퍼 ---
 def get_archive_path(date_str: str) -> Path:
@@ -143,58 +148,110 @@ def apply_member_updates_to_archives(members: list, today_date_str: str) -> set:
 def _index_by_elo_id(sponsor_list: list) -> dict:
     return {item["id"]: item for item in sponsor_list if item.get("id")}
 
-def confirm_previous_month_if_needed(prev_year, prev_month, new_year, new_month, all_ids, now, existing_elo_ids, new_members_acc, skip_new_member_detection=False):
-    if not prev_year or not prev_month or (prev_year, prev_month) == (new_year, new_month):
-        return
-    last_day = last_day_of_month(prev_year, prev_month)
-    archive_path = get_archive_path(f"{prev_year:04d}-{prev_month:02d}-{last_day:02d}")
+def _iter_months(y1, m1, y2, m2):
+    """(y1,m1)부터 (y2,m2) 바로 전달까지의 (year, month) 튜플을 순서대로
+    반환한다. (y2,m2)는 포함하지 않는다(아직 진행 중인 이번 달이라 확정
+    대상이 아니므로). 워크플로우가 여러 달을 건너뛰고 재개된 경우, 중간에
+    낀 달들도 전부 여기서 나온다(예전엔 prev_month 딱 하나만 봤어서 중간
+    달들이 통째로 스킵됐었다)."""
+    y, m = y1, m1
+    while (y, m) < (y2, m2):
+        yield (y, m)
+        m += 1
+        if m > 12:
+            m = 1
+            y += 1
+
+def confirm_month(target_year, target_month, all_ids, now, existing_elo_ids, new_members_acc,
+                   skip_new_member_detection=False, prev_flags=None):
+    """지정한 (target_year, target_month)의 마지막 날 아카이브를, 그 달이
+    완전히 끝난 뒤 뒤늦게 들어온 데이터로 사후 보정한다.
+
+    prev_flags(예: {"balloon": True, "sponsor": False})에 이미 성공한
+    부분이 있으면 그 부분은 다시 시도하지 않는다 - 예전 구현은 이 확정
+    시도를 "월이 바뀐 첫 실행, 딱 한 번"만 허용해서, 그때 부분적으로만
+    실패해도 재시도 기회 자체가 없이 그 달 수치가 영구히 부정확한 채로
+    남는 문제가 있었다. 이제는 실패한 부분의 완료 여부를 호출부가
+    영속화해서, 매 실행마다 "아직 안 끝난 부분만" 계속 재시도한다.
+
+    반환값은 이번 호출 뒤의 최종 완료 상태 {"balloon": bool, "sponsor": bool}.
+
+    알려진 한계: 별풍선(풍고) 보정은 오늘 시점 로스터에서 뽑은 soop_id로
+    풍고에 물어본 결과를, 아카이브에 그 당시 저장돼있던 soop_id와 매칭한다.
+    그 사이 누군가의 soop_id 자체가 바뀌었다면(오타 수정, 계정 이전 등)
+    이 함수는 그 사람의 별풍선을 갱신하지 못하고 조용히 넘어간다 - id
+    변경 이력을 별도로 추적하는 장치가 없는 한 일반적으로 고치기 어려운
+    한계라 이번 개선에서는 다루지 않고 그대로 남겨둔다."""
+    prev_flags = prev_flags or {}
+    last_day = last_day_of_month(target_year, target_month)
+    archive_path = get_archive_path(f"{target_year:04d}-{target_month:02d}-{last_day:02d}")
     if not archive_path.exists():
-        return
+        # 그 달 마지막 날 아카이브 자체가 없으면(그 달엔 워크플로우가 아예
+        # 안 돌았음) 확정할 대상이 없는 것 - 완료로 간주해서 다음 실행에서
+        # 또 시도하지 않게 한다.
+        return {"balloon": True, "sponsor": True}
 
     archive = safe_read_json(archive_path, default=None)
     if archive is None:
-        return
+        return {"balloon": prev_flags.get("balloon", False), "sponsor": prev_flags.get("sponsor", False)}
 
     changed = False
     sponsor_changed = False
+    balloon_done = prev_flags.get("balloon", False)
+    sponsor_done = prev_flags.get("sponsor", False)
 
-    balloon_data = fetch_poonggo_monthly(prev_year, prev_month, all_ids)
-    if balloon_data:
-        for m in archive.get("members", []):
-            src = balloon_data.get(m.get("id"))
-            if src:
-                m["balloons"] = src["balloons"]
-                m["broadcast_seconds"] = src["broadcast_seconds"]
-                m["cumulative_viewers"] = src["cumulative_viewers"]
-                changed = True
+    if not balloon_done:
+        balloon_data = fetch_poonggo_monthly(target_year, target_month, all_ids)
+        if balloon_data is not None:
+            for m in archive.get("members", []):
+                src = balloon_data.get(m.get("id"))
+                if src:
+                    m["balloons"] = src["balloons"]
+                    m["broadcast_seconds"] = src["broadcast_seconds"]
+                    m["cumulative_viewers"] = src["cumulative_viewers"]
+                    changed = True
+            balloon_done = True
+        # balloon_data가 None이면 fetch_poonggo_monthly가 실제로 실패한
+        # 것(빈 결과 {}와 구분됨) - balloon_done을 True로 안 만들고 다음
+        # 실행에서 다시 시도되게 둔다.
 
-    start_date = f"{prev_year:04d}-{prev_month:02d}-01"
-    end_date = f"{prev_year:04d}-{prev_month:02d}-{last_day:02d}"
-    try:
-        sponsor_list = aggregate_period_data(start_date, end_date)
-    except Exception:
-        sponsor_list = []
-        
-    if sponsor_list:
-        if not skip_new_member_detection:
-            new_members_acc.update(_collect_unknown_elo_players(sponsor_list, existing_elo_ids, now.strftime("%Y-%m-%d")))
-        lookup = _index_by_elo_id(sponsor_list)
-        for m in archive.get("members", []):
-            elo_id = m.get("elo_id")
-            src = lookup.get(str(elo_id)) if elo_id is not None else None
-            new_wins = src["sponsor_wins"] if src else 0
-            new_losses = src["sponsor_losses"] if src else 0
-            if m.get("sponsor_wins") != new_wins or m.get("sponsor_losses") != new_losses:
-                m["sponsor_wins"] = new_wins
-                m["sponsor_losses"] = new_losses
-                changed = True
-                sponsor_changed = True
+    if not sponsor_done:
+        start_date = f"{target_year:04d}-{target_month:02d}-01"
+        end_date = f"{target_year:04d}-{target_month:02d}-{last_day:02d}"
+        try:
+            sponsor_list = aggregate_period_data(start_date, end_date)
+        except Exception:
+            sponsor_list = []
+
+        if sponsor_list:
+            if not skip_new_member_detection:
+                new_members_acc.update(_collect_unknown_elo_players(sponsor_list, existing_elo_ids, now.strftime("%Y-%m-%d")))
+            lookup = _index_by_elo_id(sponsor_list)
+            for m in archive.get("members", []):
+                elo_id = m.get("elo_id")
+                src = lookup.get(str(elo_id)) if elo_id is not None else None
+                new_wins = src["sponsor_wins"] if src else 0
+                new_losses = src["sponsor_losses"] if src else 0
+                if m.get("sponsor_wins") != new_wins or m.get("sponsor_losses") != new_losses:
+                    m["sponsor_wins"] = new_wins
+                    m["sponsor_losses"] = new_losses
+                    changed = True
+                    sponsor_changed = True
+            sponsor_done = True
+        # sponsor_list가 빈 리스트인 건 aggregate_period_data()의 반환값
+        # 특성상 "그 기간 스폰전적이 진짜 0건"과 "API 실패"를 구분할 수
+        # 없다(둘 다 [] 반환) - 그래서 여기선 보수적으로 sponsor_done을
+        # True로 만들지 않는다. 실제로 0건인 달이면 다음 실행에서 조회를
+        # 한 번 더 하는 정도의 비용만 있을 뿐이라, "실패를 성공으로
+        # 착각해서 영영 안 고쳐지는 것"보다 훨씬 안전한 쪽을 택했다.
 
     if changed:
         archive["updated_at"] = now.strftime(DATETIME_FORMAT)
         if sponsor_changed:
             archive["sponsor_updated_at"] = now.strftime(DATETIME_FORMAT)
         atomic_write_json(archive_path, archive)
+
+    return {"balloon": balloon_done, "sponsor": sponsor_done}
 
 def main():
     if not MEMBERS_PATH.exists():
@@ -261,7 +318,33 @@ def main():
     new_members_acc = {}
 
     archive_previous_day_if_needed(prev_latest, today_date_str)
-    confirm_previous_month_if_needed(prev_year, prev_month, year, month, all_ids, now, existing_elo_ids, new_members_acc, skip_new_member_detection)
+
+    if prev_year and prev_month:
+        confirmed_months = safe_read_json(CONFIRMED_MONTHS_PATH, default={})
+        if confirmed_months is None:
+            # 이 파일 읽기가 실패하면 "이미 다 확정됐다"고 잘못 믿고 건너뛰는
+            # 것보다는, 차라리 이번 실행에서 다시 시도하는 게(중복 시도는
+            # 비용만 좀 들 뿐 데이터를 틀리게 만들진 않는다) 안전하다.
+            confirmed_months = {}
+
+        months_to_confirm = list(_iter_months(prev_year, prev_month, year, month))
+        if len(months_to_confirm) > MAX_MONTHS_TO_CONFIRM_PER_RUN:
+            print(f"[경고] 밀린 월 확정이 {len(months_to_confirm)}개월치라 "
+                  f"이번엔 최근 {MAX_MONTHS_TO_CONFIRM_PER_RUN}개월만 처리하고, "
+                  f"나머지는 다음 실행에서 이어서 처리합니다.", file=sys.stderr)
+            months_to_confirm = months_to_confirm[-MAX_MONTHS_TO_CONFIRM_PER_RUN:]
+
+        for (cy, cm) in months_to_confirm:
+            key = f"{cy:04d}-{cm:02d}"
+            flags = confirmed_months.get(key, {})
+            if flags.get("balloon") and flags.get("sponsor"):
+                continue
+            new_flags = confirm_month(cy, cm, all_ids, now, existing_elo_ids, new_members_acc,
+                                       skip_new_member_detection, flags)
+            confirmed_months[key] = new_flags
+
+        atomic_write_json(CONFIRMED_MONTHS_PATH, confirmed_months)
+
     applied_correction_ids = apply_member_updates_to_archives(members, today_date_str)
 
     print(f"[수집] 풍고 별풍선 및 엘로보드 스폰전적 병렬 수집 시작...")
