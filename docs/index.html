@@ -132,7 +132,6 @@ body { font-family: 'Pretendard Variable', sans-serif; background: #f4f5f7; marg
     .top-date-btn { display: inline-flex; align-items: center; gap: 3px; font-size: 10px; vertical-align: middle; padding: 0; }
     .select-wrapper { display: inline-flex; align-items: center; gap: 3px; vertical-align: middle; }
     .top-date-select { font-size: 10px; vertical-align: middle; padding: 0; }
-    .cal-popup { width: 220px; left: -10px; }
     .nav-chevron { font-size: 7px; display: inline-flex; align-items: center; vertical-align: middle; }
     .top-meta { font-size: 5px; white-space: normal; }
     .grid { grid-template-columns: 1fr 1fr; gap: 8px; }
@@ -229,6 +228,19 @@ body { font-family: 'Pretendard Variable', sans-serif; background: #f4f5f7; marg
 
   function soopPhotoUrl(id) {
       return `https://profile.img.sooplive.com/LOGO/${(id || '').substring(0, 2)}/${id}/${id}.jpg`;
+  }
+
+  // 닉네임/팀명처럼 구글 시트(궁극적으로는 EloBoard API 등 외부 소스)에서
+  // 온 문자열을 innerHTML에 꽂기 전에 반드시 이 함수를 거친다. 관리자가
+  // new_members(대기) 시트를 검토해서 members 시트로 옮기는 절차가 있긴
+  // 하지만, 그 검토는 사람 눈에 의존하는 방어일 뿐이고 최종적으로 이
+  // 값들은 members.json을 거쳐 사이트 방문자 전원에게 그대로 렌더링된다.
+  // <, >, & 같은 문자가 실수로라도 섞이면 화면이 깨지거나(레이아웃 손상),
+  // 악의적인 경우 스크립트가 실행(XSS)될 수 있어 코드 레벨 방어가 필요하다.
+  function escapeHtml(s) {
+      return String(s ?? '').replace(/[&<>"']/g, c => ({
+          '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      }[c]));
   }
 
   async function checkIsLiveRealtime(soopId) {
@@ -502,7 +514,7 @@ body { font-family: 'Pretendard Variable', sans-serif; background: #f4f5f7; marg
           const photoUrl = soopPhotoUrl(m.id);
           const photoImg = `<img class="fa-bar-photo" src="${photoUrl}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">`;
           const liveDot = m.id ? `<span class="live-dot" data-live-id="${m.id}"></span>` : '';
-          const inner = `${photoImg}${liveDot}<span class="member-name">${m.nickname}</span>`;
+          const inner = `${photoImg}${liveDot}<span class="member-name">${escapeHtml(m.nickname)}</span>`;
           return m.id
               ? `<div class="fa-bar-item"><a href="${LOGO_PREFIX}profile.html?id=${m.id}&date=${currentDateStr}&metric=${currentMetric}&fromTeam=${encodeURIComponent(TARGET_TEAM || '')}">${inner}</a></div>`
               : `<div class="fa-bar-item"><span class="fa-bar-static">${inner}</span></div>`;
@@ -568,9 +580,9 @@ body { font-family: 'Pretendard Variable', sans-serif; background: #f4f5f7; marg
               const logoHtml = `<img src="${LOGO_PREFIX}logos/${ts.name}.webp" class="team-logo" alt="" onerror="this.style.display='none'">`;
               const topColor = TEAM_COLORS[ts.name] || '#4a5ce0';
               const countHtml = `<span class="team-count">총 ${ts.males.length + ts.females.length}명 · 남 ${ts.males.length} · 여 ${ts.females.length}</span>`;
-              const headerLeft = TARGET_TEAM ? `<div class="team-header-left">${logoHtml}<span class="team-name">${ts.name}</span>${countHtml}</div>`
-                  : `<div class="team-header-left">${logoHtml}<a class="team-link team-name" href="team.html?team=${encodeURIComponent(ts.name)}&date=${currentDateStr}&metric=${currentMetric}">${ts.name}</a>${countHtml}</div>`;
-              const rankSlot = TARGET_TEAM ? '' : `<span class="rank-badge-slot" data-team="${ts.name}"></span>`;
+              const headerLeft = TARGET_TEAM ? `<div class="team-header-left">${logoHtml}<span class="team-name">${escapeHtml(ts.name)}</span>${countHtml}</div>`
+                  : `<div class="team-header-left">${logoHtml}<a class="team-link team-name" href="team.html?team=${encodeURIComponent(ts.name)}&date=${currentDateStr}&metric=${currentMetric}">${escapeHtml(ts.name)}</a>${countHtml}</div>`;
+              const rankSlot = TARGET_TEAM ? '' : `<span class="rank-badge-slot" data-team="${escapeHtml(ts.name)}"></span>`;
 
               const makeRows = (list, padLen) => {
                   let rHtml = list.map(m => {
@@ -588,8 +600,8 @@ body { font-family: 'Pretendard Variable', sans-serif; background: #f4f5f7; marg
                       const liveDot = m.id ? `<span class="live-dot" data-live-id="${m.id}"></span>` : '';
                       const bdayMark = isBday ? '<span class="bday-mark">🎂</span>' : '';
                       const nameContent = m.id
-                          ? `${liveDot}<a class="member-name-link" href="${LOGO_PREFIX}profile.html?id=${m.id}&date=${currentDateStr}&metric=${currentMetric}&fromTeam=${encodeURIComponent(TARGET_TEAM || '')}">${m.nickname}</a>${bdayMark}`
-                          : liveDot + m.nickname + bdayMark;
+                          ? `${liveDot}<a class="member-name-link" href="${LOGO_PREFIX}profile.html?id=${m.id}&date=${currentDateStr}&metric=${currentMetric}&fromTeam=${encodeURIComponent(TARGET_TEAM || '')}">${escapeHtml(m.nickname)}</a>${bdayMark}`
+                          : liveDot + escapeHtml(m.nickname) + bdayMark;
                       return `<div class="member-row ${cClass.join(' ')}"><span class="member-name">${nameContent}</span><span class="member-value">${def.format(m._val)}</span></div>`;
                   }).join('');
 
