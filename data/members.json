@@ -1297,7 +1297,7 @@
       "id": "soonhani"
     },
     {
-      "nickname": "금선",
+      "nickname": "금선2",
       "elo_id": 474,
       "birthdate": "1998-05-19",
       "gender": "f",
@@ -3241,7 +3241,7 @@
       "id": "nalra82"
     },
     {
-      "nickname": "파도",
+      "nickname": "파도튜브",
       "elo_id": 6385,
       "birthdate": "1992-07-15",
       "gender": "m",
@@ -3535,7 +3535,7 @@
       "gender": "f",
       "race": "저그",
       "tier": "4",
-      "team": "FA",
+      "team": "휴면",
       "role": "",
       "info_updated_at": null,
       "id": "haru1207"
@@ -3655,7 +3655,7 @@
       "gender": "f",
       "race": "저그",
       "tier": "6",
-      "team": "FA",
+      "team": "휴면",
       "role": "",
       "info_updated_at": null,
       "id": "khsoo0105"
@@ -3811,7 +3811,7 @@
       "gender": "m",
       "race": "프로토스",
       "tier": "킹",
-      "team": "휴면",
+      "team": "FA",
       "role": "",
       "info_updated_at": null,
       "id": "ioioiobb"
@@ -3967,7 +3967,7 @@
       "gender": "m",
       "race": "저그",
       "tier": "조커",
-      "team": "휴면",
+      "team": "FA",
       "role": "",
       "info_updated_at": null,
       "id": "kil9077"
@@ -4039,7 +4039,7 @@
       "gender": "m",
       "race": "테란",
       "tier": "스페이드",
-      "team": "휴면",
+      "team": "FA",
       "role": "",
       "info_updated_at": null,
       "id": "tjdwnls123"
@@ -9707,6 +9707,30 @@
       "role": "",
       "info_updated_at": null,
       "id": "tbqlt1004"
+    },
+    {
+      "nickname": "찌효",
+      "elo_id": null,
+      "birthdate": null,
+      "gender": "f",
+      "race": "테란",
+      "tier": "베이비",
+      "team": "FA",
+      "role": "",
+      "info_updated_at": null,
+      "id": "jelly97"
+    },
+    {
+      "nickname": "민댕댕",
+      "elo_id": null,
+      "birthdate": null,
+      "gender": "f",
+      "race": "프로토스",
+      "tier": "베이비",
+      "team": "FA",
+      "role": "",
+      "info_updated_at": null,
+      "id": "pengmuin"
     }
   ]
 }
