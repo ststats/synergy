@@ -2,8 +2,6 @@ name: Update all stats
 
 on:
   workflow_dispatch: {}
-  schedule:
-    - cron: "0 * * * *" # 예시: 필요 시 활성화
 
 permissions:
   contents: write
