@@ -1219,7 +1219,7 @@
       "gender": "m",
       "race": "프로토스",
       "tier": "잭",
-      "team": "와플대",
+      "team": "FA",
       "role": "",
       "info_updated_at": null,
       "id": "khy12088wsss"
@@ -1591,7 +1591,7 @@
       "gender": "f",
       "race": "저그",
       "tier": "6",
-      "team": "FA",
+      "team": "드림즈",
       "role": "",
       "info_updated_at": null,
       "id": "nreupne"
@@ -3115,7 +3115,7 @@
       "gender": "m",
       "race": "프로토스",
       "tier": "조커",
-      "team": "FA",
+      "team": "와플대",
       "role": "",
       "info_updated_at": null,
       "id": "jhyhlli123"
@@ -8809,13 +8809,13 @@
       "id": "vldzm9749"
     },
     {
-      "nickname": "땃쥐",
+      "nickname": "따찌",
       "elo_id": 820,
       "birthdate": "1995-05-16",
       "gender": "f",
       "race": "저그",
       "tier": "8",
-      "team": "휴면",
+      "team": "FA",
       "role": "",
       "info_updated_at": null,
       "id": "dlwjddls30"
