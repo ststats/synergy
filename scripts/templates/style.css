@@ -14,8 +14,8 @@ body { font-family: 'Pretendard Variable', sans-serif; background: #f4f5f7; marg
 .select-wrapper .nav-chevron { pointer-events: none; }
 .nav-chevron { font-size: 14px; color: #c2c5cc; user-select: none; display: inline-flex; align-items: center; vertical-align: middle; }
 
-.back-link { display: inline-flex; align-items: center; gap: 3px; font-size: 10px; font-weight: 600; color: #8a8d97; text-decoration: none; }
-.back-link:hover { color: #4a5ce0; }
+.back-link { display: inline-flex; align-items: center; gap: 3px; font-size: 10px; font-weight: 600; color: #4a5ce0; text-decoration: none; }
+.back-link:hover { text-decoration: underline; }
 .top-meta-group { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
 .top-meta-sep { color: #c2c5cc; font-size: 10px; }
 .top-meta { font-size: 10px; color: #a4a8b2; white-space: nowrap; }
