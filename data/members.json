@@ -1051,7 +1051,7 @@
       "gender": "m",
       "race": "저그",
       "tier": "8",
-      "team": "휴면",
+      "team": "FA",
       "role": "",
       "info_updated_at": null,
       "id": "dlqudgk1227"
@@ -1195,7 +1195,7 @@
       "gender": "f",
       "race": "프로토스",
       "tier": "8",
-      "team": "영정",
+      "team": "FA",
       "role": "",
       "info_updated_at": null,
       "id": "chuwari13"
@@ -1207,7 +1207,7 @@
       "gender": "m",
       "race": "저그",
       "tier": "잭",
-      "team": "FA",
+      "team": "드림즈",
       "role": "",
       "info_updated_at": null,
       "id": "kss33325"
@@ -1447,7 +1447,7 @@
       "gender": "m",
       "race": "저그",
       "tier": "조커",
-      "team": "영정",
+      "team": "FA",
       "role": "",
       "info_updated_at": null,
       "id": "qndnd12"
@@ -1483,7 +1483,7 @@
       "gender": "m",
       "race": "프로토스",
       "tier": "0",
-      "team": "영정",
+      "team": "FA",
       "role": "",
       "info_updated_at": null,
       "id": "gjgj3274"
@@ -1495,8 +1495,8 @@
       "gender": "m",
       "race": "프로토스",
       "tier": "5",
-      "team": "영정",
-      "role": "수장",
+      "team": "FA",
+      "role": "",
       "info_updated_at": null,
       "id": "ititit"
     },
@@ -1519,7 +1519,7 @@
       "gender": "f",
       "race": "저그",
       "tier": "3",
-      "team": "영정",
+      "team": "FA",
       "role": "",
       "info_updated_at": null,
       "id": "dmswls4565"
@@ -1531,7 +1531,7 @@
       "gender": "f",
       "race": "저그",
       "tier": "3",
-      "team": "영정",
+      "team": "FA",
       "role": "",
       "info_updated_at": null,
       "id": "pazzy1"
@@ -1543,7 +1543,7 @@
       "gender": "f",
       "race": "프로토스",
       "tier": "3",
-      "team": "영정",
+      "team": "FA",
       "role": "",
       "info_updated_at": null,
       "id": "rlsk0705"
@@ -1603,7 +1603,7 @@
       "gender": "f",
       "race": "프로토스",
       "tier": "6",
-      "team": "영정",
+      "team": "FA",
       "role": "",
       "info_updated_at": null,
       "id": "tato1104"
@@ -2575,7 +2575,7 @@
       "gender": "f",
       "race": "저그",
       "tier": "8",
-      "team": "더블비",
+      "team": "FA",
       "role": "",
       "info_updated_at": null,
       "id": "fidfidfid"
@@ -2947,7 +2947,7 @@
       "gender": "m",
       "race": "테란",
       "tier": "잭",
-      "team": "영정",
+      "team": "FA",
       "role": "",
       "info_updated_at": null,
       "id": "rondobba"
