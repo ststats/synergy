@@ -1,0 +1,74 @@
+{
+  "chuwari13": {
+    "update_date": "2026-09-10",
+    "team": "영정",
+    "tier": "8",
+    "role": "",
+    "race": "프로토스",
+    "nickname": "요구리",
+    "elo_id": 825
+  },
+  "qndnd12": {
+    "update_date": "2026-09-10",
+    "team": "영정",
+    "tier": "조커",
+    "role": "",
+    "race": "저그",
+    "nickname": "김기덕",
+    "elo_id": 153
+  },
+  "ititit": {
+    "update_date": "2026-09-10",
+    "team": "영정",
+    "tier": "5",
+    "role": "수장",
+    "race": "프로토스",
+    "nickname": "정중만",
+    "elo_id": 6353
+  },
+  "dmswls4565": {
+    "update_date": "2026-09-10",
+    "team": "영정",
+    "tier": "3",
+    "role": "",
+    "race": "저그",
+    "nickname": "공다츠",
+    "elo_id": 512
+  },
+  "pazzy1": {
+    "update_date": "2026-09-10",
+    "team": "영정",
+    "tier": "3",
+    "role": "",
+    "race": "저그",
+    "nickname": "파찌",
+    "elo_id": 248
+  },
+  "rlsk0705": {
+    "update_date": "2026-09-10",
+    "team": "영정",
+    "tier": "3",
+    "role": "",
+    "race": "프로토스",
+    "nickname": "기나",
+    "elo_id": 283
+  },
+  "tato1104": {
+    "update_date": "2026-09-10",
+    "team": "영정",
+    "tier": "6",
+    "role": "",
+    "race": "프로토스",
+    "nickname": "밍가",
+    "elo_id": 628
+  },
+  "rondobba": {
+    "update_date": "2026-09-10",
+    "team": "영정",
+    "tier": "잭",
+    "role": "",
+    "race": "테란",
+    "nickname": "지동원",
+    "elo_id": 71
+  }
+}
