@@ -23,17 +23,9 @@
     "hash": "827a27914ad9253bc832125833582eaa0e54a2c3b69b4c13229ba8b8d9d1c0de",
     "color": "#b40000"
   },
-  "수술대": {
-    "hash": "7f1484cb91402c1cea8370b9ce91d9e8a8119d5c97786e9d5947af963218d821",
-    "color": "#0078c8"
-  },
   "신세계": {
     "hash": "e80e724ba2044dda3730d463e00e23b1175a33f56b110ee906914cf684056412",
     "color": "#3c2814"
-  },
-  "엠비대": {
-    "hash": "a385994688a8f27308857b937b615daea0bcc855d53f2fb6e7d3497cf65725ef",
-    "color": "#001428"
   },
   "와플대": {
     "hash": "ebd57bf9d88b3292e769fe88c8a7db60683d8259576f49f389b3b46409eba2e5",
@@ -51,12 +43,8 @@
     "hash": "682098af5cc49aa2548a859a3d20ee774cc78b3e141942bbbd44879336b426a5",
     "color": "#f07814"
   },
-  "HM": {
-    "hash": "547230b0c34d0f5d5046ec77207502e824202d443bfdba0e88e7c555e177a026",
-    "color": "#646450"
-  },
   "마범대": {
-    "hash": "a385994688a8f27308857b937b615daea0bcc855d53f2fb6e7d3497cf65725ef",
-    "color": "#001428"
+    "hash": "21c446c9b55e139d8fc8048ab04ff1dce0dc4c45404dec7a4f88eaad2bd8f1d4",
+    "color": "#141414"
   }
 }
