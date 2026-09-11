@@ -11,7 +11,7 @@ from pathlib import Path
 from _common import (
     ROOT, DATETIME_FORMAT, kst_now, last_day_of_month, get_month_date_range,
     atomic_write_json, safe_read_json, validate_and_clean_members,
-    is_sheet_ready, load_sheet_members, write_sheet,
+    is_sheet_ready, load_sheet_members, write_sheet, normalize_elo_id,
     load_pending_members, append_pending_members, PENDING_SHEET_NAME
 )
 from fetch_poonggo_data import fetch_poonggo_monthly
@@ -32,8 +32,28 @@ MAX_MONTHS_TO_CONFIRM_PER_RUN = 12
 def get_archive_path(date_str: str) -> Path:
     """YYYY-MM-DD 형태의 날짜를 받아 연/월 단위 폴더 경로를 반환합니다."""
     dt = datetime.strptime(date_str, "%Y-%m-%d")
-    path = ARCHIVE_DIR / str(dt.year) / f"{dt.month:02d}" / f"{date_str}.json"
-    return path
+    # date_str을 그대로 파일명에 쓰기 전에 파싱 결과로 다시 만들어 쓴다 -
+    # strptime을 통과하는 값은 안전하지만, 경로 조립에 외부 문자열을 직접
+    # 끼워넣는 패턴 자체를 남겨두지 않는 편이 낫다.
+    normalized = dt.strftime("%Y-%m-%d")
+    return ARCHIVE_DIR / f"{dt.year:04d}" / f"{dt.month:02d}" / f"{normalized}.json"
+
+def iter_archive_files():
+    """아카이브 디렉터리에서 'YYYY-MM-DD.json' 형태의 파일만 (날짜, 경로)로
+    돌려준다. rglob("*.json")을 그대로 쓰면 나중에 누가 archive 폴더에
+    메모용 json이라도 하나 넣는 순간 그 파일명이 날짜로 취급돼 비교/수정
+    대상이 되어버린다."""
+    if not ARCHIVE_DIR.exists():
+        return
+    for path in ARCHIVE_DIR.rglob("*.json"):
+        stem = path.stem
+        if len(stem) != 10:
+            continue
+        try:
+            datetime.strptime(stem, "%Y-%m-%d")
+        except ValueError:
+            continue
+        yield stem, path
 # ---------------------------------
 
 def _collect_unknown_elo_players(sponsor_list: list, existing_elo_ids: set, today_date_str: str) -> dict:
@@ -48,12 +68,22 @@ def _collect_unknown_elo_players(sponsor_list: list, existing_elo_ids: set, toda
     같은 후보가 매 실행마다 new_members에 중복으로 쌓이지 않는다."""
     new_members = {}
     for item in sponsor_list:
-        elo_id_str = item.get("id")
+        elo_id_str = normalize_elo_id(item.get("id"))
         if elo_id_str and elo_id_str not in existing_elo_ids:
+            try:
+                elo_id_int = int(elo_id_str)
+            except (ValueError, TypeError):
+                # EloBoard가 숫자가 아닌 player_id를 내려주면 예전 코드는
+                # 여기서 그대로 ValueError로 죽었다 - 그 한 건 때문에
+                # update_data.py 전체가 실패하면서 그날 수집분이 통째로
+                # 날아간다. 후보 한 명을 포기하는 쪽이 훨씬 싸다.
+                print(f"[경고] elo_id가 숫자가 아니라 신규 후보에서 제외합니다: {elo_id_str!r}",
+                      file=sys.stderr)
+                continue
             new_member = {
                 "id": f"elo_{elo_id_str}",
                 "nickname": f"미상(elo_{elo_id_str})",
-                "elo_id": int(elo_id_str),
+                "elo_id": elo_id_int,
                 "gender": "",
                 "race": "",
                 "tier": "",
@@ -116,9 +146,7 @@ def apply_member_updates_to_archives(members: list, today_date_str: str) -> set:
 
     earliest_update_date = min(u["update_date"] for u in pending.values())
 
-    # 하위 폴더까지 스캔하기 위해 rglob 사용
-    for archive_path in ARCHIVE_DIR.rglob("*.json"):
-        file_date = archive_path.stem
+    for file_date, archive_path in iter_archive_files():
         if file_date < earliest_update_date:
             continue
         changed = False
@@ -146,7 +174,9 @@ def apply_member_updates_to_archives(members: list, today_date_str: str) -> set:
     return set(pending.keys())
 
 def _index_by_elo_id(sponsor_list: list) -> dict:
-    return {item["id"]: item for item in sponsor_list if item.get("id")}
+    # 키를 normalize_elo_id로 통일해야, 조회할 때 쓰는 members.json의
+    # elo_id(정수)와 문자열 표현이 항상 같은 모양으로 만난다.
+    return {normalize_elo_id(item.get("id")): item for item in sponsor_list if item.get("id")}
 
 def _iter_months(y1, m1, y2, m2):
     """(y1,m1)부터 (y2,m2) 바로 전달까지의 (year, month) 튜플을 순서대로
@@ -229,7 +259,7 @@ def confirm_month(target_year, target_month, all_ids, now, existing_elo_ids, new
             lookup = _index_by_elo_id(sponsor_list)
             for m in archive.get("members", []):
                 elo_id = m.get("elo_id")
-                src = lookup.get(str(elo_id)) if elo_id is not None else None
+                src = lookup.get(normalize_elo_id(elo_id)) if elo_id is not None else None
                 new_wins = src["sponsor_wins"] if src else 0
                 new_losses = src["sponsor_losses"] if src else 0
                 if m.get("sponsor_wins") != new_wins or m.get("sponsor_losses") != new_losses:
@@ -255,11 +285,26 @@ def confirm_month(target_year, target_month, all_ids, now, existing_elo_ids, new
 
 def main():
     if not MEMBERS_PATH.exists():
+        print(f"[오류] {MEMBERS_PATH}가 없습니다 - convert_members.py가 먼저 성공했는지 확인하세요.",
+              file=sys.stderr)
         sys.exit(1)
 
-    with open(MEMBERS_PATH, "r", encoding="utf-8") as f:
-        config = json.load(f)
+    # 예전엔 json.load를 그대로 썼는데, members.json이 (이전 실행이 중간에
+    # 죽어서) 깨져 있으면 여기서 JSONDecodeError로 죽으면서 원인 메시지가
+    # 하나도 안 남았다.
+    config = safe_read_json(MEMBERS_PATH, default=None)
+    if not isinstance(config, dict):
+        print(f"[오류] {MEMBERS_PATH}를 읽을 수 없거나 형식이 올바르지 않습니다.", file=sys.stderr)
+        sys.exit(1)
+
     members = validate_and_clean_members(config.get("members", []))
+    if not members:
+        # 여기서 계속 진행하면 "회원 0명"짜리 latest.json을 정상 결과인 것처럼
+        # 저장해서, 사이트가 통째로 빈 화면이 되고 그 상태가 아카이브로도
+        # 굳어버린다. 기존 데이터를 지키려면 아무것도 안 쓰고 멈춰야 한다.
+        print("[오류] 유효한 회원이 0명입니다 - latest.json을 건드리지 않고 중단합니다.", file=sys.stderr)
+        sys.exit(1)
+
     all_ids = [m["id"] for m in members]
 
     now = kst_now()
@@ -286,7 +331,14 @@ def main():
                     }
 
     existing_elo_ids = set()
-    skip_new_member_detection = False
+    # 시트 자격 증명 자체가 없으면 "이미 등록된 elo_id 목록"을 알 방법이
+    # 없다. 예전 코드는 이 경우 existing_elo_ids를 빈 집합으로 둔 채 판별을
+    # 그대로 진행해서, 스폰전적에 나온 전원을 "신규 후보"로 잡고 "N명 추가
+    # 완료" 로그까지 남겼다(실제 추가는 인증이 없어 조용히 건너뛰어졌으니,
+    # 로그만 사실과 다른 상태였다). 알 수 없으면 판별을 건너뛴다.
+    skip_new_member_detection = not is_sheet_ready()
+    if skip_new_member_detection:
+        print("[알림] 구글 시트 설정이 없어 신규 후보 판별을 건너뜁니다.")
     if is_sheet_ready():
         sheet_members = load_sheet_members()
         if sheet_members is None:
@@ -300,7 +352,7 @@ def main():
             skip_new_member_detection = True
         else:
             existing_elo_ids = {
-                str(fields["elo_id"]) for fields in sheet_members.values()
+                normalize_elo_id(fields["elo_id"]) for fields in sheet_members.values()
                 if fields.get("elo_id") is not None
             }
             # new_members(대기) 시트에 이미 올라와 검토를 기다리고 있는
@@ -312,7 +364,7 @@ def main():
                 skip_new_member_detection = True
             else:
                 existing_elo_ids |= {
-                    fields["elo_id"] for fields in pending_members.values()
+                    normalize_elo_id(fields["elo_id"]) for fields in pending_members.values()
                     if fields.get("elo_id")
                 }
     new_members_acc = {}
@@ -347,14 +399,21 @@ def main():
 
     applied_correction_ids = apply_member_updates_to_archives(members, today_date_str)
 
-    print(f"[수집] 풍고 별풍선 및 엘로보드 스폰전적 병렬 수집 시작...")
+    print("[수집] 풍고 별풍선 및 엘로보드 스폰전적 병렬 수집 시작...")
     start_date, end_date = get_month_date_range(now)
-    
+
     with ThreadPoolExecutor(max_workers=2) as executor:
         future_balloon = executor.submit(fetch_poonggo_monthly, year, month, all_ids)
         future_sponsor = executor.submit(aggregate_period_data, start_date, end_date)
-        
-        balloon_data = future_balloon.result()
+
+        # 두 future 모두 result()를 try로 감싼다. 예전엔 별풍선 쪽만 무방비라,
+        # fetch_poonggo_monthly가 예외를 던지면(응답 형식 이상 등) 그 예외가
+        # 그대로 튀어나와 아래 "기존 값 유지" 로직을 한 줄도 못 타고 죽었다.
+        try:
+            balloon_data = future_balloon.result()
+        except Exception as e:
+            print(f"[오류] 풍고 수집 중 예외: {e}", file=sys.stderr)
+            balloon_data = None
         try:
             sponsor_list = future_sponsor.result()
         except Exception as e:
@@ -362,7 +421,15 @@ def main():
             sponsor_list = []
 
     if balloon_data is None:
-        raise SystemExit("[오류] 별풍선 데이터를 가져오지 못했습니다.")
+        # 여기서 죽더라도, 이 함수가 지금까지 디스크에 써둔 것(아카이브 사후
+        # 보정, 월 확정 결과)은 이미 올바른 데이터다. 워크플로우가 이 스텝을
+        # continue-on-error로 받아 뒤 단계(페이지 생성/커밋)를 계속 진행하고,
+        # 마지막에 별도 스텝이 이 실패를 잡아 job을 실패로 표시한다
+        # (.github/workflows/updatestats.yml 참고). 그래야 "실패 알림"과
+        # "이미 끝낸 작업 보존"을 둘 다 얻는다.
+        print("[오류] 별풍선 데이터를 가져오지 못해 latest.json을 갱신하지 않습니다 "
+              "(기존 파일은 그대로 보존됩니다).", file=sys.stderr)
+        sys.exit(1)
 
     sponsor_data = {}
     sponsor_collection_succeeded = False
@@ -380,7 +447,7 @@ def main():
         member_id = m.get("id")
         elo_id = m.get("elo_id")
         bd = balloon_data.get(member_id) if member_id else None
-        sd = sponsor_data.get(str(elo_id)) if elo_id is not None else None
+        sd = sponsor_data.get(normalize_elo_id(elo_id)) if elo_id is not None else None
 
         if sd:
             sponsor_wins, sponsor_losses = sd["sponsor_wins"], sd["sponsor_losses"]
@@ -423,13 +490,21 @@ def main():
     print(f"[완료] {OUTPUT_PATH.name} 갱신됨 (별풍선 {len(balloon_data)}명, 스폰전적 {len(sponsor_data)}명)")
 
     if applied_correction_ids:
-        write_sheet({}, [], clear_info_updated_at=applied_correction_ids)
-        print(f"[완료] 소급 정정이 끝난 {len(applied_correction_ids)}명의 수정일을 비웠습니다.")
+        if write_sheet({}, [], clear_info_updated_at=applied_correction_ids):
+            print(f"[완료] 소급 정정이 끝난 {len(applied_correction_ids)}명의 수정일을 비웠습니다.")
+        else:
+            print(f"[경고] 소급 정정이 끝난 {len(applied_correction_ids)}명의 수정일을 시트에서 "
+                  f"비우지 못했습니다 - 시트에 '수정일'이 남아 있을 수 있습니다(다음 실행에서는 "
+                  f"이미 적용된 것으로 간주되므로 필요하면 수동으로 지워주세요).", file=sys.stderr)
 
     if new_members_acc:
-        append_pending_members(list(new_members_acc.values()))
-        print(f"[완료] 총 {len(new_members_acc)}명의 신규 후보가 '{PENDING_SHEET_NAME}' 시트에 추가되었습니다 "
-              f"(검토 후 members 시트로 옮겨주세요).")
+        # 실제로 써졌을 때만 "완료"라고 말한다.
+        if append_pending_members(list(new_members_acc.values())):
+            print(f"[완료] 총 {len(new_members_acc)}명의 신규 후보가 '{PENDING_SHEET_NAME}' 시트에 추가되었습니다 "
+                  f"(검토 후 members 시트로 옮겨주세요).")
+        else:
+            print(f"[경고] 신규 후보 {len(new_members_acc)}명을 '{PENDING_SHEET_NAME}' 시트에 "
+                  f"추가하지 못했습니다 - 다음 실행에서 다시 시도됩니다.", file=sys.stderr)
 
 if __name__ == "__main__":
     main()

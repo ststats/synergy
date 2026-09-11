@@ -22,7 +22,34 @@
   };
 
   function soopPhotoUrl(id) {
-      return `https://profile.img.sooplive.com/LOGO/${(id || '').substring(0, 2)}/${id}/${id}.jpg`;
+      const safe = encodeURIComponent(id || '');
+      return `https://profile.img.sooplive.com/LOGO/${encodeURIComponent((id || '').substring(0, 2))}/${safe}/${safe}.jpg`;
+  }
+
+  // URL 파라미터/속성 값으로 쓰이는 문자열 전용 헬퍼.
+  // escapeHtml만으로는 부족하다 - escapeHtml은 "속성 안에서 따옴표를 깨지
+  // 않게" 해줄 뿐이고, id에 &나 =가 들어가면 쿼리스트링의 의미 자체가
+  // 바뀐다(파라미터 주입). 그래서 URL 컴포넌트는 encodeURIComponent로 먼저
+  // 인코딩하고, 그 결과를 다시 속성용으로 escape한다.
+  function attrUrlParam(value) {
+      return escapeHtml(encodeURIComponent(value == null ? '' : value));
+  }
+
+  // 객체를 "맵"처럼 쓸 때 상속된 프로퍼티(constructor, __proto__, toString 등)가
+  // 값처럼 잡히는 걸 막는다. 예: ?metric=constructor 로 접속하면
+  // metricDefs['constructor']가 Object 생성자라 truthy로 통과해버리고,
+  // 곧바로 def.field가 undefined가 되면서 페이지 전체가 빈 화면이 됐다.
+  function ownGet(obj, key) {
+      if (!obj || key == null) return undefined;
+      return Object.prototype.hasOwnProperty.call(obj, key) ? obj[key] : undefined;
+  }
+
+  // style="background:..." 처럼 CSS 컨텍스트로 들어가는 값은 escapeHtml로는
+  // 부족하다(따옴표 없이도 `red;background-image:url(...)` 같은 주입이 가능).
+  // 이 사이트가 실제로 쓰는 건 #rrggbb 형태뿐이므로 그 형태만 통과시킨다.
+  const DEFAULT_TEAM_COLOR = '#4a5ce0';
+  function safeCssColor(value) {
+      return /^#[0-9a-fA-F]{3,8}$/.test(String(value || '')) ? String(value) : DEFAULT_TEAM_COLOR;
   }
 
   // 닉네임/팀명처럼 구글 시트(궁극적으로는 EloBoard API 등 외부 소스)에서
@@ -38,9 +65,18 @@
       }[c]));
   }
 
+  // 외부 API가 응답하지 않을 때 요청이 영원히 매달려 있지 않도록 상한을 둔다.
+  function fetchWithTimeout(url, ms) {
+      if (typeof AbortController === 'undefined') return fetch(url);
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), ms);
+      return fetch(url, { signal: controller.signal }).finally(() => clearTimeout(timer));
+  }
+
   async function checkIsLiveRealtime(soopId) {
       try {
-          const res = await fetch(`https://bjapi.afreecatv.com/api/${soopId}/station`);
+          const res = await fetchWithTimeout(
+              `https://bjapi.afreecatv.com/api/${encodeURIComponent(soopId)}/station`, 8000);
           if (!res.ok) return null;
           const data = await res.json();
           if (!data || !data.broad) return null;
@@ -54,15 +90,22 @@
   }
 
   function fitTextToWidth(el, fullText) {
+      if (!el) return;
       fullText = fullText || '';
       el.dataset.fullText = fullText;
       el.textContent = fullText;
       if (!fullText || el.scrollWidth <= el.clientWidth) return;
-      let text = fullText;
-      while (text.length > 1 && el.scrollWidth > el.clientWidth) {
-          text = text.slice(0, -1);
-          el.textContent = text + '…';
+      // 한 글자씩 줄이면 글자 수만큼 레이아웃을 다시 계산하게 된다(긴 방송
+      // 제목에서 수십~수백 번의 강제 리플로우). 들어갈 수 있는 최대 길이를
+      // 이분 탐색으로 찾으면 log(n)번이면 충분하고 결과는 동일하다.
+      let lo = 0, hi = fullText.length, best = 0;
+      while (lo <= hi) {
+          const mid = (lo + hi) >> 1;
+          el.textContent = fullText.slice(0, mid) + '…';
+          if (el.scrollWidth <= el.clientWidth) { best = mid; lo = mid + 1; }
+          else { hi = mid - 1; }
       }
+      el.textContent = fullText.slice(0, Math.max(1, best)) + '…';
   }
 
   function refitLiveTexts() {
@@ -78,31 +121,61 @@
   });
 
   const LIVE_STATUS_PROXY_URL = "https://synergy.ststats.workers.dev/";
+  // 렌더링이 일어날 때마다(날짜/지표를 빠르게 바꾸면 연달아 일어난다) 매번
+  // 프록시에 요청을 보내면 클릭 몇 번에 요청 폭주가 된다. 마지막 요청 이후
+  // 최소 간격을 두고, 진행 중인 요청은 취소한다.
+  const LIVE_DOTS_MIN_INTERVAL_MS = 3000;
+  let liveDotsLastRun = 0;
+  let liveDotsTimer = null;
+  let liveDotsController = null;
+
+  function scheduleLiveDots() {
+      clearTimeout(liveDotsTimer);
+      const wait = Math.max(0, LIVE_DOTS_MIN_INTERVAL_MS - (Date.now() - liveDotsLastRun));
+      liveDotsTimer = setTimeout(refreshLiveDots, wait);
+  }
 
   async function refreshLiveDots() {
+      liveDotsLastRun = Date.now();
       const dotEls = Array.from(document.querySelectorAll('.live-dot[data-live-id]'));
       if (dotEls.length === 0) return;
 
-      const idToEls = {};
+      const idToEls = Object.create(null);
       dotEls.forEach(el => {
           const id = el.dataset.liveId;
           (idToEls[id] = idToEls[id] || []).push(el);
       });
       const ids = Object.keys(idToEls);
 
+      if (liveDotsController) liveDotsController.abort();
+      const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+      liveDotsController = controller;
+
       try {
-          const res = await fetch(`${LIVE_STATUS_PROXY_URL}?ids=${encodeURIComponent(ids.join(','))}`);
+          const res = await fetch(
+              `${LIVE_STATUS_PROXY_URL}?ids=${encodeURIComponent(ids.join(','))}`,
+              controller ? { signal: controller.signal } : undefined);
           if (!res.ok) return;
           const data = await res.json();
-          const live = data.live || {};
+          const live = (data && data.live) || {};
           ids.forEach(id => {
-              if (live[id]) idToEls[id].forEach(el => el.classList.add('is-live'));
+              if (ownGet(live, id)) idToEls[id].forEach(el => el.classList.add('is-live'));
           });
-      } catch (e) {}
+      } catch (e) {
+          // 취소(AbortError)와 네트워크 실패 모두 여기로 온다 - 생방송 점은
+          // 부가 정보라, 실패해도 페이지 본문에는 아무 영향이 없어야 한다.
+      } finally {
+          if (liveDotsController === controller) liveDotsController = null;
+      }
   }
 
   function withDerivedFields(data) {
-      (data.members || []).forEach(m => { m.sponsor_games = (m.sponsor_wins || 0) + (m.sponsor_losses || 0); });
+      // data가 null이거나 members가 배열이 아닐 수 있다(파일이 깨졌거나,
+      // 배포 중간에 받은 경우). 여기서 정상화해두면 아래 모든 렌더 함수가
+      // members를 항상 배열로 믿고 쓸 수 있다.
+      if (!data || typeof data !== 'object') data = {};
+      if (!Array.isArray(data.members)) data.members = [];
+      data.members.forEach(m => { m.sponsor_games = (m.sponsor_wins || 0) + (m.sponsor_losses || 0); });
       return data;
   }
 
@@ -126,19 +199,37 @@
       document.body.removeChild(probe);
   }
 
+  // dates.js가 로드에 실패했거나(네트워크/배포 타이밍) 날짜가 하나도 없으면
+  // 예전 코드는 AVAILABLE_DATES[0]이 undefined가 되고, 곧 currentDateStr.split()에서
+  // TypeError가 나면서 페이지 전체가 백지가 됐다. 원인을 알 수 있는 메시지를
+  // 보여주고 조용히 멈춘다.
+  const AVAILABLE_DATES = Array.isArray(window.AVAILABLE_DATES) ? window.AVAILABLE_DATES : [];
+  if (AVAILABLE_DATES.length === 0) {
+      const host = document.getElementById('grid-container') || document.body;
+      host.innerHTML = '<div style="padding:40px;text-align:center;color:#c23636;">표시할 데이터가 없습니다.</div>';
+      return;
+  }
+
   let currentDateStr = AVAILABLE_DATES[0];
   let currentMetric = "balloon";
-  let fetchedData = {};
+  const fetchedData = Object.create(null);
+  // 날짜를 빠르게 여러 번 바꾸면 여러 fetch가 동시에 떠 있게 되고, 먼저 보낸
+  // 느린 응답이 나중에 도착해 최신 화면을 옛날 데이터로 덮어쓸 수 있었다
+  // (전형적인 렌더 경합). 요청마다 번호를 매겨서, 도착한 응답이 "지금도
+  // 최신인 요청"의 것일 때만 그린다.
+  let renderToken = 0;
 
   const calBtn = document.getElementById('calendar-btn');
   const datePicker = document.getElementById('date-picker');
-  datePicker.min = AVAILABLE_DATES[AVAILABLE_DATES.length - 1];
-  datePicker.max = AVAILABLE_DATES[0];
+  if (datePicker) {
+      datePicker.min = AVAILABLE_DATES[AVAILABLE_DATES.length - 1];
+      datePicker.max = AVAILABLE_DATES[0];
+  }
 
   window.addEventListener('DOMContentLoaded', () => {
       const params = new URLSearchParams(window.location.search);
       if (params.get('date') && AVAILABLE_DATES.includes(params.get('date'))) currentDateStr = params.get('date');
-      if (params.get('metric') && metricDefs[params.get('metric')]) currentMetric = params.get('metric');
+      if (ownGet(metricDefs, params.get('metric'))) currentMetric = params.get('metric');
 
       const metricSel = document.getElementById('ms-metric-select');
       if(metricSel) {
@@ -159,45 +250,74 @@
       }
 
       AVAILABLE_DATES.slice(1, 4).forEach(d => {
-          fetch(LOGO_PREFIX + 'data/daily/' + d + '.json').then(r=>r.json()).then(data => fetchedData[d] = withDerivedFields(data)).catch(()=>{});
+          fetch(LOGO_PREFIX + 'data/daily/' + encodeURIComponent(d) + '.json')
+              .then(r => r.ok ? r.json() : Promise.reject(new Error('HTTP ' + r.status)))
+              .then(data => { fetchedData[d] = withDerivedFields(data); })
+              .catch(() => {});
       });
 
       applyData();
   });
 
   function applyData() {
+      const token = ++renderToken;
       const parts = currentDateStr.split('-');
-      calBtn.innerHTML = parts[0].slice(-2) + '년 ' + parts[1] + '월 ' + parts[2] + '일 <span class="nav-chevron">▾</span>';
-      datePicker.value = currentDateStr;
+      if (calBtn) {
+          calBtn.innerHTML = escapeHtml(parts[0].slice(-2)) + '년 ' + escapeHtml(parts[1]) + '월 '
+              + escapeHtml(parts[2]) + '일 <span class="nav-chevron">▾</span>';
+      }
+      if (datePicker) datePicker.value = currentDateStr;
 
       if (TARGET_TEAM && !IS_PROFILE) {
-          document.getElementById('back-link').href = 'index.html?date=' + currentDateStr + '&metric=' + currentMetric;
+          const teamBackLink = document.getElementById('back-link');
+          if (teamBackLink) {
+              teamBackLink.href = 'index.html?date=' + encodeURIComponent(currentDateStr)
+                  + '&metric=' + encodeURIComponent(currentMetric);
+          }
       } else if (IS_PROFILE) {
           // 날짜/지표가 바뀔 때마다 applyData()가 매번 호출되므로, 여기서
           // 매번 다시 계산해야 뒤로가기 링크가 항상 지금 보고 있는 날짜를
           // 그대로 들고 돌아간다(페이지 처음 열 때 딱 한 번만 계산하면,
           // 그 이후 날짜를 바꿔도 뒤로가기는 예전 날짜로 남는 문제가 있었다).
           const backHref = FROM_TEAM
-              ? `team.html?team=${encodeURIComponent(FROM_TEAM)}&date=${currentDateStr}&metric=${currentMetric}`
-              : `index.html?date=${currentDateStr}&metric=${currentMetric}`;
+              ? `team.html?team=${encodeURIComponent(FROM_TEAM)}&date=${encodeURIComponent(currentDateStr)}&metric=${encodeURIComponent(currentMetric)}`
+              : `index.html?date=${encodeURIComponent(currentDateStr)}&metric=${encodeURIComponent(currentMetric)}`;
           const backLinkEl = document.getElementById('back-link');
           if (backLinkEl) backLinkEl.href = LOGO_PREFIX + backHref;
       }
 
-      if (fetchedData[currentDateStr]) {
-          IS_PROFILE ? renderProfile(fetchedData[currentDateStr]) : renderDashboard(fetchedData[currentDateStr]);
-      } else {
-          if(!IS_PROFILE) document.getElementById('grid-container').innerHTML = '<div style="padding:40px;text-align:center;">불러오는 중...</div>';
-          fetch(LOGO_PREFIX + 'data/daily/' + currentDateStr + '.json')
-              .then(r => r.json())
-              .then(data => {
-                  fetchedData[currentDateStr] = withDerivedFields(data);
-                  IS_PROFILE ? renderProfile(data) : renderDashboard(data);
-              })
-              .catch(e => {
-                  if(!IS_PROFILE) document.getElementById('grid-container').innerHTML = '<div style="padding:40px;text-align:center;color:#c23636;">오류 발생</div>';
-              });
+      const cached = ownGet(fetchedData, currentDateStr);
+      if (cached) {
+          IS_PROFILE ? renderProfile(cached) : renderDashboard(cached);
+          return;
       }
+
+      const gridEl = document.getElementById('grid-container');
+      if (!IS_PROFILE && gridEl) {
+          gridEl.innerHTML = '<div style="padding:40px;text-align:center;">불러오는 중...</div>';
+      }
+      const requestedDate = currentDateStr;
+      fetch(LOGO_PREFIX + 'data/daily/' + encodeURIComponent(requestedDate) + '.json')
+          .then(r => {
+              // r.json()만 부르면 404 응답의 HTML 본문을 파싱하려다 나는
+              // SyntaxError가 "데이터 오류"처럼 보인다. 상태 코드를 먼저 본다.
+              if (!r.ok) throw new Error('HTTP ' + r.status);
+              return r.json();
+          })
+          .then(data => {
+              const normalized = withDerivedFields(data);
+              fetchedData[requestedDate] = normalized;
+              // 내가 요청을 보낸 뒤 사용자가 날짜/지표를 또 바꿨다면, 이
+              // 응답은 이미 낡은 것이므로 그리지 않는다(캐시에는 남겨둔다).
+              if (token !== renderToken) return;
+              IS_PROFILE ? renderProfile(normalized) : renderDashboard(normalized);
+          })
+          .catch(() => {
+              if (token !== renderToken) return;
+              if (!IS_PROFILE && gridEl) {
+                  gridEl.innerHTML = '<div style="padding:40px;text-align:center;color:#c23636;">오류 발생</div>';
+              }
+          });
   }
 
   function findPrevMonthDate(dateStr) {
@@ -209,8 +329,8 @@
   }
 
   function computeTeamAggregates(members, def) {
-      const teams = {};
-      members.forEach(m => {
+      const teams = Object.create(null);
+      (members || []).forEach(m => {
           const t = m.team || '미분류';
           if (['FA', '휴면', '미분류'].includes(t)) return;
           if (!teams[t]) teams[t] = [];
@@ -223,7 +343,7 @@
           let males = [], females = [];
 
           tMembers.forEach(m => {
-              const sInfo = STATIC_INFO[m.id] || {gender: 'm', birthdate: null};
+              const sInfo = ownGet(STATIC_INFO, m.id) || {gender: 'm', birthdate: null};
               const v = m[def.field] || 0;
               const counted = v !== 0 && !(def.excludeRoles && ['수장', '전력외'].includes(m.role));
               m._gender = sInfo.gender;
@@ -246,10 +366,11 @@
   }
 
   function computeTeamRanks(data, metricKey) {
-      const def = metricDefs[metricKey];
+      const def = ownGet(metricDefs, metricKey);
+      if (!def) return {};
       const teamStats = computeTeamAggregates(data.members, def);
       teamStats.sort((a, b) => b.rankVal - a.rankVal);
-      const ranks = {};
+      const ranks = Object.create(null);
       teamStats.forEach((s, i) => { ranks[s.name] = i + 1; });
       return ranks;
   }
@@ -262,21 +383,27 @@
       const prevDate = findPrevMonthDate(dateStr);
       if (!prevDate) return;
 
-      let prevData = fetchedData[prevDate];
+      const token = renderToken;
+      let prevData = ownGet(fetchedData, prevDate);
       if (!prevData) {
           try {
-              const res = await fetch(LOGO_PREFIX + 'data/daily/' + prevDate + '.json');
+              const res = await fetch(LOGO_PREFIX + 'data/daily/' + encodeURIComponent(prevDate) + '.json');
+              if (!res.ok) return;
               prevData = withDerivedFields(await res.json());
               fetchedData[prevDate] = prevData;
           } catch (e) { return; }
       }
+      // 이 함수는 async라서, 위 await 동안 사용자가 날짜/지표를 바꿨을 수
+      // 있다. 그러면 지금 화면의 팀 카드는 다른 기준으로 다시 그려진
+      // 상태라, 여기서 뱃지를 붙이면 엉뚱한 증감 화살표가 남는다.
+      if (token !== renderToken) return;
 
       const prevRanks = computeTeamRanks(prevData, metricKey);
       teamStats.forEach(s => {
           const slot = document.querySelector('.rank-badge-slot[data-team="' + CSS.escape(s.name) + '"]');
           if (!slot) return;
           const curRank = currentRanks[s.name];
-          if (!(s.name in prevRanks)) {
+          if (!Object.prototype.hasOwnProperty.call(prevRanks, s.name)) {
               slot.innerHTML = '<span class="rank-change new">NEW</span>';
           } else {
               const prevRank = prevRanks[s.name];
@@ -296,7 +423,7 @@
       const faBar = document.getElementById('fa-bar');
       if (!faBar) return;
 
-      const faMembers = data.members.filter(m => m.team === 'FA').slice();
+      const faMembers = (data.members || []).filter(m => m.team === 'FA').slice();
       if (faMembers.length === 0) { faBar.style.display = 'none'; faBar.innerHTML = ''; return; }
 
       faMembers.sort((a, b) => {
@@ -306,12 +433,15 @@
       });
 
       const itemsHtml = faMembers.map(m => {
-          const photoUrl = soopPhotoUrl(m.id);
-          const photoImg = `<img class="fa-bar-photo" src="${photoUrl}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">`;
-          const liveDot = m.id ? `<span class="live-dot" data-live-id="${m.id}"></span>` : '';
+          // m.id / 닉네임은 구글 시트(원천은 외부 API)에서 온 임의 문자열이다.
+          // 속성값 자리에 그대로 넣으면 따옴표 하나로 속성을 탈출해
+          // onerror= 같은 걸 붙일 수 있다(저장형 XSS). 모든 삽입 지점을
+          // escapeHtml / attrUrlParam으로 감싼다.
+          const photoImg = `<img class="fa-bar-photo" src="${escapeHtml(soopPhotoUrl(m.id))}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">`;
+          const liveDot = m.id ? `<span class="live-dot" data-live-id="${escapeHtml(m.id)}"></span>` : '';
           const inner = `${photoImg}${liveDot}<span class="member-name">${escapeHtml(m.nickname)}</span>`;
           return m.id
-              ? `<div class="fa-bar-item"><a href="${LOGO_PREFIX}profile.html?id=${m.id}&date=${currentDateStr}&metric=${currentMetric}&fromTeam=${encodeURIComponent(TARGET_TEAM || '')}">${inner}</a></div>`
+              ? `<div class="fa-bar-item"><a href="${escapeHtml(LOGO_PREFIX)}profile.html?id=${attrUrlParam(m.id)}&date=${attrUrlParam(currentDateStr)}&metric=${attrUrlParam(currentMetric)}&fromTeam=${attrUrlParam(TARGET_TEAM || '')}">${inner}</a></div>`
               : `<div class="fa-bar-item"><span class="fa-bar-static">${inner}</span></div>`;
       }).join('');
 
@@ -319,32 +449,45 @@
       faBar.innerHTML = `<button type="button" class="fa-bar-title${collapsedClass}" id="fa-bar-toggle"><span class="fa-bar-chevron">▾</span><span class="fa-bar-label">FA</span><span class="fa-bar-sub">${faMembers.length}명</span></button><div class="fa-bar-list${collapsedClass}" id="fa-bar-list">${itemsHtml}</div>`;
       faBar.style.display = '';
 
-      document.getElementById('fa-bar-toggle').addEventListener('click', () => {
-          faBarCollapsed = !faBarCollapsed;
-          document.getElementById('fa-bar-toggle').classList.toggle('collapsed', faBarCollapsed);
-          document.getElementById('fa-bar-list').classList.toggle('collapsed', faBarCollapsed);
-      });
+      const toggleEl = document.getElementById('fa-bar-toggle');
+      const listEl = document.getElementById('fa-bar-list');
+      if (toggleEl && listEl) {
+          toggleEl.addEventListener('click', () => {
+              faBarCollapsed = !faBarCollapsed;
+              toggleEl.classList.toggle('collapsed', faBarCollapsed);
+              listEl.classList.toggle('collapsed', faBarCollapsed);
+          });
+      }
   }
 
   function renderDashboard(data) {
-      const def = metricDefs[currentMetric];
+      const def = ownGet(metricDefs, currentMetric) || metricDefs.balloon;
+      const members = (data && data.members) || [];
       const monthNum = parseInt(currentDateStr.split('-')[1], 10);
       const upd = (currentMetric === 'sponsor' && data.sponsor_updated_at) ? data.sponsor_updated_at : data.updated_at;
 
-      const validTeams = new Set(data.members.map(m=>m.team).filter(t => t && t !== 'FA' && t !== '휴면'));
+      const validTeams = new Set(members.map(m=>m.team).filter(t => t && t !== 'FA' && t !== '휴면'));
       // 팀페이지(TARGET_TEAM 있음)에서는 이미 그 팀 하나만 보고 있는 화면이라
       // "N팀 · M명" 전체 집계 문구는 안 보여준다 - 전체페이지에서만 표시.
       const teamCountHtml = TARGET_TEAM ? '' : (validTeams.size + '팀 · ' +
-        data.members.filter(m => m.team && m.team !== 'FA' && m.team !== '휴면').length + '명 · ');
-      const inquiryHtml = ' <span style="color:#c2c5cc;">·</span> <a href="https://ygosu.com/board/pan_prison" target="_blank" class="source-link">문의</a>';
-      document.getElementById('top-meta-text').innerHTML = teamCountHtml +
-        '업데이트 ' + upd + ' · 출처: <a href="'+def.url+'" target="_blank" class="source-link">'+def.source+'</a>' + inquiryHtml;
+        members.filter(m => m.team && m.team !== 'FA' && m.team !== '휴면').length + '명 · ');
+      const inquiryHtml = ' <span style="color:#c2c5cc;">·</span> <a href="https://ygosu.com/board/pan_prison" target="_blank" rel="noopener" class="source-link">문의</a>';
+      const metaEl = document.getElementById('top-meta-text');
+      // upd는 데이터 파일에서 온 값이라 그대로 innerHTML에 넣으면 안 된다.
+      if (metaEl) {
+          metaEl.innerHTML = teamCountHtml +
+            '업데이트 ' + escapeHtml(upd || '-') + ' · 출처: <a href="' + escapeHtml(def.url)
+            + '" target="_blank" rel="noopener" class="source-link">' + escapeHtml(def.source) + '</a>' + inquiryHtml;
+      }
 
       const roleLegend = document.getElementById('role-legend-item');
       if(roleLegend) roleLegend.style.display = def.excludeRoles ? '' : 'none';
 
-      const tiers = {};
-      const pool = data.members.filter(m => {
+      // 예전엔 `nickname + '|' + team`을 키로 쓰는 객체였는데, 같은 팀에
+      // 동명이인이 있으면 한 명의 등급이 다른 사람에게도 칠해졌다. 멤버
+      // 객체 자체를 키로 쓰는 Map은 이런 충돌이 원천적으로 불가능하다.
+      const tiers = new Map();
+      const pool = members.filter(m => {
           const v = m[def.field] || 0;
           if (v === 0) return false;
           if (def.excludeRoles && ['수장', '전력외'].includes(m.role)) return false;
@@ -357,12 +500,12 @@
       const t5 = Math.max(1, Math.round(n * 0.05));
       const t10 = Math.max(1, Math.round(n * 0.10));
       pool.forEach((m, i) => {
-          if (i < t1) tiers[m.nickname + '|' + m.team] = 'tier1';
-          else if (i < t5) tiers[m.nickname + '|' + m.team] = 'tier5';
-          else if (i < t10) tiers[m.nickname + '|' + m.team] = 'tier10';
+          if (i < t1) tiers.set(m, 'tier1');
+          else if (i < t5) tiers.set(m, 'tier5');
+          else if (i < t10) tiers.set(m, 'tier10');
       });
 
-      const teamStats = computeTeamAggregates(data.members, def);
+      const teamStats = computeTeamAggregates(members, def);
       teamStats.sort((a, b) => b.rankVal - a.rankVal);
 
       let html = '';
@@ -372,11 +515,12 @@
           html = '<div class="team-card" style="padding:24px;text-align:center;color:#999;font-size:13px;">이 날짜에는 팀 정보가 없습니다.</div>';
       } else {
           targetTeamStats.forEach(ts => {
-              const logoHtml = `<img src="${LOGO_PREFIX}logos/${ts.name}.webp" class="team-logo" alt="" onerror="this.style.display='none'">`;
-              const topColor = TEAM_COLORS[ts.name] || '#4a5ce0';
+              const logoHtml = `<img src="${escapeHtml(LOGO_PREFIX)}logos/${attrUrlParam(ts.name)}.webp" class="team-logo" alt="" onerror="this.style.display='none'">`;
+              // 색상값은 CSS 컨텍스트에 들어가므로(style="background:...") 화이트리스트로만 받는다.
+              const topColor = safeCssColor(ownGet(TEAM_COLORS, ts.name));
               const countHtml = `<span class="team-count">총 ${ts.males.length + ts.females.length}명 · 남 ${ts.males.length} · 여 ${ts.females.length}</span>`;
               const headerLeft = TARGET_TEAM ? `<div class="team-header-left">${logoHtml}<span class="team-name">${escapeHtml(ts.name)}</span>${countHtml}</div>`
-                  : `<div class="team-header-left">${logoHtml}<a class="team-link team-name" href="team.html?team=${encodeURIComponent(ts.name)}&date=${currentDateStr}&metric=${currentMetric}">${escapeHtml(ts.name)}</a>${countHtml}</div>`;
+                  : `<div class="team-header-left">${logoHtml}<a class="team-link team-name" href="team.html?team=${attrUrlParam(ts.name)}&date=${attrUrlParam(currentDateStr)}&metric=${attrUrlParam(currentMetric)}">${escapeHtml(ts.name)}</a>${countHtml}</div>`;
               const rankSlot = TARGET_TEAM ? '' : `<span class="rank-badge-slot" data-team="${escapeHtml(ts.name)}"></span>`;
 
               const makeRows = (list, padLen) => {
@@ -388,14 +532,15 @@
                           cClass.push('excluded');
                       }
                       
-                      const tier = tiers[m.nickname + '|' + m.team];
+                      const tier = tiers.get(m);
                       if (tier) cClass.push(tier);
 
-                      const isBday = m._bday && parseInt(m._bday.split('-')[1], 10) === monthNum;
-                      const liveDot = m.id ? `<span class="live-dot" data-live-id="${m.id}"></span>` : '';
+                      const isBday = typeof m._bday === 'string'
+                          && parseInt(m._bday.split('-')[1], 10) === monthNum;
+                      const liveDot = m.id ? `<span class="live-dot" data-live-id="${escapeHtml(m.id)}"></span>` : '';
                       const bdayMark = isBday ? '<span class="bday-mark">🎂</span>' : '';
                       const nameContent = m.id
-                          ? `${liveDot}<a class="member-name-link" href="${LOGO_PREFIX}profile.html?id=${m.id}&date=${currentDateStr}&metric=${currentMetric}&fromTeam=${encodeURIComponent(TARGET_TEAM || '')}">${escapeHtml(m.nickname)}</a>${bdayMark}`
+                          ? `${liveDot}<a class="member-name-link" href="${escapeHtml(LOGO_PREFIX)}profile.html?id=${attrUrlParam(m.id)}&date=${attrUrlParam(currentDateStr)}&metric=${attrUrlParam(currentMetric)}&fromTeam=${attrUrlParam(TARGET_TEAM || '')}">${escapeHtml(m.nickname)}</a>${bdayMark}`
                           : liveDot + escapeHtml(m.nickname) + bdayMark;
                       return `<div class="member-row ${cClass.join(' ')}"><span class="member-name">${nameContent}</span><span class="member-value">${def.format(m._val)}</span></div>`;
                   }).join('');
@@ -421,23 +566,32 @@
               </div>`;
           });
       }
-      document.getElementById('grid-container').innerHTML = `<div class="grid ${TARGET_TEAM ? 'single-team' : ''}">${html}</div>`;
+      const gridEl = document.getElementById('grid-container');
+      if (gridEl) gridEl.innerHTML = `<div class="grid ${TARGET_TEAM ? 'single-team' : ''}">${html}</div>`;
       attachRankBadges(teamStats, currentDateStr, currentMetric);
       renderFaBar(data);
       if (TARGET_TEAM) document.title = TARGET_TEAM + ' 현황';
-      refreshLiveDots();
+      scheduleLiveDots();
   }
 
   function renderProfile(data) {
       const tid = new URLSearchParams(window.location.search).get('id');
-      const member = data.members.find(m => m.id === tid);
+      const member = ((data && data.members) || []).find(m => m.id === tid);
+      const metaEl = document.getElementById('top-meta-text');
+      const cardEl = document.getElementById('profile-card');
       if (!member) {
-          document.getElementById('profile-card').style.display = 'none';
-          document.getElementById('top-meta-text').innerHTML = '데이터 없음';
+          if (cardEl) cardEl.style.display = 'none';
+          if (metaEl) metaEl.textContent = '데이터 없음';
           return;
       }
 
-      document.getElementById('profile-topbar').style.background = TEAM_COLORS[member.team] || '#4a5ce0';
+      // 프로필을 다시 그릴 때(날짜 변경 등) 이전 화면의 생방송 임베드가 남아
+      // 있으면, 아래 비동기 조회가 끝나기 전까지 엉뚱한 사람의 방송이 잠깐
+      // 보인다. 먼저 비워두고 시작한다.
+      const prevLiveEl = document.getElementById('profile-live-embed');
+      if (prevLiveEl) { prevLiveEl.innerHTML = ''; prevLiveEl.style.display = 'none'; }
+
+      document.getElementById('profile-topbar').style.background = safeCssColor(ownGet(TEAM_COLORS, member.team));
       document.getElementById('profile-nickname').textContent = member.nickname || '';
       document.getElementById('profile-card').style.display = '';
 
@@ -447,9 +601,13 @@
       photoImg.src = soopPhotoUrl(tid);
 
       const liveEmbedEl = document.getElementById('profile-live-embed');
-      if (tid) {
+      if (tid && liveEmbedEl) {
+          const liveToken = renderToken;
           checkIsLiveRealtime(tid).then(result => {
-              if (result) {
+              // 조회가 끝났을 때 화면이 이미 다른 날짜/사람으로 넘어갔다면
+              // 그 화면 위에 옛 방송 정보를 얹지 않는다.
+              if (liveToken !== renderToken) return;
+              if (result && result.broad) {
                   const { broad, broadStart } = result;
                   const viewerText = broad.current_sum_viewer != null
                       ? broad.current_sum_viewer.toLocaleString('ko-KR') + '명 시청 중' : '';
@@ -465,8 +623,8 @@
                   }
                   liveEmbedEl.innerHTML = `
                     <div class="profile-live-row">
-                      <a class="profile-live-thumb-link" href="https://play.sooplive.co.kr/${tid}" target="_blank" rel="noopener">
-                        <img class="profile-live-thumb" src="https://liveimg.sooplive.co.kr/m/${broad.broad_no}" alt="방송 화면">
+                      <a class="profile-live-thumb-link" href="https://play.sooplive.co.kr/${attrUrlParam(tid)}" target="_blank" rel="noopener">
+                        <img class="profile-live-thumb" src="https://liveimg.sooplive.co.kr/m/${attrUrlParam(broad.broad_no)}" alt="방송 화면">
                         <span class="profile-live-badge">LIVE</span>
                       </a>
                       <div class="profile-live-info">
@@ -486,14 +644,15 @@
           });
       }
 
-      const sInfo = STATIC_INFO[tid] || {gender:'m', birthdate:'-'};
+      const sInfo = ownGet(STATIC_INFO, tid) || {gender:'m', birthdate:'-'};
       document.getElementById('profile-gender').textContent = sInfo.gender === 'f' ? '여' : '남';
       document.getElementById('profile-birthdate').textContent = sInfo.birthdate || '-';
       document.getElementById('profile-team').textContent = member.team || '-';
       document.getElementById('profile-role').textContent = member.role || '-';
       document.getElementById('profile-race').textContent = member.race || '-';
       document.getElementById('profile-tier').textContent = member.tier || '-';
-      document.getElementById('profile-station-link').href = `https://www.sooplive.com/station/${tid}`;
+      document.getElementById('profile-station-link').href =
+          `https://www.sooplive.com/station/${encodeURIComponent(tid)}`;
 
       const fmt = n => n ? n.toLocaleString('ko-KR') : '-';
       document.getElementById('profile-balloons').textContent = fmt(member.balloons);
@@ -501,7 +660,11 @@
       document.getElementById('profile-broadcast').textContent = formatTime(member.broadcast_seconds) || '-';
 
       const sponsorEl = document.getElementById('profile-sponsor');
+      // interval뿐 아니라 그 안에서 예약된 setTimeout까지 반드시 같이 정리해야
+      // 한다. 예전엔 interval만 지워서, 이미 예약돼 있던 timeout이 300ms 뒤에
+      // 깨어나 "새로 그린" 사람의 전적 위에 이전 사람의 문자열을 덮어썼다.
       if (window.__sponsorToggleTimer) clearInterval(window.__sponsorToggleTimer);
+      if (window.__sponsorFadeTimer) clearTimeout(window.__sponsorFadeTimer);
       const sGames = member.sponsor_games || 0;
       if (sGames > 0) {
           const sWins = member.sponsor_wins || 0;
@@ -511,9 +674,10 @@
           let idx = 0;
           sponsorEl.textContent = texts[0];
           sponsorEl.style.color = '';
+          sponsorEl.style.opacity = '1';
           window.__sponsorToggleTimer = setInterval(() => {
               sponsorEl.style.opacity = '0';
-              setTimeout(() => {
+              window.__sponsorFadeTimer = setTimeout(() => {
                   idx = 1 - idx;
                   sponsorEl.textContent = texts[idx];
                   sponsorEl.style.opacity = '1';
@@ -522,13 +686,18 @@
       } else {
           sponsorEl.textContent = '-';
           sponsorEl.style.color = '#a4a8b2';
+          sponsorEl.style.opacity = '1';
       }
 
       document.title = (member.nickname || tid) + ' 프로필';
-      document.getElementById('top-meta-text').innerHTML = '업데이트 ' + data.updated_at + ' · 출처: <a href="https://poonggo.com" target="_blank" class="source-link">풍고</a>, <a href="https://eloboard.co.kr/" target="_blank" class="source-link">Elo</a>';
+      if (metaEl) {
+          metaEl.innerHTML = '업데이트 ' + escapeHtml(data.updated_at || '-')
+            + ' · 출처: <a href="https://poonggo.com" target="_blank" rel="noopener" class="source-link">풍고</a>, '
+            + '<a href="https://eloboard.co.kr/" target="_blank" rel="noopener" class="source-link">Elo</a>';
+      }
   }
 
-  calBtn.onclick = function() {
+  if (calBtn && datePicker) calBtn.onclick = function() {
       // 보이는 버튼("2026년 09월 04일 ▾")을 클릭하면, 화면엔 안 보이지만
       // 뒤에 숨겨둔 네이티브 date input의 브라우저 기본 달력을 대신 열어준다
       // (showPicker는 비교적 최신 API라 없는 구형 브라우저에서는 그냥
@@ -541,7 +710,7 @@
       }
   };
 
-  datePicker.addEventListener('change', function() {
+  if (datePicker) datePicker.addEventListener('change', function() {
       const picked = datePicker.value;
       if (AVAILABLE_DATES.includes(picked)) {
           currentDateStr = picked;
@@ -558,6 +727,9 @@
   const metricSel = document.getElementById('ms-metric-select');
   if(metricSel) {
       metricSel.addEventListener('change', function() {
+          // select의 option은 우리가 만든 4개뿐이지만, 확장 프로그램이나
+          // 개발자도구로 바뀔 수 있으므로 알고 있는 지표인지 확인한다.
+          if (!ownGet(metricDefs, metricSel.value)) return;
           currentMetric = metricSel.value;
           fitSelectWidth(metricSel);
           applyData();

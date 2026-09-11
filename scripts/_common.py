@@ -15,13 +15,28 @@ import requests
 
 ROOT = Path(__file__).resolve().parent.parent
 DATETIME_FORMAT = "%Y-%m-%d %H:%M:%S"
+DATE_FORMAT = "%Y-%m-%d"
 USER_AGENT = "ststats-bot/1.0 (+https://ststats.github.io)"
 HTTP_TIMEOUT_SEC = 30
 HTTP_MAX_RETRIES = 3
 HTTP_RETRY_BACKOFF_SEC = 3
+# 4xx 중에서도 "잠시 후 다시 하면 될 수도 있는" 것들만 재시도한다. 400/401/
+# 403/404 같은 건 몇 번을 더 보내도 똑같은 응답이 올 뿐이라, 재시도는 실패
+# 확정까지의 시간만 늘리고(1회당 backoff만큼) 상대 서버에 부하만 더 준다.
+HTTP_RETRYABLE_CLIENT_STATUSES = {408, 425, 429}
+
+KST = timezone(timedelta(hours=9), "KST")
 
 def kst_now() -> datetime:
-    return datetime.now(timezone.utc) + timedelta(hours=9)
+    """한국 시간(KST) 기준 현재 시각.
+
+    예전 구현은 `datetime.now(timezone.utc) + timedelta(hours=9)`였는데, 이건
+    "표시되는 숫자는 KST인데 tzinfo는 UTC라고 주장하는" 어긋난 datetime을
+    만든다. strftime/year/month처럼 숫자만 쓰는 지금 호출부에서는 결과가
+    같지만, 누군가 나중에 .timestamp()를 쓰거나 다른 aware datetime과
+    비교하는 순간 조용히 9시간이 틀어진다. tzinfo를 실제 KST로 바로잡아
+    두면 그 지뢰가 사라지고, 기존 호출부의 출력값은 100% 동일하다."""
+    return datetime.now(KST)
 
 def to_int(value) -> int:
     if value is None:
@@ -49,21 +64,41 @@ def fetch_json(url: str, *, method: str = "GET", params=None, data=None, headers
     prefix = f"{label} " if label else ""
 
     for attempt in range(1, max_retries + 1):
+        retry_after = None
         try:
             response = requests.request(
                 method, url, params=params, data=data, headers=req_headers, timeout=timeout
             )
-            if response.status_code != 200:
-                print(f"[경고] {prefix}HTTP {response.status_code} 응답 ({attempt}/{max_retries})", file=sys.stderr)
-            else:
+            if response.status_code == 200:
                 return response.json()
+
+            print(f"[경고] {prefix}HTTP {response.status_code} 응답 ({attempt}/{max_retries})", file=sys.stderr)
+            status = response.status_code
+            if 400 <= status < 500 and status not in HTTP_RETRYABLE_CLIENT_STATUSES:
+                # 재시도해도 결과가 안 바뀌는 클라이언트 오류 - 즉시 포기한다.
+                print(f"[오류] {prefix}HTTP {status}는 재시도해도 동일하므로 즉시 실패 처리합니다.", file=sys.stderr)
+                return None
+            if status == 429:
+                # 서버가 "이만큼 기다려라"라고 알려주면 그 값을 존중한다 -
+                # 안 그러면 우리 고정 backoff가 더 짧을 때 429를 계속
+                # 유발하면서 쓸데없이 차단만 깊어진다.
+                raw = response.headers.get("Retry-After")
+                if raw:
+                    try:
+                        retry_after = min(60, max(0, int(float(raw))))
+                    except (ValueError, TypeError):
+                        retry_after = None
         except requests.RequestException as e:
             print(f"[경고] {prefix}요청 실패: {e} ({attempt}/{max_retries})", file=sys.stderr)
         except ValueError as e:
             print(f"[경고] {prefix}응답 파싱 실패: {e} ({attempt}/{max_retries})", file=sys.stderr)
 
         if attempt < max_retries:
-            time.sleep(backoff)
+            # 고정 간격이 아니라 지수 백오프(3s -> 6s -> 12s, 30s 상한)를 쓴다.
+            # 상대 서버가 일시적으로 과부하일 때 같은 간격으로 계속 두드리면
+            # 회복을 방해할 뿐이다.
+            wait = retry_after if retry_after is not None else min(30, backoff * (2 ** (attempt - 1)))
+            time.sleep(wait)
     return None
 
 def atomic_write_json(path: Path, data, **json_kwargs) -> None:
@@ -76,6 +111,12 @@ def atomic_write_json(path: Path, data, **json_kwargs) -> None:
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as f:
             json.dump(data, f, **json_kwargs)
+            # os.replace는 "이름 바꾸기"만 원자적으로 보장할 뿐, 파일 내용이
+            # 실제로 디스크에 내려갔는지는 보장하지 않는다 - 러너가 갑자기
+            # 죽으면 이름은 바뀌었는데 내용은 0바이트인 파일이 남을 수 있다.
+            # flush+fsync로 내용을 먼저 확정한 뒤 이름을 바꾼다.
+            f.flush()
+            os.fsync(f.fileno())
         os.replace(tmp_path, path)
     except Exception:
         try:
@@ -116,12 +157,26 @@ def validate_and_clean_members(members: list) -> list:
                   f"(구글 시트에서 셀이 실수로 지워지지 않았는지 확인하세요): {m!r}", file=sys.stderr)
             continue
         m = dict(m)
-        m["id"] = str(member_id)
+        # id 앞뒤 공백은 반드시 털어낸다 - 이 값이 풍고 조회 키이자
+        # 아카이브/프론트엔드의 매칭 키라, 공백 하나 때문에 그 사람의
+        # 별풍선이 통째로 0으로 보이는 식의 조용한 오류가 난다.
+        m["id"] = str(member_id).strip()
+        if not m["id"]:
+            print(f"[경고] members[{idx}]의 SOOP ID가 공백뿐이라 건너뜁니다: {m!r}", file=sys.stderr)
+            continue
         elo_id = m.get("elo_id")
         if elo_id is not None:
+            # load_sheet_members()는 "6199.0" 같은 값을 int(float(...))로
+            # 관대하게 받아들이는데 여기만 int()를 바로 써서, 같은 값이
+            # 경로에 따라 6199가 되기도 하고 None이 되기도 했다. None이
+            # 되면 그 사람의 스폰전적이 조용히 통째로 사라진다.
+            # 판단 기준을 한 곳(normalize_elo_id)으로 통일한다.
+            normalized = normalize_elo_id(elo_id)
             try:
-                m["elo_id"] = int(elo_id)
+                m["elo_id"] = int(normalized) if normalized else None
             except (ValueError, TypeError):
+                print(f"[경고] members[{idx}]({m['id']})의 elo_id '{elo_id}'를 숫자로 "
+                      f"해석할 수 없어 비워둡니다.", file=sys.stderr)
                 m["elo_id"] = None
         cleaned.append(m)
     return cleaned
@@ -145,6 +200,42 @@ SHEET_PLACEHOLDER_VALUES = {"체크", "todo", "?", "미정", "", "null", "none",
 
 # API 클라이언트 전역 캐싱 (인증 오버헤드 최소화)
 _gspread_client = None
+# 스프레드시트 핸들도 캐싱한다 - open_by_key()는 매번 실제 API 호출이라,
+# 캐싱하지 않으면 한 번 실행에 시트를 4~5번 여닫는 동안 그만큼의 읽기
+# 쿼터(사용자당 분당 60회)를 공짜로 태워버린다.
+_spreadsheet = None
+
+# 구글 시트 API는 일시적인 500/503/429를 꽤 자주 돌려준다. 한 번 실패했다고
+# 그날 동기화를 통째로 포기하는 건 과하므로, 짧게 몇 번만 다시 시도한다.
+SHEET_MAX_RETRIES = 3
+SHEET_RETRY_BACKOFF_SEC = 5
+
+
+def _is_retryable_sheet_error(exc: Exception) -> bool:
+    """gspread.APIError 중 잠시 뒤 다시 하면 될 가능성이 있는 것만 True.
+    (gspread를 지연 import하는 설계를 깨지 않으려고 타입 대신 응답 코드를
+    덕타이핑으로 확인한다 - gspread가 설치 안 된 환경에서도 이 모듈은
+    import만으로는 절대 죽지 않아야 한다.)"""
+    status = getattr(getattr(exc, "response", None), "status_code", None)
+    if status is None:
+        return False
+    return status in (429, 500, 502, 503, 504)
+
+
+def _sheet_call(fn, *args, what: str = "구글 시트 작업", **kwargs):
+    """시트 API 호출을 짧은 재시도로 감싼다. 재시도를 다 쓰면 마지막 예외를
+    그대로 올려서, 기존 호출부의 try/except 처리 방식(읽기 실패=None,
+    쓰기 실패=건너뜀)이 그대로 동작하게 둔다."""
+    for attempt in range(1, SHEET_MAX_RETRIES + 1):
+        try:
+            return fn(*args, **kwargs)
+        except Exception as e:
+            if attempt >= SHEET_MAX_RETRIES or not _is_retryable_sheet_error(e):
+                raise
+            wait = SHEET_RETRY_BACKOFF_SEC * attempt
+            print(f"[경고] {what} 일시 실패({attempt}/{SHEET_MAX_RETRIES}), {wait}초 후 재시도: {e}",
+                  file=sys.stderr)
+            time.sleep(wait)
 
 def is_sheet_ready() -> bool:
     return bool(os.environ.get("GOOGLE_CREDENTIALS_JSON")) and bool(os.environ.get("GOOGLE_SHEET_ID"))
@@ -167,18 +258,34 @@ def get_gspread_client():
     import gspread
     from google.oauth2.service_account import Credentials
 
-    creds_dict = json.loads(creds_json)
+    try:
+        creds_dict = json.loads(creds_json)
+    except json.JSONDecodeError as e:
+        # 시크릿이 깨진 채로 들어오면 여기서 나는 JSONDecodeError가 그대로
+        # 위로 올라가 스크립트를 죽인다. 원인을 알 수 있게 명시적으로
+        # 말해주고(단, 자격증명 내용 자체는 절대 로그에 남기지 않는다)
+        # "시트 사용 불가" 상태로 취급하게 None을 돌려준다.
+        print(f"[오류] GOOGLE_CREDENTIALS_JSON이 올바른 JSON이 아닙니다: {e}", file=sys.stderr)
+        return None
+
     scopes = ["https://www.googleapis.com/auth/spreadsheets"]
-    creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
-    _gspread_client = gspread.authorize(creds)
+    try:
+        creds = Credentials.from_service_account_info(creds_dict, scopes=scopes)
+        _gspread_client = gspread.authorize(creds)
+    except Exception as e:
+        print(f"[오류] 구글 서비스 계정 인증에 실패했습니다: {e}", file=sys.stderr)
+        return None
     return _gspread_client
 
 def get_worksheet(sheet_name: str = SHEET_NAME):
+    global _spreadsheet
     gc = get_gspread_client()
     if not gc: return None
     sheet_id = os.environ.get("GOOGLE_SHEET_ID")
     if not sheet_id: return None
-    return gc.open_by_key(sheet_id).worksheet(sheet_name)
+    if _spreadsheet is None:
+        _spreadsheet = _sheet_call(gc.open_by_key, sheet_id, what="스프레드시트 열기")
+    return _sheet_call(_spreadsheet.worksheet, sheet_name, what=f"'{sheet_name}' 탭 열기")
 
 def sheet_clean(value):
     if isinstance(value, str) and value.strip().lower() in SHEET_PLACEHOLDER_VALUES:
@@ -192,13 +299,27 @@ def sheet_format_date(value):
     return str(value).strip()
 
 def sheet_parse_date_for_write(value):
+    """시트에 다시 써넣을 날짜 문자열을 만든다.
+
+    예전 구현은 "%Y-%m-%d"로 파싱이 안 되는 값을 전부 ""로 바꿔서 돌려줬다.
+    그런데 이 반환값은 write_sheet()에서 그대로 셀에 덮어써지기 때문에,
+    관리자가 생년월일을 "2000.01.01"이나 "1999/12/31"처럼 입력해 둔 사람은
+    (티어/팀이 한 번이라도 갱신되는 순간) 생년월일 셀이 통째로 지워졌다.
+    수집 스크립트가 사람이 입력한 데이터를 지우는 건 어떤 경우에도 정당화가
+    안 되므로, 이제는 흔한 표기들을 ISO로 정규화해보고, 그래도 모르는
+    형식이면 원본 문자열을 그대로 보존한다(지우지 않는다)."""
     if not value:
         return ""
-    try:
-        datetime.strptime(value, "%Y-%m-%d")
-        return value
-    except (ValueError, TypeError):
+    text = str(value).strip()
+    if not text:
         return ""
+    for fmt in ("%Y-%m-%d", "%Y.%m.%d", "%Y/%m/%d", "%Y%m%d"):
+        try:
+            return datetime.strptime(text, fmt).strftime(DATE_FORMAT)
+        except ValueError:
+            continue
+    print(f"[경고] 날짜 형식을 알 수 없어 원본을 그대로 보존합니다: {text!r}", file=sys.stderr)
+    return text
 
 def load_sheet_members():
     """반환값은 성공하면 dict(사람이 진짜 0명이어도 {} - 정상)이고,
@@ -210,7 +331,10 @@ def load_sheet_members():
     if not is_sheet_ready(): return {}
     try:
         ws = get_worksheet()
-        all_values = ws.get_all_values()
+        if ws is None:
+            print("[오류] 구글 시트 워크시트를 열지 못했습니다.", file=sys.stderr)
+            return None
+        all_values = _sheet_call(ws.get_all_values, what=f"'{SHEET_NAME}' 시트 읽기")
     except Exception as e:
         print(f"[오류] 구글 시트를 읽어오는 중 에러 발생: {e}", file=sys.stderr)
         return None
@@ -220,51 +344,69 @@ def load_sheet_members():
 
     rows = {}
     for row_idx, row in enumerate(all_values[1:], start=2):
-        row += [''] * (10 - len(row))
-        nickname, soop_id, elo_id, birthdate, gender, race, tier, team, role, updated_at = row[:10]
+        row = (list(row) + [''] * 10)[:10]
+        nickname, soop_id, elo_id, birthdate, gender, race, tier, team, role, updated_at = row
 
         if not nickname or not soop_id:
             continue
 
         soop_id = str(soop_id).strip()
+        if not soop_id:
+            continue
+        if soop_id in rows:
+            # 같은 SOOP ID가 두 행에 있으면 뒤 행이 앞 행을 조용히 덮어쓴다 -
+            # 관리자가 실수로 같은 사람을 두 번 넣은 경우 어느 쪽 정보가
+            # 반영되는지 아무도 모르게 되므로 최소한 경고는 남긴다.
+            print(f"[경고] {row_idx}행: SOOP ID '{soop_id}'가 시트에 중복으로 존재합니다 "
+                  f"(뒤 행 기준으로 덮어씁니다).", file=sys.stderr)
         tier = sheet_clean(tier)
-        
+        gender_raw = str(gender).strip()
+
         try:
             elo_id_str = str(elo_id).strip()
             # 시트 셀 서식/입력 방식에 따라 정수 열이 "6199.0"처럼 소수점
             # 붙은 형태로 올 수 있다(예: 셀이 "숫자" 형식으로 지정된 경우) -
             # int()를 바로 쓰면 이런 값에서 예외가 나서 조용히 None이
             # 되어버리므로, float를 한 번 거쳐서 정수부만 취한다.
+            # OverflowError는 "1e999"(inf)처럼 터무니없는 값에서 나는데,
+            # 이걸 안 잡으면 시트 셀 오타 하나가 스크립트 전체를 죽인다.
             elo_id_int = int(float(elo_id_str)) if elo_id_str else None
-        except ValueError:
+        except (ValueError, TypeError, OverflowError):
+            print(f"[경고] {row_idx}행({soop_id})의 elo_id '{elo_id}'를 숫자로 해석할 수 없습니다.",
+                  file=sys.stderr)
             elo_id_int = None
 
         rows[soop_id] = {
-            "nickname": nickname.strip(),
+            "nickname": str(nickname).strip(),
             "elo_id": elo_id_int,
             "birthdate": sheet_format_date(birthdate),
-            "gender": SHEET_GENDER_MAP.get(gender.strip(), gender.strip()) if gender.strip() else None,
+            "gender": SHEET_GENDER_MAP.get(gender_raw, gender_raw) if gender_raw else None,
             "race": sheet_clean(race),
             "tier": str(tier) if tier is not None else None,
             "team": sheet_clean(team),
-            "role": role.strip() if role else "",
+            "role": str(role).strip() if role else "",
             "info_updated_at": sheet_format_date(updated_at),
         }
     return rows
 
-def write_sheet(update_rows: dict, append_rows: list, delete_ids: set | None = None, clear_info_updated_at: set | None = None) -> None:
+def write_sheet(update_rows: dict, append_rows: list, delete_ids: set | None = None,
+                clear_info_updated_at: set | None = None) -> bool:
+    """시트를 갱신한다. 실제로 썼으면 True, 건너뛰었으면 False.
+
+    (예외는 절대 밖으로 던지지 않는다 - 호출부에서 이미 끝난 작업까지
+    실패로 보이게 만들지 않기 위함. 대신 반환값으로 성공 여부를 알린다.)"""
     delete_ids = delete_ids or set()
     clear_info_updated_at = clear_info_updated_at or set()
-    
+
     if not (update_rows or append_rows or delete_ids or clear_info_updated_at):
-        return
+        return True
 
     try:
         ws = get_worksheet()
         if ws is None:
             print("[경고] 구글 시트 인증 정보가 없어 쓰기를 건너뜁니다.", file=sys.stderr)
-            return
-        all_values = ws.get_all_values()
+            return False
+        all_values = _sheet_call(ws.get_all_values, what=f"'{SHEET_NAME}' 시트 읽기(쓰기 전)")
     except Exception as e:
         # 여기서 실패해도 update_data.py의 나머지 작업(latest.json 저장 등)은
         # 이미 끝난 뒤라, 예외를 그대로 던지면 이미 완료된 작업의 성공 여부까지
@@ -272,8 +414,8 @@ def write_sheet(update_rows: dict, append_rows: list, delete_ids: set | None = N
         # 다시 시도되게 한다(신규 미상 등록/수정일 비우기 정도라 하루 늦어져도
         # 치명적이지 않다).
         print(f"[오류] 구글 시트 쓰기 중 에러 발생 - 이번엔 건너뜁니다: {e}", file=sys.stderr)
-        return
-    
+        return False
+
     # 1행(헤더)은 아예 배열에 담지 않고 무시합니다. 2행부터 들어갈 데이터만 조립합니다.
     new_data = []
 
@@ -288,14 +430,27 @@ def write_sheet(update_rows: dict, append_rows: list, delete_ids: set | None = N
 
             fields = update_rows.get(cell_id)
             if fields:
-                row[0] = fields.get("nickname") or ""
-                row[2] = str(fields.get("elo_id")) if fields.get("elo_id") is not None else ""
-                row[3] = sheet_parse_date_for_write(fields.get("birthdate"))
-                row[4] = SHEET_GENDER_MAP_REVERSE.get(fields.get("gender"), fields.get("gender")) or ""
-                row[5] = fields.get("race") or ""
-                row[6] = fields.get("tier") or ""
-                row[7] = fields.get("team") or ""
-                row[8] = fields.get("role") or ""
+                # 중요: "값이 없으면 빈 문자열로 덮어쓰기"를 하지 않는다.
+                # 예전에는 fields의 어떤 값이 None이면 그 셀을 ""로 지워버렸다.
+                # 이 write_sheet()의 유일한 호출부(sync_members)는 닉네임/종족/
+                # 티어/팀만 바꾸려는 것이지 생년월일·성별을 건드릴 의도가
+                # 전혀 없는데도, 시트에 "2000.01.01"처럼 ISO가 아닌 생년월일이
+                # 있거나 성별 셀이 비어 있으면 그 사람의 데이터가 조용히
+                # 삭제됐다(실제 데이터 손실 경로). 이제는 "호출부가 실제 값을
+                # 준 칸만" 덮어쓰고, 나머지는 시트에 있던 값을 그대로 둔다.
+                def _set(idx, value):
+                    if value not in (None, ""):
+                        row[idx] = value
+
+                _set(0, fields.get("nickname"))
+                _set(2, str(fields["elo_id"]) if fields.get("elo_id") is not None else None)
+                _set(3, sheet_parse_date_for_write(fields.get("birthdate")))
+                gender_value = fields.get("gender")
+                _set(4, SHEET_GENDER_MAP_REVERSE.get(gender_value, gender_value))
+                _set(5, fields.get("race"))
+                _set(6, fields.get("tier"))
+                _set(7, fields.get("team"))
+                _set(8, fields.get("role"))
 
             if cell_id in clear_info_updated_at:
                 row[9] = ""
@@ -317,6 +472,19 @@ def write_sheet(update_rows: dict, append_rows: list, delete_ids: set | None = N
         ]
         new_data.append(new_row)
 
+    # 아래 실제 쓰기 호출들도 반드시 try 안에 있어야 한다. 예전에는 읽기만
+    # try로 감싸져 있어서, ws.update()/batch_clear()가 던지는 예외(쿼터 초과,
+    # 일시적 500 등)가 그대로 위로 올라가 update_data.py를 죽였다. 이 시점은
+    # latest.json 저장까지 이미 다 끝난 뒤라, 그렇게 죽으면 워크플로우가
+    # 실패로 끝나면서 그날 수집한 데이터가 커밋조차 안 되고 통째로 버려진다.
+    try:
+        _write_sheet_values(ws, new_data, all_values)
+        return True
+    except Exception as e:
+        print(f"[오류] 구글 시트 쓰기 중 에러 발생 - 이번엔 건너뜁니다: {e}", file=sys.stderr)
+        return False
+
+def _write_sheet_values(ws, new_data: list, all_values: list) -> None:
     # 1. 2행(A2)부터 시작하여 A~J열 영역의 "값"만 덮어씁니다. (1행 헤더와 K열 이후, 모든 서식 완벽 보존)
     if new_data:
         # value_input_option="RAW"를 쓴다 - "USER_ENTERED"였다면 구글시트가
@@ -328,17 +496,19 @@ def write_sheet(update_rows: dict, append_rows: list, delete_ids: set | None = N
         # 있고, 이 프로젝트는 날짜를 문자열 그대로 비교하는 곳이 많아서
         # (file_date >= upd["update_date"] 등) 이런 왕복 불일치가 치명적이다.
         # RAW는 이런 자동 타입 변환을 안 하고 보낸 문자열 그대로 저장한다.
-        ws.update(values=new_data, range_name="A2", value_input_option="RAW")
-    
+        _sheet_call(ws.update, values=new_data, range_name="A2", value_input_option="RAW",
+                    what=f"'{SHEET_NAME}' 시트 쓰기")
+
     # 2. 만약 삭제된 인원이 있어서 전체 행 수가 줄었다면 남은 찌꺼기 비우기
     old_data_count = len(all_values) - 1 if len(all_values) > 1 else 0
     new_data_count = len(new_data)
-    
+
     if old_data_count > new_data_count:
         start_clear_row = 2 + new_data_count
         end_clear_row = len(all_values)
         # 찌꺼기가 남은 행의 A~J열 "값"만 명시적으로 삭제합니다. (서식 보존)
-        ws.batch_clear([f"A{start_clear_row}:J{end_clear_row}"])
+        _sheet_call(ws.batch_clear, [f"A{start_clear_row}:J{end_clear_row}"],
+                    what=f"'{SHEET_NAME}' 시트 잔여행 정리")
 
 # ---------------------------------------------------------------------------
 # "신규 후보" (new_members) 시트 관련 헬퍼
@@ -358,7 +528,7 @@ def load_pending_members():
         ws = get_worksheet(PENDING_SHEET_NAME)
         if ws is None:
             return {}
-        all_values = ws.get_all_values()
+        all_values = _sheet_call(ws.get_all_values, what=f"'{PENDING_SHEET_NAME}' 시트 읽기")
     except Exception as e:
         print(f"[오류] '{PENDING_SHEET_NAME}' 시트를 읽어오는 중 에러 발생: {e}", file=sys.stderr)
         return None
@@ -368,39 +538,60 @@ def load_pending_members():
 
     rows = {}
     for row in all_values[1:]:
-        row = (row + [''] * PENDING_SHEET_COLUMNS)[:PENDING_SHEET_COLUMNS]
+        row = (list(row) + [''] * PENDING_SHEET_COLUMNS)[:PENDING_SHEET_COLUMNS]
         nickname, cand_id, elo_id, gender, race, tier, team, source, found_at = row
         cand_id = str(cand_id).strip()
         if not cand_id:
             continue
         rows[cand_id] = {
-            "nickname": nickname.strip() if nickname else "",
-            "elo_id": str(elo_id).strip() if elo_id else "",
-            "gender": gender.strip() if gender else "",
+            "nickname": str(nickname).strip() if nickname else "",
+            "elo_id": normalize_elo_id(elo_id),
+            "gender": str(gender).strip() if gender else "",
             "race": sheet_clean(race),
             "tier": sheet_clean(tier),
             "team": sheet_clean(team),
-            "source": source.strip() if source else "",
-            "found_at": found_at.strip() if found_at else "",
+            "source": str(source).strip() if source else "",
+            "found_at": str(found_at).strip() if found_at else "",
         }
     return rows
 
-def append_pending_members(candidates: list) -> None:
+def normalize_elo_id(value) -> str:
+    """elo_id를 "중복 판정에 쓸 수 있는" 하나의 표준 문자열로 만든다.
+
+    같은 사람의 elo_id가 경로에 따라 6199(int) / "6199"(문자열) /
+    "6199.0"(시트가 숫자 서식으로 저장한 경우)로 제각각 들어오는데, 이걸
+    문자열 그대로 집합에 넣고 비교하면 "이미 대기 중인 후보"를 못 알아보고
+    new_members 시트에 매 실행마다 같은 사람이 새 행으로 계속 쌓인다."""
+    if value is None:
+        return ""
+    text = str(value).strip()
+    if not text:
+        return ""
+    try:
+        return str(int(float(text)))
+    except (ValueError, TypeError, OverflowError):
+        return text
+
+def append_pending_members(candidates: list) -> bool:
     """새로 발견된 후보들을 new_members 시트 맨 끝에 추가만 한다(수정/삭제
     없음 - 검토/승격/삭제는 관리자가 시트에서 직접 한다). 여기서 실패해도
     예외를 던지지 않는다 - 호출부(update_data.py, sync_members.py)에서
     latest.json 저장 등 이미 끝난 다른 작업까지 실패로 보이게 만들고 싶지
-    않기 때문이다(write_sheet()의 실패 처리 방침과 동일)."""
+    않기 때문이다(write_sheet()의 실패 처리 방침과 동일).
+
+    대신 실제로 썼는지를 bool로 알려준다 - 예전엔 반환값이 없어서 호출부가
+    쓰기 실패 여부와 무관하게 "[완료] N명 추가되었습니다"를 찍었고, 로그만
+    보고 있으면 추가된 줄 알았다가 시트엔 아무것도 없는 상황이 됐다."""
     if not candidates:
-        return
+        return True
     try:
         ws = get_worksheet(PENDING_SHEET_NAME)
         if ws is None:
             print(f"[경고] '{PENDING_SHEET_NAME}' 시트 인증 정보가 없어 쓰기를 건너뜁니다.", file=sys.stderr)
-            return
+            return False
     except Exception as e:
         print(f"[오류] '{PENDING_SHEET_NAME}' 시트 접근 중 에러 발생 - 이번엔 건너뜁니다: {e}", file=sys.stderr)
-        return
+        return False
 
     new_rows = []
     for c in candidates:
@@ -420,6 +611,9 @@ def append_pending_members(candidates: list) -> None:
         # RAW를 쓰는 이유는 write_sheet()와 동일 - elo_id 같은 숫자처럼
         # 보이는 값이나 발견일 같은 날짜처럼 보이는 값이 구글 시트에 의해
         # 자동으로 다른 타입으로 변환되는 것을 막기 위함이다.
-        ws.append_rows(new_rows, value_input_option="RAW")
+        _sheet_call(ws.append_rows, new_rows, value_input_option="RAW",
+                    what=f"'{PENDING_SHEET_NAME}' 시트 후보 추가")
+        return True
     except Exception as e:
         print(f"[오류] '{PENDING_SHEET_NAME}' 시트에 신규 후보 추가 중 에러 발생 - 이번엔 건너뜁니다: {e}", file=sys.stderr)
+        return False
