@@ -70,5 +70,14 @@
     "race": "테란",
     "nickname": "지동원",
     "elo_id": 71
+  },
+  "heyyo0123": {
+    "update_date": "2026-09-15",
+    "team": "마범대",
+    "tier": "7",
+    "role": "",
+    "race": "프로토스",
+    "nickname": "헤요이",
+    "elo_id": 788
   }
 }
