@@ -367,7 +367,7 @@
       "gender": "f",
       "race": "프로토스",
       "tier": "7",
-      "team": "더블비",
+      "team": "휴면",
       "role": "",
       "info_updated_at": null,
       "id": "zzonii"
@@ -8047,7 +8047,7 @@
       "gender": "f",
       "race": "프로토스",
       "tier": "2",
-      "team": "FA",
+      "team": "영정",
       "role": "",
       "info_updated_at": null,
       "id": "cyj982002"
@@ -9463,7 +9463,7 @@
       "gender": "f",
       "race": "프로토스",
       "tier": "베이비",
-      "team": "FA",
+      "team": "마범대",
       "role": "",
       "info_updated_at": null,
       "id": "pengmuin"
@@ -14747,6 +14747,30 @@
       "role": "",
       "info_updated_at": null,
       "id": "e10101"
+    },
+    {
+      "nickname": "안눙이",
+      "elo_id": null,
+      "birthdate": null,
+      "gender": "f",
+      "race": null,
+      "tier": "유스",
+      "team": "마범대",
+      "role": "",
+      "info_updated_at": null,
+      "id": "hasaeyo"
+    },
+    {
+      "nickname": "또치",
+      "elo_id": null,
+      "birthdate": null,
+      "gender": "f",
+      "race": null,
+      "tier": "유스",
+      "team": "마범대",
+      "role": "",
+      "info_updated_at": null,
+      "id": "ehcl000"
     }
   ]
 }
