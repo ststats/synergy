@@ -40,6 +40,8 @@ def main(argv=None):
     members = []
     for soop_id, fields in sheet_rows.items():
         m = dict(fields)
+        # A열 "이름"(EloBoard name)은 시트 동기화용일 뿐 사이트엔 쓰지 않는다
+        m.pop("elo_name", None)
         m["id"] = soop_id
         members.append(m)
 

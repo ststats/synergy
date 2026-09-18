@@ -18,7 +18,8 @@ MAX_NEW_CANDIDATES_PER_RUN = 100
 
 TIERS_URL = "https://eloboard.co.kr/api/tiers"
 
-UPDATE_EXISTING_NICKNAME = False
+# A열 "이름"(EloBoard name)은 항상 최신으로 맞춘다. B열 닉네임은 EloBoard와 무관.
+UPDATE_EXISTING_ELO_NAME = True
 UPDATE_EXISTING_RACE = False
 UPDATE_EXISTING_TIER = False
 UPDATE_EXISTING_TEAM = False
@@ -154,10 +155,10 @@ def main(argv=None):
         is_existing_member = original_soop_id is not None
         existing = member_map.get(original_soop_id) or {} if is_existing_member else {}
         if is_existing_member:
-            before = (existing.get("nickname"), existing.get("race"), existing.get("tier"), existing.get("team"))
+            before = (existing.get("elo_name"), existing.get("race"), existing.get("tier"), existing.get("team"))
             new_fields = dict(existing)
-            if UPDATE_EXISTING_NICKNAME:
-                new_fields["nickname"] = api_player.get("name") or existing.get("nickname")
+            if UPDATE_EXISTING_ELO_NAME:
+                new_fields["elo_name"] = api_player.get("name") or existing.get("elo_name")
             if UPDATE_EXISTING_RACE:
                 new_fields["race"] = converted_race or existing.get("race")
             if UPDATE_EXISTING_TIER:
@@ -165,7 +166,7 @@ def main(argv=None):
             if UPDATE_EXISTING_TEAM:
                 new_fields["team"] = team_name if team_name != "" else existing.get("team")
             
-            after = (new_fields.get("nickname"), new_fields.get("race"), new_fields.get("tier"), new_fields.get("team"))
+            after = (new_fields.get("elo_name"), new_fields.get("race"), new_fields.get("tier"), new_fields.get("team"))
             if before != after:
                 updates[original_soop_id] = new_fields
         else:

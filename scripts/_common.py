@@ -186,6 +186,11 @@ def validate_and_clean_members(members: list) -> list:
 # ---------------------------------------------------------------------------
 
 SHEET_NAME = "members"
+# members 탭 열 순서(A~K): 이름(EloBoard가 추가하는 이름), 닉네임(사이트 표기명),
+# 숲아이디, 이엘오아이디, 생년월일, 성별, 종족, 티어, 팀, 역할, 수정일
+# A열 "이름"은 EloBoard 티어 API의 name이 들어가는 칸이고(sync_members가 채움),
+# B열 "닉네임"은 사람이 관리하는 사이트 표기명이라 EloBoard와 무관하다.
+MEMBERS_SHEET_COLUMNS = 11
 # 아직 검증되지 않은 "신규 후보"(스폰전적에만 등장하는 미상 elo_id,
 # 티어 API에는 있지만 members 시트엔 없는 신규 등록자)는 곧바로
 # members 시트에 쓰지 않고 이 별도 시트에 쌓아둔다. members 시트는
@@ -344,8 +349,8 @@ def load_sheet_members():
 
     rows = {}
     for row_idx, row in enumerate(all_values[1:], start=2):
-        row = (list(row) + [''] * 10)[:10]
-        nickname, soop_id, elo_id, birthdate, gender, race, tier, team, role, updated_at = row
+        row = (list(row) + [''] * MEMBERS_SHEET_COLUMNS)[:MEMBERS_SHEET_COLUMNS]
+        elo_name, nickname, soop_id, elo_id, birthdate, gender, race, tier, team, role, updated_at = row
 
         if not nickname or not soop_id:
             continue
@@ -377,6 +382,7 @@ def load_sheet_members():
             elo_id_int = None
 
         rows[soop_id] = {
+            "elo_name": str(elo_name).strip() if elo_name else "",
             "nickname": str(nickname).strip(),
             "elo_id": elo_id_int,
             "birthdate": sheet_format_date(birthdate),
@@ -421,9 +427,9 @@ def write_sheet(update_rows: dict, append_rows: list, delete_ids: set | None = N
 
     if len(all_values) > 1:
         for row in all_values[1:]:
-            # 무조건 A~J열(10개) 크기로 맞추어 K열 이후 데이터는 건드리지 않게 방어
-            row = (row + [''] * 10)[:10] 
-            cell_id = str(row[1]).strip() if row[1] else None
+            # 무조건 A~K열(11개) 크기로 맞추어 L열 이후 데이터는 건드리지 않게 방어
+            row = (row + [''] * MEMBERS_SHEET_COLUMNS)[:MEMBERS_SHEET_COLUMNS]
+            cell_id = str(row[2]).strip() if row[2] else None
 
             if cell_id in delete_ids:
                 continue
@@ -442,23 +448,25 @@ def write_sheet(update_rows: dict, append_rows: list, delete_ids: set | None = N
                     if value not in (None, ""):
                         row[idx] = value
 
-                _set(0, fields.get("nickname"))
-                _set(2, str(fields["elo_id"]) if fields.get("elo_id") is not None else None)
-                _set(3, sheet_parse_date_for_write(fields.get("birthdate")))
+                _set(0, fields.get("elo_name"))
+                _set(1, fields.get("nickname"))
+                _set(3, str(fields["elo_id"]) if fields.get("elo_id") is not None else None)
+                _set(4, sheet_parse_date_for_write(fields.get("birthdate")))
                 gender_value = fields.get("gender")
-                _set(4, SHEET_GENDER_MAP_REVERSE.get(gender_value, gender_value))
-                _set(5, fields.get("race"))
-                _set(6, fields.get("tier"))
-                _set(7, fields.get("team"))
-                _set(8, fields.get("role"))
+                _set(5, SHEET_GENDER_MAP_REVERSE.get(gender_value, gender_value))
+                _set(6, fields.get("race"))
+                _set(7, fields.get("tier"))
+                _set(8, fields.get("team"))
+                _set(9, fields.get("role"))
 
             if cell_id in clear_info_updated_at:
-                row[9] = ""
+                row[10] = ""
 
             new_data.append(row)
 
     for m in append_rows:
         new_row = [
+            m.get("elo_name") or "",
             m.get("nickname") or "",
             m.get("id") or "",
             str(m.get("elo_id")) if m.get("elo_id") is not None else "",
@@ -485,7 +493,7 @@ def write_sheet(update_rows: dict, append_rows: list, delete_ids: set | None = N
         return False
 
 def _write_sheet_values(ws, new_data: list, all_values: list) -> None:
-    # 1. 2행(A2)부터 시작하여 A~J열 영역의 "값"만 덮어씁니다. (1행 헤더와 K열 이후, 모든 서식 완벽 보존)
+    # 1. 2행(A2)부터 시작하여 A~K열 영역의 "값"만 덮어씁니다. (1행 헤더와 L열 이후, 모든 서식 완벽 보존)
     if new_data:
         # value_input_option="RAW"를 쓴다 - "USER_ENTERED"였다면 구글시트가
         # 우리가 보낸 문자열을 "사람이 직접 입력한 것"처럼 해석해서, elo_id
@@ -506,8 +514,8 @@ def _write_sheet_values(ws, new_data: list, all_values: list) -> None:
     if old_data_count > new_data_count:
         start_clear_row = 2 + new_data_count
         end_clear_row = len(all_values)
-        # 찌꺼기가 남은 행의 A~J열 "값"만 명시적으로 삭제합니다. (서식 보존)
-        _sheet_call(ws.batch_clear, [f"A{start_clear_row}:J{end_clear_row}"],
+        # 찌꺼기가 남은 행의 A~K열 "값"만 명시적으로 삭제합니다. (서식 보존)
+        _sheet_call(ws.batch_clear, [f"A{start_clear_row}:K{end_clear_row}"],
                     what=f"'{SHEET_NAME}' 시트 잔여행 정리")
 
 # ---------------------------------------------------------------------------
