@@ -326,6 +326,26 @@ def sheet_parse_date_for_write(value):
     print(f"[경고] 날짜 형식을 알 수 없어 원본을 그대로 보존합니다: {text!r}", file=sys.stderr)
     return text
 
+def describe_sheet_error(e: Exception) -> str:
+    """시트 예외를 원인 파악이 가능한 문자열로 만든다. gspread 6.x는 403을
+    메시지 없는 PermissionError로 던져서 str(e)만 찍으면 빈칸이 된다.
+    예외 종류, 원인 예외의 HTTP 코드/응답 본문, 그리고 실제로 접속을 시도한
+    서비스 계정 이메일을 함께 보여준다(키 내용 자체는 절대 찍지 않는다)."""
+    parts = [f"{type(e).__name__}: {e!s}" if str(e) else type(e).__name__]
+    for exc in (e, e.__cause__, e.__context__):
+        resp = getattr(exc, "response", None)
+        status = getattr(resp, "status_code", None)
+        if status is not None:
+            body = (getattr(resp, "text", "") or "").strip().replace("\n", " ")
+            parts.append(f"HTTP {status} {body[:300]}")
+            break
+    try:
+        email = json.loads(os.environ.get("GOOGLE_CREDENTIALS_JSON") or "{}").get("client_email")
+    except Exception:
+        email = None
+    parts.append(f"서비스계정={email or '알 수 없음'}")
+    return " | ".join(parts)
+
 def load_sheet_members():
     """반환값은 성공하면 dict(사람이 진짜 0명이어도 {} - 정상)이고,
     시트 읽기 자체가 실패하면 None이다. 이 둘을 구분해야 하는 이유:
@@ -341,7 +361,7 @@ def load_sheet_members():
             return None
         all_values = _sheet_call(ws.get_all_values, what=f"'{SHEET_NAME}' 시트 읽기")
     except Exception as e:
-        print(f"[오류] 구글 시트를 읽어오는 중 에러 발생: {e}", file=sys.stderr)
+        print(f"[오류] 구글 시트를 읽어오는 중 에러 발생: {describe_sheet_error(e)}", file=sys.stderr)
         return None
 
     if not all_values or len(all_values) < 2:
