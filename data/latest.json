@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-09-23 03:55:34",
+  "updated_at": "2026-09-23 07:55:27",
   "date": "2026-09-23",
   "year": 2026,
   "month": 9,
@@ -82,9 +82,9 @@
       "team": "뉴캣슬",
       "race": "저그",
       "tier": "조커",
-      "balloons": 61943,
-      "broadcast_seconds": 106021,
-      "cumulative_viewers": 4028,
+      "balloons": 63200,
+      "broadcast_seconds": 120421,
+      "cumulative_viewers": 4581,
       "sponsor_wins": 0,
       "sponsor_losses": 0
     },
@@ -408,7 +408,7 @@
       "broadcast_seconds": 686562,
       "cumulative_viewers": 159136,
       "sponsor_wins": 6,
-      "sponsor_losses": 6
+      "sponsor_losses": 8
     },
     {
       "id": "pokimasiso",
@@ -477,8 +477,8 @@
       "balloons": 31558,
       "broadcast_seconds": 480143,
       "cumulative_viewers": 21842,
-      "sponsor_wins": 23,
-      "sponsor_losses": 33
+      "sponsor_wins": 26,
+      "sponsor_losses": 34
     },
     {
       "id": "wjswpalssla1",
@@ -533,7 +533,7 @@
       "balloons": 76886,
       "broadcast_seconds": 481760,
       "cumulative_viewers": 73497,
-      "sponsor_wins": 17,
+      "sponsor_wins": 19,
       "sponsor_losses": 6
     },
     {
@@ -545,9 +545,9 @@
       "race": "저그",
       "tier": "킹",
       "balloons": 100681,
-      "broadcast_seconds": 577120,
-      "cumulative_viewers": 42603,
-      "sponsor_wins": 16,
+      "broadcast_seconds": 579174,
+      "cumulative_viewers": 42710,
+      "sponsor_wins": 19,
       "sponsor_losses": 10
     },
     {
@@ -674,7 +674,7 @@
       "broadcast_seconds": 582997,
       "cumulative_viewers": 74090,
       "sponsor_wins": 6,
-      "sponsor_losses": 18
+      "sponsor_losses": 24
     },
     {
       "id": "viwi05",
@@ -712,9 +712,9 @@
       "team": "드림즈",
       "race": "저그",
       "tier": "4",
-      "balloons": 260659,
-      "broadcast_seconds": 527631,
-      "cumulative_viewers": 178227,
+      "balloons": 260751,
+      "broadcast_seconds": 530513,
+      "cumulative_viewers": 178664,
       "sponsor_wins": 5,
       "sponsor_losses": 5
     },
@@ -741,8 +741,8 @@
       "race": "테란",
       "tier": "잭",
       "balloons": 20201,
-      "broadcast_seconds": 215667,
-      "cumulative_viewers": 4260,
+      "broadcast_seconds": 221159,
+      "cumulative_viewers": 4392,
       "sponsor_wins": 0,
       "sponsor_losses": 0
     },
@@ -755,8 +755,8 @@
       "race": "저그",
       "tier": "잭",
       "balloons": 60145,
-      "broadcast_seconds": 485192,
-      "cumulative_viewers": 40258,
+      "broadcast_seconds": 489369,
+      "cumulative_viewers": 40340,
       "sponsor_wins": 2,
       "sponsor_losses": 2
     },
@@ -769,8 +769,8 @@
       "race": "프로토스",
       "tier": "잭",
       "balloons": 49785,
-      "broadcast_seconds": 480922,
-      "cumulative_viewers": 12536,
+      "broadcast_seconds": 485117,
+      "cumulative_viewers": 12618,
       "sponsor_wins": 0,
       "sponsor_losses": 2
     },
@@ -783,8 +783,8 @@
       "race": "프로토스",
       "tier": "스페이드",
       "balloons": 47840,
-      "broadcast_seconds": 317208,
-      "cumulative_viewers": 17328,
+      "broadcast_seconds": 321457,
+      "cumulative_viewers": 17466,
       "sponsor_wins": 0,
       "sponsor_losses": 0
     },
@@ -939,8 +939,8 @@
       "balloons": 47994,
       "broadcast_seconds": 628628,
       "cumulative_viewers": 142556,
-      "sponsor_wins": 15,
-      "sponsor_losses": 32
+      "sponsor_wins": 16,
+      "sponsor_losses": 34
     },
     {
       "id": "rnjsgurwls15",
@@ -1048,9 +1048,9 @@
       "team": "신세계",
       "race": "테란",
       "tier": "8",
-      "balloons": 81085,
-      "broadcast_seconds": 518483,
-      "cumulative_viewers": 58019,
+      "balloons": 81115,
+      "broadcast_seconds": 523434,
+      "cumulative_viewers": 58674,
       "sponsor_wins": 5,
       "sponsor_losses": 11
     },
@@ -1077,8 +1077,8 @@
       "race": "프로토스",
       "tier": "7",
       "balloons": 93596,
-      "broadcast_seconds": 335132,
-      "cumulative_viewers": 77813,
+      "broadcast_seconds": 336990,
+      "cumulative_viewers": 78416,
       "sponsor_wins": 4,
       "sponsor_losses": 2
     },
@@ -1091,8 +1091,8 @@
       "race": "저그",
       "tier": "조커",
       "balloons": 61459,
-      "broadcast_seconds": 586503,
-      "cumulative_viewers": 49250,
+      "broadcast_seconds": 591452,
+      "cumulative_viewers": 49402,
       "sponsor_wins": 0,
       "sponsor_losses": 0
     },
@@ -1119,8 +1119,8 @@
       "race": "저그",
       "tier": "3",
       "balloons": 160333,
-      "broadcast_seconds": 343750,
-      "cumulative_viewers": 118522,
+      "broadcast_seconds": 343875,
+      "cumulative_viewers": 118548,
       "sponsor_wins": 2,
       "sponsor_losses": 2
     },
@@ -1177,8 +1177,8 @@
       "balloons": 28802,
       "broadcast_seconds": 218363,
       "cumulative_viewers": 53594,
-      "sponsor_wins": 2,
-      "sponsor_losses": 3
+      "sponsor_wins": 3,
+      "sponsor_losses": 6
     },
     {
       "id": "daegalheo",
@@ -1189,8 +1189,8 @@
       "race": "저그",
       "tier": "조커",
       "balloons": 77101,
-      "broadcast_seconds": 782802,
-      "cumulative_viewers": 39354,
+      "broadcast_seconds": 784982,
+      "cumulative_viewers": 39462,
       "sponsor_wins": 1,
       "sponsor_losses": 3
     },
@@ -1357,8 +1357,8 @@
       "race": "테란",
       "tier": "킹",
       "balloons": 73654,
-      "broadcast_seconds": 551590,
-      "cumulative_viewers": 39175,
+      "broadcast_seconds": 559841,
+      "cumulative_viewers": 39506,
       "sponsor_wins": 2,
       "sponsor_losses": 4
     },
@@ -1440,9 +1440,9 @@
       "team": "캄몬스타즈",
       "race": "테란",
       "tier": "3",
-      "balloons": 493684,
-      "broadcast_seconds": 518174,
-      "cumulative_viewers": 402186,
+      "balloons": 495108,
+      "broadcast_seconds": 532574,
+      "cumulative_viewers": 406829,
       "sponsor_wins": 1,
       "sponsor_losses": 2
     },
@@ -1483,8 +1483,8 @@
       "race": "테란",
       "tier": "5",
       "balloons": 113536,
-      "broadcast_seconds": 407259,
-      "cumulative_viewers": 78037,
+      "broadcast_seconds": 412846,
+      "cumulative_viewers": 78589,
       "sponsor_wins": 11,
       "sponsor_losses": 7
     },
@@ -1552,9 +1552,9 @@
       "team": "캄몬스타즈",
       "race": "저그",
       "tier": "6",
-      "balloons": 295651,
-      "broadcast_seconds": 515103,
-      "cumulative_viewers": 190298,
+      "balloons": 297051,
+      "broadcast_seconds": 516682,
+      "cumulative_viewers": 190567,
       "sponsor_wins": 14,
       "sponsor_losses": 18
     },
@@ -1597,8 +1597,8 @@
       "balloons": 37111,
       "broadcast_seconds": 156122,
       "cumulative_viewers": 60926,
-      "sponsor_wins": 1,
-      "sponsor_losses": 14
+      "sponsor_wins": 2,
+      "sponsor_losses": 15
     },
     {
       "id": "tmsh401",
@@ -1611,8 +1611,8 @@
       "balloons": 59486,
       "broadcast_seconds": 269346,
       "cumulative_viewers": 78981,
-      "sponsor_wins": 22,
-      "sponsor_losses": 20
+      "sponsor_wins": 24,
+      "sponsor_losses": 21
     },
     {
       "id": "hongduck9737",
@@ -1735,8 +1735,8 @@
       "race": "프로토스",
       "tier": "2",
       "balloons": 93629,
-      "broadcast_seconds": 242993,
-      "cumulative_viewers": 97950,
+      "broadcast_seconds": 243341,
+      "cumulative_viewers": 98005,
       "sponsor_wins": 1,
       "sponsor_losses": 0
     },
@@ -1748,9 +1748,9 @@
       "team": "케이대",
       "race": "저그",
       "tier": "4",
-      "balloons": 223827,
-      "broadcast_seconds": 284924,
-      "cumulative_viewers": 87076,
+      "balloons": 225940,
+      "broadcast_seconds": 291048,
+      "cumulative_viewers": 88850,
       "sponsor_wins": 5,
       "sponsor_losses": 9
     },
@@ -1847,8 +1847,8 @@
       "race": "저그",
       "tier": "8",
       "balloons": 80976,
-      "broadcast_seconds": 482766,
-      "cumulative_viewers": 51530,
+      "broadcast_seconds": 484329,
+      "cumulative_viewers": 51616,
       "sponsor_wins": 26,
       "sponsor_losses": 6
     },
@@ -1889,8 +1889,8 @@
       "race": "테란",
       "tier": null,
       "balloons": 89877,
-      "broadcast_seconds": 478061,
-      "cumulative_viewers": 115249,
+      "broadcast_seconds": 480198,
+      "cumulative_viewers": 115425,
       "sponsor_wins": 0,
       "sponsor_losses": 0
     },
@@ -1930,9 +1930,9 @@
       "team": "휴면",
       "race": "저그",
       "tier": "6",
-      "balloons": 11519,
-      "broadcast_seconds": 723879,
-      "cumulative_viewers": 11839,
+      "balloons": 11520,
+      "broadcast_seconds": 729965,
+      "cumulative_viewers": 11896,
       "sponsor_wins": 0,
       "sponsor_losses": 0
     },
@@ -2224,9 +2224,9 @@
       "team": "휴면",
       "race": "프로토스",
       "tier": "스페이드",
-      "balloons": 708981,
-      "broadcast_seconds": 612381,
-      "cumulative_viewers": 9275415,
+      "balloons": 710492,
+      "broadcast_seconds": 626781,
+      "cumulative_viewers": 9347277,
       "sponsor_wins": 0,
       "sponsor_losses": 0
     },
@@ -2323,8 +2323,8 @@
       "race": "저그",
       "tier": "1",
       "balloons": 12439,
-      "broadcast_seconds": 304459,
-      "cumulative_viewers": 12179,
+      "broadcast_seconds": 312276,
+      "cumulative_viewers": 12274,
       "sponsor_wins": 0,
       "sponsor_losses": 0
     },
@@ -2421,8 +2421,8 @@
       "race": "테란",
       "tier": "2",
       "balloons": 134999,
-      "broadcast_seconds": 507850,
-      "cumulative_viewers": 306705,
+      "broadcast_seconds": 510285,
+      "cumulative_viewers": 307649,
       "sponsor_wins": 1,
       "sponsor_losses": 2
     },
@@ -2532,9 +2532,9 @@
       "team": "휴면",
       "race": "프로토스",
       "tier": "2",
-      "balloons": 139782,
-      "broadcast_seconds": 644329,
-      "cumulative_viewers": 958285,
+      "balloons": 139912,
+      "broadcast_seconds": 645474,
+      "cumulative_viewers": 959234,
       "sponsor_wins": 0,
       "sponsor_losses": 0
     },
@@ -2589,8 +2589,8 @@
       "race": "테란",
       "tier": "3",
       "balloons": 71774,
-      "broadcast_seconds": 913045,
-      "cumulative_viewers": 314278,
+      "broadcast_seconds": 927445,
+      "cumulative_viewers": 317464,
       "sponsor_wins": 0,
       "sponsor_losses": 0
     },
@@ -2743,8 +2743,8 @@
       "race": "프로토스",
       "tier": "3",
       "balloons": 7170,
-      "broadcast_seconds": 624868,
-      "cumulative_viewers": 24329,
+      "broadcast_seconds": 633393,
+      "cumulative_viewers": 24620,
       "sponsor_wins": 0,
       "sponsor_losses": 0
     },
@@ -2770,9 +2770,9 @@
       "team": "휴면",
       "race": "테란",
       "tier": "4",
-      "balloons": 391888,
-      "broadcast_seconds": 609245,
-      "cumulative_viewers": 4772942,
+      "balloons": 392009,
+      "broadcast_seconds": 623645,
+      "cumulative_viewers": 4811901,
       "sponsor_wins": 0,
       "sponsor_losses": 0
     },
@@ -2784,9 +2784,9 @@
       "team": "휴면",
       "race": "테란",
       "tier": "4",
-      "balloons": 128940,
-      "broadcast_seconds": 510676,
-      "cumulative_viewers": 291668,
+      "balloons": 132044,
+      "broadcast_seconds": 512914,
+      "cumulative_viewers": 292400,
       "sponsor_wins": 0,
       "sponsor_losses": 0
     },
@@ -2882,9 +2882,9 @@
       "team": "휴면",
       "race": "프로토스",
       "tier": "5",
-      "balloons": 171155,
-      "broadcast_seconds": 710035,
-      "cumulative_viewers": 322577,
+      "balloons": 171166,
+      "broadcast_seconds": 724435,
+      "cumulative_viewers": 326895,
       "sponsor_wins": 0,
       "sponsor_losses": 0
     },
@@ -2980,9 +2980,9 @@
       "team": "휴면",
       "race": "프로토스",
       "tier": "6",
-      "balloons": 307685,
-      "broadcast_seconds": 1774199,
-      "cumulative_viewers": 2637541,
+      "balloons": 307700,
+      "broadcast_seconds": 1788599,
+      "cumulative_viewers": 2649573,
       "sponsor_wins": 0,
       "sponsor_losses": 0
     },
@@ -3022,9 +3022,9 @@
       "team": "휴면",
       "race": "테란",
       "tier": "7",
-      "balloons": 840900,
-      "broadcast_seconds": 718063,
-      "cumulative_viewers": 2248968,
+      "balloons": 876863,
+      "broadcast_seconds": 732463,
+      "cumulative_viewers": 2282024,
       "sponsor_wins": 0,
       "sponsor_losses": 0
     },
@@ -3190,9 +3190,9 @@
       "team": "휴면",
       "race": "저그",
       "tier": "8",
-      "balloons": 442651,
-      "broadcast_seconds": 651147,
-      "cumulative_viewers": 8730481,
+      "balloons": 443717,
+      "broadcast_seconds": 655628,
+      "cumulative_viewers": 8742994,
       "sponsor_wins": 0,
       "sponsor_losses": 0
     },
@@ -3275,8 +3275,8 @@
       "race": "테란",
       "tier": null,
       "balloons": 8006,
-      "broadcast_seconds": 557510,
-      "cumulative_viewers": 933371,
+      "broadcast_seconds": 561924,
+      "cumulative_viewers": 933811,
       "sponsor_wins": 0,
       "sponsor_losses": 0
     },
@@ -3372,9 +3372,9 @@
       "team": "휴면",
       "race": "테란",
       "tier": null,
-      "balloons": 101552,
-      "broadcast_seconds": 1131957,
-      "cumulative_viewers": 59307,
+      "balloons": 102552,
+      "broadcast_seconds": 1146357,
+      "cumulative_viewers": 59755,
       "sponsor_wins": 0,
       "sponsor_losses": 0
     },
@@ -4324,9 +4324,9 @@
       "team": "휴면",
       "race": "저그",
       "tier": "2",
-      "balloons": 2576,
-      "broadcast_seconds": 292443,
-      "cumulative_viewers": 2546,
+      "balloons": 2676,
+      "broadcast_seconds": 294551,
+      "cumulative_viewers": 2572,
       "sponsor_wins": 0,
       "sponsor_losses": 0
     },
@@ -4380,9 +4380,9 @@
       "team": "휴면",
       "race": "테란",
       "tier": "3",
-      "balloons": 92906,
-      "broadcast_seconds": 705068,
-      "cumulative_viewers": 47964,
+      "balloons": 93056,
+      "broadcast_seconds": 718235,
+      "cumulative_viewers": 48707,
       "sponsor_wins": 0,
       "sponsor_losses": 0
     },
@@ -4408,9 +4408,9 @@
       "team": "휴면",
       "race": "저그",
       "tier": "3",
-      "balloons": 134516,
-      "broadcast_seconds": 761116,
-      "cumulative_viewers": 263588,
+      "balloons": 137619,
+      "broadcast_seconds": 767399,
+      "cumulative_viewers": 264699,
       "sponsor_wins": 0,
       "sponsor_losses": 0
     },
@@ -4576,9 +4576,9 @@
       "team": "휴면",
       "race": "프로토스",
       "tier": "3",
-      "balloons": 87320,
-      "broadcast_seconds": 683895,
-      "cumulative_viewers": 20855,
+      "balloons": 87439,
+      "broadcast_seconds": 692675,
+      "cumulative_viewers": 21221,
       "sponsor_wins": 0,
       "sponsor_losses": 0
     },
@@ -4674,9 +4674,9 @@
       "team": "휴면",
       "race": "테란",
       "tier": "4",
-      "balloons": 574523,
-      "broadcast_seconds": 572088,
-      "cumulative_viewers": 277678,
+      "balloons": 574543,
+      "broadcast_seconds": 575383,
+      "cumulative_viewers": 278550,
       "sponsor_wins": 0,
       "sponsor_losses": 0
     },
@@ -4688,9 +4688,9 @@
       "team": "휴면",
       "race": "테란",
       "tier": "4",
-      "balloons": 132728,
-      "broadcast_seconds": 637282,
-      "cumulative_viewers": 136973,
+      "balloons": 132731,
+      "broadcast_seconds": 638240,
+      "cumulative_viewers": 137131,
       "sponsor_wins": 0,
       "sponsor_losses": 0
     },
@@ -4717,8 +4717,8 @@
       "race": "테란",
       "tier": "4",
       "balloons": 567,
-      "broadcast_seconds": 294079,
-      "cumulative_viewers": 1601,
+      "broadcast_seconds": 295247,
+      "cumulative_viewers": 1606,
       "sponsor_wins": 0,
       "sponsor_losses": 0
     },
@@ -5206,9 +5206,9 @@
       "team": "휴면",
       "race": "프로토스",
       "tier": "5",
-      "balloons": 45571,
-      "broadcast_seconds": 503316,
-      "cumulative_viewers": 6274,
+      "balloons": 46237,
+      "broadcast_seconds": 509915,
+      "cumulative_viewers": 6321,
       "sponsor_wins": 0,
       "sponsor_losses": 0
     },
@@ -5626,9 +5626,9 @@
       "team": "휴면",
       "race": "저그",
       "tier": "6",
-      "balloons": 36574,
-      "broadcast_seconds": 480297,
-      "cumulative_viewers": 54372,
+      "balloons": 39676,
+      "broadcast_seconds": 483844,
+      "cumulative_viewers": 54579,
       "sponsor_wins": 0,
       "sponsor_losses": 0
     },
@@ -6018,9 +6018,9 @@
       "team": "휴면",
       "race": "프로토스",
       "tier": "6",
-      "balloons": 112163,
-      "broadcast_seconds": 605397,
-      "cumulative_viewers": 233684,
+      "balloons": 115887,
+      "broadcast_seconds": 619441,
+      "cumulative_viewers": 238357,
       "sponsor_wins": 0,
       "sponsor_losses": 0
     },
@@ -6046,9 +6046,9 @@
       "team": "휴면",
       "race": "프로토스",
       "tier": "6",
-      "balloons": 258155,
-      "broadcast_seconds": 353805,
-      "cumulative_viewers": 69738,
+      "balloons": 258306,
+      "broadcast_seconds": 356009,
+      "cumulative_viewers": 70000,
       "sponsor_wins": 0,
       "sponsor_losses": 0
     },
@@ -6159,8 +6159,8 @@
       "race": "테란",
       "tier": "7",
       "balloons": 57610,
-      "broadcast_seconds": 874296,
-      "cumulative_viewers": 8382,
+      "broadcast_seconds": 888696,
+      "cumulative_viewers": 8492,
       "sponsor_wins": 0,
       "sponsor_losses": 0
     },
@@ -6382,9 +6382,9 @@
       "team": "휴면",
       "race": "저그",
       "tier": "7",
-      "balloons": 77159,
-      "broadcast_seconds": 842279,
-      "cumulative_viewers": 315909,
+      "balloons": 77169,
+      "broadcast_seconds": 849401,
+      "cumulative_viewers": 317145,
       "sponsor_wins": 0,
       "sponsor_losses": 0
     },
@@ -6691,8 +6691,8 @@
       "race": "프로토스",
       "tier": "7",
       "balloons": 54296,
-      "broadcast_seconds": 306149,
-      "cumulative_viewers": 18789,
+      "broadcast_seconds": 307045,
+      "cumulative_viewers": 18809,
       "sponsor_wins": 0,
       "sponsor_losses": 0
     },
@@ -6872,9 +6872,9 @@
       "team": "휴면",
       "race": "프로토스",
       "tier": "7",
-      "balloons": 104864,
-      "broadcast_seconds": 696818,
-      "cumulative_viewers": 5728,
+      "balloons": 106146,
+      "broadcast_seconds": 697614,
+      "cumulative_viewers": 5732,
       "sponsor_wins": 0,
       "sponsor_losses": 0
     },
@@ -7139,8 +7139,8 @@
       "race": "테란",
       "tier": "8",
       "balloons": 183346,
-      "broadcast_seconds": 398253,
-      "cumulative_viewers": 6936,
+      "broadcast_seconds": 399752,
+      "cumulative_viewers": 6979,
       "sponsor_wins": 0,
       "sponsor_losses": 0
     },
@@ -7278,9 +7278,9 @@
       "team": "휴면",
       "race": "저그",
       "tier": "8",
-      "balloons": 166543,
-      "broadcast_seconds": 274100,
-      "cumulative_viewers": 19939,
+      "balloons": 169979,
+      "broadcast_seconds": 288500,
+      "cumulative_viewers": 22507,
       "sponsor_wins": 0,
       "sponsor_losses": 0
     },
@@ -7292,9 +7292,9 @@
       "team": "휴면",
       "race": "저그",
       "tier": "8",
-      "balloons": 108704,
-      "broadcast_seconds": 407369,
-      "cumulative_viewers": 14159,
+      "balloons": 108776,
+      "broadcast_seconds": 413993,
+      "cumulative_viewers": 14266,
       "sponsor_wins": 0,
       "sponsor_losses": 0
     },
@@ -7321,8 +7321,8 @@
       "race": "저그",
       "tier": "8",
       "balloons": 41439,
-      "broadcast_seconds": 159808,
-      "cumulative_viewers": 7497,
+      "broadcast_seconds": 160427,
+      "cumulative_viewers": 7520,
       "sponsor_wins": 0,
       "sponsor_losses": 0
     },
@@ -7712,9 +7712,9 @@
       "team": "휴면",
       "race": "저그",
       "tier": "8",
-      "balloons": 40832,
-      "broadcast_seconds": 215921,
-      "cumulative_viewers": 19732,
+      "balloons": 44477,
+      "broadcast_seconds": 226428,
+      "cumulative_viewers": 20693,
       "sponsor_wins": 0,
       "sponsor_losses": 0
     },
@@ -7810,9 +7810,9 @@
       "team": "휴면",
       "race": "프로토스",
       "tier": "8",
-      "balloons": 25176,
-      "broadcast_seconds": 255627,
-      "cumulative_viewers": 79642,
+      "balloons": 25283,
+      "broadcast_seconds": 262039,
+      "cumulative_viewers": 80834,
       "sponsor_wins": 0,
       "sponsor_losses": 0
     },
@@ -7993,8 +7993,8 @@
       "race": "프로토스",
       "tier": "8",
       "balloons": 259214,
-      "broadcast_seconds": 483169,
-      "cumulative_viewers": 110519,
+      "broadcast_seconds": 483711,
+      "cumulative_viewers": 110577,
       "sponsor_wins": 0,
       "sponsor_losses": 0
     },
@@ -8581,8 +8581,8 @@
       "race": "테란",
       "tier": "베이비",
       "balloons": 17433,
-      "broadcast_seconds": 424328,
-      "cumulative_viewers": 2952,
+      "broadcast_seconds": 425062,
+      "cumulative_viewers": 2955,
       "sponsor_wins": 0,
       "sponsor_losses": 0
     },
@@ -8678,9 +8678,9 @@
       "team": "휴면",
       "race": "저그",
       "tier": "베이비",
-      "balloons": 107699,
-      "broadcast_seconds": 541235,
-      "cumulative_viewers": 121545,
+      "balloons": 109119,
+      "broadcast_seconds": 555635,
+      "cumulative_viewers": 125117,
       "sponsor_wins": 0,
       "sponsor_losses": 0
     },
@@ -8819,8 +8819,8 @@
       "race": "테란",
       "tier": "잭",
       "balloons": 146492,
-      "broadcast_seconds": 533024,
-      "cumulative_viewers": 338329,
+      "broadcast_seconds": 544925,
+      "cumulative_viewers": 340878,
       "sponsor_wins": 0,
       "sponsor_losses": 0
     },
@@ -8875,8 +8875,8 @@
       "race": "테란",
       "tier": "스페이드",
       "balloons": 20464,
-      "broadcast_seconds": 342186,
-      "cumulative_viewers": 3322,
+      "broadcast_seconds": 355067,
+      "cumulative_viewers": 3483,
       "sponsor_wins": 0,
       "sponsor_losses": 0
     },
@@ -8889,8 +8889,8 @@
       "race": "테란",
       "tier": "1",
       "balloons": 87620,
-      "broadcast_seconds": 663175,
-      "cumulative_viewers": 23667,
+      "broadcast_seconds": 673860,
+      "cumulative_viewers": 23983,
       "sponsor_wins": 0,
       "sponsor_losses": 0
     },
@@ -8903,8 +8903,8 @@
       "race": "테란",
       "tier": "2",
       "balloons": 93179,
-      "broadcast_seconds": 705185,
-      "cumulative_viewers": 61345,
+      "broadcast_seconds": 717078,
+      "cumulative_viewers": 61943,
       "sponsor_wins": 6,
       "sponsor_losses": 6
     },
@@ -8917,8 +8917,8 @@
       "race": "테란",
       "tier": "2",
       "balloons": 83042,
-      "broadcast_seconds": 584780,
-      "cumulative_viewers": 23355,
+      "broadcast_seconds": 596697,
+      "cumulative_viewers": 23712,
       "sponsor_wins": 0,
       "sponsor_losses": 2
     },
@@ -8959,8 +8959,8 @@
       "race": "테란",
       "tier": "4",
       "balloons": 183268,
-      "broadcast_seconds": 545444,
-      "cumulative_viewers": 42416,
+      "broadcast_seconds": 557349,
+      "cumulative_viewers": 43291,
       "sponsor_wins": 5,
       "sponsor_losses": 4
     },
@@ -9001,8 +9001,8 @@
       "race": "테란",
       "tier": "7",
       "balloons": 71650,
-      "broadcast_seconds": 1091453,
-      "cumulative_viewers": 82958,
+      "broadcast_seconds": 1105853,
+      "cumulative_viewers": 83907,
       "sponsor_wins": 1,
       "sponsor_losses": 1
     },
@@ -9028,9 +9028,9 @@
       "team": "흑카데미",
       "race": "테란",
       "tier": "7",
-      "balloons": 67134,
-      "broadcast_seconds": 474951,
-      "cumulative_viewers": 22232,
+      "balloons": 67135,
+      "broadcast_seconds": 487408,
+      "cumulative_viewers": 22571,
       "sponsor_wins": 16,
       "sponsor_losses": 4
     },
@@ -9056,9 +9056,9 @@
       "team": "흑카데미",
       "race": "테란",
       "tier": "8",
-      "balloons": 56525,
-      "broadcast_seconds": 813640,
-      "cumulative_viewers": 60407,
+      "balloons": 56538,
+      "broadcast_seconds": 815462,
+      "cumulative_viewers": 60463,
       "sponsor_wins": 18,
       "sponsor_losses": 15
     },
@@ -9071,8 +9071,8 @@
       "race": "테란",
       "tier": "8",
       "balloons": 74077,
-      "broadcast_seconds": 495813,
-      "cumulative_viewers": 26200,
+      "broadcast_seconds": 501839,
+      "cumulative_viewers": 26408,
       "sponsor_wins": 0,
       "sponsor_losses": 0
     },
@@ -9183,8 +9183,8 @@
       "race": "프로토스",
       "tier": "4",
       "balloons": 107294,
-      "broadcast_seconds": 323435,
-      "cumulative_viewers": 12060,
+      "broadcast_seconds": 325638,
+      "cumulative_viewers": 12079,
       "sponsor_wins": 0,
       "sponsor_losses": 1
     },
@@ -9213,7 +9213,7 @@
       "balloons": 107766,
       "broadcast_seconds": 527477,
       "cumulative_viewers": 13000,
-      "sponsor_wins": 9,
+      "sponsor_wins": 11,
       "sponsor_losses": 10
     },
     {
@@ -9354,7 +9354,7 @@
       "broadcast_seconds": 356239,
       "cumulative_viewers": 11036,
       "sponsor_wins": 3,
-      "sponsor_losses": 19
+      "sponsor_losses": 23
     },
     {
       "id": "70jeontaekyu",
@@ -9407,8 +9407,8 @@
       "race": "프로토스",
       "tier": "3",
       "balloons": 83810,
-      "broadcast_seconds": 286026,
-      "cumulative_viewers": 22064,
+      "broadcast_seconds": 287203,
+      "cumulative_viewers": 22144,
       "sponsor_wins": 1,
       "sponsor_losses": 1
     },
@@ -9435,8 +9435,8 @@
       "race": "테란",
       "tier": "6",
       "balloons": 64244,
-      "broadcast_seconds": 256279,
-      "cumulative_viewers": 14191,
+      "broadcast_seconds": 257363,
+      "cumulative_viewers": 14226,
       "sponsor_wins": 1,
       "sponsor_losses": 1
     },
@@ -9546,9 +9546,9 @@
       "team": "FA",
       "race": "저그",
       "tier": "8",
-      "balloons": 187805,
-      "broadcast_seconds": 289935,
-      "cumulative_viewers": 236368,
+      "balloons": 188491,
+      "broadcast_seconds": 294992,
+      "cumulative_viewers": 238017,
       "sponsor_wins": 0,
       "sponsor_losses": 0
     },
@@ -9897,10 +9897,10 @@
       "race": "테란",
       "tier": "갓",
       "balloons": 118105,
-      "broadcast_seconds": 429714,
-      "cumulative_viewers": 124762,
-      "sponsor_wins": 99,
-      "sponsor_losses": 70
+      "broadcast_seconds": 444114,
+      "cumulative_viewers": 128070,
+      "sponsor_wins": 100,
+      "sponsor_losses": 71
     },
     {
       "id": "onlysibar",
@@ -9910,11 +9910,11 @@
       "team": "FA",
       "race": "테란",
       "tier": "갓",
-      "balloons": 26604,
-      "broadcast_seconds": 235502,
-      "cumulative_viewers": 22700,
-      "sponsor_wins": 10,
-      "sponsor_losses": 17
+      "balloons": 27104,
+      "broadcast_seconds": 241761,
+      "cumulative_viewers": 22997,
+      "sponsor_wins": 11,
+      "sponsor_losses": 19
     },
     {
       "id": "byhero",
@@ -9927,8 +9927,8 @@
       "balloons": 6891,
       "broadcast_seconds": 348902,
       "cumulative_viewers": 61125,
-      "sponsor_wins": 54,
-      "sponsor_losses": 50
+      "sponsor_wins": 56,
+      "sponsor_losses": 53
     },
     {
       "id": "momo130",
@@ -9955,8 +9955,8 @@
       "balloons": 173832,
       "broadcast_seconds": 271651,
       "cumulative_viewers": 481690,
-      "sponsor_wins": 47,
-      "sponsor_losses": 22
+      "sponsor_wins": 49,
+      "sponsor_losses": 25
     },
     {
       "id": "kimmyungwun",
@@ -10011,8 +10011,8 @@
       "balloons": 4592,
       "broadcast_seconds": 379737,
       "cumulative_viewers": 24481,
-      "sponsor_wins": 29,
-      "sponsor_losses": 29
+      "sponsor_wins": 31,
+      "sponsor_losses": 32
     },
     {
       "id": "rfvtgb778",
@@ -10039,8 +10039,8 @@
       "balloons": 9376,
       "broadcast_seconds": 575543,
       "cumulative_viewers": 46352,
-      "sponsor_wins": 21,
-      "sponsor_losses": 45
+      "sponsor_wins": 22,
+      "sponsor_losses": 47
     },
     {
       "id": "bye1013",
@@ -10053,8 +10053,8 @@
       "balloons": 23132,
       "broadcast_seconds": 457147,
       "cumulative_viewers": 236456,
-      "sponsor_wins": 42,
-      "sponsor_losses": 59
+      "sponsor_wins": 46,
+      "sponsor_losses": 60
     },
     {
       "id": "rlaxordyd",
@@ -10067,8 +10067,8 @@
       "balloons": 245708,
       "broadcast_seconds": 426131,
       "cumulative_viewers": 1120355,
-      "sponsor_wins": 55,
-      "sponsor_losses": 40
+      "sponsor_wins": 56,
+      "sponsor_losses": 42
     },
     {
       "id": "koreasbg",
@@ -10081,7 +10081,7 @@
       "balloons": 24161,
       "broadcast_seconds": 442908,
       "cumulative_viewers": 171961,
-      "sponsor_wins": 33,
+      "sponsor_wins": 35,
       "sponsor_losses": 26
     },
     {
@@ -10247,8 +10247,8 @@
       "race": "저그",
       "tier": "조커",
       "balloons": 71825,
-      "broadcast_seconds": 749038,
-      "cumulative_viewers": 15551,
+      "broadcast_seconds": 762529,
+      "cumulative_viewers": 15870,
       "sponsor_wins": 11,
       "sponsor_losses": 13
     },
@@ -10457,8 +10457,8 @@
       "race": "프로토스",
       "tier": "스페이드",
       "balloons": 4955,
-      "broadcast_seconds": 451598,
-      "cumulative_viewers": 22488,
+      "broadcast_seconds": 465998,
+      "cumulative_viewers": 23865,
       "sponsor_wins": 0,
       "sponsor_losses": 0
     },
@@ -10485,8 +10485,8 @@
       "race": "프로토스",
       "tier": "스페이드",
       "balloons": 122454,
-      "broadcast_seconds": 861253,
-      "cumulative_viewers": 61221,
+      "broadcast_seconds": 863059,
+      "cumulative_viewers": 61358,
       "sponsor_wins": 0,
       "sponsor_losses": 0
     },
@@ -10583,8 +10583,8 @@
       "race": "테란",
       "tier": "1",
       "balloons": 16439,
-      "broadcast_seconds": 459342,
-      "cumulative_viewers": 6769,
+      "broadcast_seconds": 463366,
+      "cumulative_viewers": 6800,
       "sponsor_wins": 3,
       "sponsor_losses": 1
     },
@@ -10638,9 +10638,9 @@
       "team": "FA",
       "race": "저그",
       "tier": "2",
-      "balloons": 233799,
-      "broadcast_seconds": 317866,
-      "cumulative_viewers": 103415,
+      "balloons": 233829,
+      "broadcast_seconds": 322981,
+      "cumulative_viewers": 104752,
       "sponsor_wins": 0,
       "sponsor_losses": 0
     },
@@ -10963,7 +10963,7 @@
       "balloons": 10272,
       "broadcast_seconds": 373240,
       "cumulative_viewers": 5215,
-      "sponsor_wins": 8,
+      "sponsor_wins": 14,
       "sponsor_losses": 6
     },
     {
@@ -11058,9 +11058,9 @@
       "team": "FA",
       "race": "프로토스",
       "tier": "조커",
-      "balloons": 10582,
-      "broadcast_seconds": 415460,
-      "cumulative_viewers": 15849,
+      "balloons": 10682,
+      "broadcast_seconds": 426164,
+      "cumulative_viewers": 16244,
       "sponsor_wins": 22,
       "sponsor_losses": 25
     },
@@ -11101,10 +11101,10 @@
       "race": "저그",
       "tier": "킹",
       "balloons": 80009,
-      "broadcast_seconds": 415918,
-      "cumulative_viewers": 140799,
-      "sponsor_wins": 18,
-      "sponsor_losses": 29
+      "broadcast_seconds": 430318,
+      "cumulative_viewers": 145421,
+      "sponsor_wins": 19,
+      "sponsor_losses": 30
     },
     {
       "id": "tjdeosks",
@@ -11352,9 +11352,9 @@
       "team": "JSA",
       "race": "프로토스",
       "tier": "8",
-      "balloons": 96958,
-      "broadcast_seconds": 421274,
-      "cumulative_viewers": 39701,
+      "balloons": 97297,
+      "broadcast_seconds": 427916,
+      "cumulative_viewers": 40471,
       "sponsor_wins": 14,
       "sponsor_losses": 11
     },
@@ -11787,7 +11787,7 @@
       "race": "프로토스",
       "tier": null,
       "balloons": 44955,
-      "broadcast_seconds": 306046,
+      "broadcast_seconds": 306123,
       "cumulative_viewers": 3498,
       "sponsor_wins": 0,
       "sponsor_losses": 0
@@ -12361,8 +12361,8 @@
       "race": "프로토스",
       "tier": null,
       "balloons": 44350,
-      "broadcast_seconds": 645491,
-      "cumulative_viewers": 159770,
+      "broadcast_seconds": 652843,
+      "cumulative_viewers": 160248,
       "sponsor_wins": 0,
       "sponsor_losses": 0
     },
@@ -12556,9 +12556,9 @@
       "team": "휴면",
       "race": "프로토스",
       "tier": null,
-      "balloons": 161975,
-      "broadcast_seconds": 383649,
-      "cumulative_viewers": 53067,
+      "balloons": 174874,
+      "broadcast_seconds": 387716,
+      "cumulative_viewers": 58774,
       "sponsor_wins": 0,
       "sponsor_losses": 0
     },
@@ -12962,9 +12962,9 @@
       "team": "휴면",
       "race": "저그",
       "tier": null,
-      "balloons": 134740,
-      "broadcast_seconds": 1094695,
-      "cumulative_viewers": 292105,
+      "balloons": 134942,
+      "broadcast_seconds": 1109095,
+      "cumulative_viewers": 293791,
       "sponsor_wins": 0,
       "sponsor_losses": 0
     },
@@ -13439,8 +13439,8 @@
       "race": "저그",
       "tier": null,
       "balloons": 35174,
-      "broadcast_seconds": 641525,
-      "cumulative_viewers": 158586,
+      "broadcast_seconds": 650693,
+      "cumulative_viewers": 160212,
       "sponsor_wins": 0,
       "sponsor_losses": 0
     },
@@ -13523,8 +13523,8 @@
       "race": "테란",
       "tier": null,
       "balloons": 4267,
-      "broadcast_seconds": 844013,
-      "cumulative_viewers": 6714,
+      "broadcast_seconds": 858413,
+      "cumulative_viewers": 6782,
       "sponsor_wins": 0,
       "sponsor_losses": 0
     },
@@ -15189,8 +15189,8 @@
       "race": "테란",
       "tier": null,
       "balloons": 433727,
-      "broadcast_seconds": 586633,
-      "cumulative_viewers": 1033408,
+      "broadcast_seconds": 586676,
+      "cumulative_viewers": 1033413,
       "sponsor_wins": 0,
       "sponsor_losses": 0
     },
@@ -15412,9 +15412,9 @@
       "team": "휴면",
       "race": "프로토스",
       "tier": null,
-      "balloons": 148823,
-      "broadcast_seconds": 793797,
-      "cumulative_viewers": 175044,
+      "balloons": 148824,
+      "broadcast_seconds": 796471,
+      "cumulative_viewers": 175599,
       "sponsor_wins": 0,
       "sponsor_losses": 0
     },
@@ -15623,8 +15623,8 @@
       "race": "테란",
       "tier": null,
       "balloons": 142778,
-      "broadcast_seconds": 244023,
-      "cumulative_viewers": 3506,
+      "broadcast_seconds": 249254,
+      "cumulative_viewers": 3556,
       "sponsor_wins": 0,
       "sponsor_losses": 0
     },
@@ -16140,9 +16140,9 @@
       "team": "휴면",
       "race": null,
       "tier": null,
-      "balloons": 12951,
-      "broadcast_seconds": 687782,
-      "cumulative_viewers": 2662,
+      "balloons": 13451,
+      "broadcast_seconds": 694429,
+      "cumulative_viewers": 2701,
       "sponsor_wins": 0,
       "sponsor_losses": 0
     },
@@ -16169,8 +16169,8 @@
       "race": null,
       "tier": null,
       "balloons": 4677,
-      "broadcast_seconds": 492623,
-      "cumulative_viewers": 1701,
+      "broadcast_seconds": 496096,
+      "cumulative_viewers": 1724,
       "sponsor_wins": 0,
       "sponsor_losses": 0
     },
@@ -16813,8 +16813,8 @@
       "race": "테란",
       "tier": null,
       "balloons": 1,
-      "broadcast_seconds": 317389,
-      "cumulative_viewers": 12648,
+      "broadcast_seconds": 331789,
+      "cumulative_viewers": 12846,
       "sponsor_wins": 0,
       "sponsor_losses": 0
     },
@@ -17107,8 +17107,8 @@
       "race": "프로토스",
       "tier": null,
       "balloons": 300,
-      "broadcast_seconds": 20402,
-      "cumulative_viewers": 32,
+      "broadcast_seconds": 30534,
+      "cumulative_viewers": 42,
       "sponsor_wins": 0,
       "sponsor_losses": 0
     },
@@ -17134,9 +17134,9 @@
       "team": "휴면",
       "race": "저그",
       "tier": null,
-      "balloons": 4214,
-      "broadcast_seconds": 419477,
-      "cumulative_viewers": 1515,
+      "balloons": 4874,
+      "broadcast_seconds": 423438,
+      "cumulative_viewers": 1528,
       "sponsor_wins": 0,
       "sponsor_losses": 0
     },
@@ -17239,6 +17239,6 @@
       "sponsor_losses": 0
     }
   ],
-  "sponsor_updated_at": "2026-09-23 03:55:34",
+  "sponsor_updated_at": "2026-09-23 07:55:27",
   "sponsor_month": "2026-09"
 }
