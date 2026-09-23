@@ -1,4 +1,3 @@
-<script src="{{ logo_prefix }}data/dates.js"></script>
 <script>
 (function () {
   const STATIC_INFO = {{ static_json }};
@@ -199,11 +198,85 @@
       document.body.removeChild(probe);
   }
 
-  // dates.js가 로드에 실패했거나(네트워크/배포 타이밍) 날짜가 하나도 없으면
   // 예전 코드는 AVAILABLE_DATES[0]이 undefined가 되고, 곧 currentDateStr.split()에서
   // TypeError가 나면서 페이지 전체가 백지가 됐다. 원인을 알 수 있는 메시지를
   // 보여주고 조용히 멈춘다.
-  const AVAILABLE_DATES = Array.isArray(window.AVAILABLE_DATES) ? window.AVAILABLE_DATES : [];
+  function synergySupabaseClient() {
+      if (window.__SYNERGY_SB) return window.__SYNERGY_SB;
+      const cfg = window.SYNERGY_SUPABASE_CONFIG;
+      if (!cfg || !cfg.url || !cfg.key || !window.supabase) return null;
+      window.__SYNERGY_SB = window.supabase.createClient(cfg.url, cfg.key, {
+          auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
+      });
+      return window.__SYNERGY_SB;
+  }
+
+  async function loadAvailableDates() {
+      const client = synergySupabaseClient();
+      if (!client) throw new Error('Supabase browser client is not configured');
+
+      const { data, error } = await client.from('synergy_daily_dates')
+          .select('stat_date')
+          .order('stat_date', { ascending: false });
+      if (error) throw error;
+
+      return (data || [])
+          .map(r => String(r.stat_date || ''))
+          .filter(Boolean);
+  }
+
+  async function loadDailyData(dateStr) {
+      const client = synergySupabaseClient();
+      if (!client) throw new Error('Supabase browser client is not configured');
+
+      const { data, error } = await client.from('daily_member_stats')
+          .select('stat_date,month_start,soop_id,elo_id,nickname,role,affiliation,race,tier,balloons,broadcast_seconds,cumulative_viewers,sponsor_wins,sponsor_losses,updated_at,sponsor_updated_at')
+          .eq('stat_date', dateStr)
+          .order('nickname', { ascending: true });
+      if (error) throw error;
+      if (!Array.isArray(data) || data.length === 0) {
+          throw new Error(`No daily stats for ${dateStr}`);
+      }
+
+      let updated = '';
+      let sponsorUpdated = '';
+      const members = data.map(r => {
+          updated = (!updated || String(r.updated_at || '') > updated)
+              ? String(r.updated_at || '')
+              : updated;
+          sponsorUpdated = (!sponsorUpdated || String(r.sponsor_updated_at || '') > sponsorUpdated)
+              ? String(r.sponsor_updated_at || '')
+              : sponsorUpdated;
+
+          return {
+              id: r.soop_id,
+              elo_id: r.elo_id,
+              nickname: r.nickname,
+              role: r.role || '',
+              team: r.affiliation || null,
+              race: r.race || null,
+              tier: r.tier || null,
+              balloons: Number(r.balloons || 0),
+              broadcast_seconds: Number(r.broadcast_seconds || 0),
+              cumulative_viewers: Number(r.cumulative_viewers || 0),
+              sponsor_wins: Number(r.sponsor_wins || 0),
+              sponsor_losses: Number(r.sponsor_losses || 0),
+          };
+      });
+
+      const [year, month] = dateStr.split('-').map(Number);
+      return {
+          updated_at: updated ? updated.replace('T', ' ').slice(0, 19) : '',
+          date: dateStr,
+          year,
+          month,
+          members,
+          sponsor_updated_at: sponsorUpdated ? sponsorUpdated.replace('T', ' ').slice(0, 19) : '',
+          sponsor_month: `${year}-${String(month).padStart(2, '0')}`,
+      };
+  }
+
+  const AVAILABLE_DATES = await loadAvailableDates();
   if (AVAILABLE_DATES.length === 0) {
       const host = document.getElementById('grid-container') || document.body;
       host.innerHTML = '<div style="padding:40px;text-align:center;color:#c23636;">표시할 데이터가 없습니다.</div>';
@@ -250,8 +323,7 @@
       }
 
       AVAILABLE_DATES.slice(1, 4).forEach(d => {
-          fetch(LOGO_PREFIX + 'data/daily/' + encodeURIComponent(d) + '.json')
-              .then(r => r.ok ? r.json() : Promise.reject(new Error('HTTP ' + r.status)))
+          loadDailyData(d)
               .then(data => { fetchedData[d] = withDerivedFields(data); })
               .catch(() => {});
       });
@@ -297,13 +369,7 @@
           gridEl.innerHTML = '<div style="padding:40px;text-align:center;">불러오는 중...</div>';
       }
       const requestedDate = currentDateStr;
-      fetch(LOGO_PREFIX + 'data/daily/' + encodeURIComponent(requestedDate) + '.json')
-          .then(r => {
-              // r.json()만 부르면 404 응답의 HTML 본문을 파싱하려다 나는
-              // SyntaxError가 "데이터 오류"처럼 보인다. 상태 코드를 먼저 본다.
-              if (!r.ok) throw new Error('HTTP ' + r.status);
-              return r.json();
-          })
+      loadDailyData(requestedDate)
           .then(data => {
               const normalized = withDerivedFields(data);
               fetchedData[requestedDate] = normalized;
@@ -387,9 +453,7 @@
       let prevData = ownGet(fetchedData, prevDate);
       if (!prevData) {
           try {
-              const res = await fetch(LOGO_PREFIX + 'data/daily/' + encodeURIComponent(prevDate) + '.json');
-              if (!res.ok) return;
-              prevData = withDerivedFields(await res.json());
+              prevData = withDerivedFields(await loadDailyData(prevDate));
               fetchedData[prevDate] = prevData;
           } catch (e) { return; }
       }

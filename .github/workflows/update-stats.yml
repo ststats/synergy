@@ -1,68 +1,64 @@
-name: Update all stats
+name: Build Synergy web
 
 on:
-  workflow_dispatch: {}
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/templates/**'
+      - 'scripts/generate_pages.py'
+      - 'scripts/subset_font.py'
+      - 'scripts/convert_members.py'
+      - 'scripts/supabase_roster.py'
 
 permissions:
   contents: write
 
 concurrency:
-  group: update-stats
+  group: synergy-web-build
   cancel-in-progress: false
 
 jobs:
-  update:
+  build:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 20
     env:
       PYTHONUNBUFFERED: "1"
       SUPABASE_URL: ${{ vars.SUPABASE_URL }}
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-          cache: "pip"
+          cache: pip
+      - run: pip install -r requirements.txt
 
-      - name: Install dependencies
-        run: pip install -r requirements.txt
-
-      - name: Sync Supabase roster names (EloBoard API)
-        continue-on-error: true
-        run: python scripts/sync_members.py
-
-      - name: Sync Supabase tier_members -> members.json (1차)
-        continue-on-error: true
+      - name: Export roster build cache from Supabase
         run: python scripts/convert_members.py
 
-      - name: Update data (풍고 + 엘로보드)
-        run: python scripts/update_data.py
-
-      - name: Sync Supabase tier_members -> members.json (2차)
-        run: python scripts/convert_members.py
-
-      - name: Generate pages
+      - name: Generate static page shell
         run: python scripts/generate_pages.py
+
+      - name: Write browser Supabase config
+        env:
+          SUPABASE_PUBLISHABLE_KEY: ${{ vars.SUPABASE_PUBLISHABLE_KEY || secrets.SUPABASE_ANON_KEY }}
+        run: python scripts/write_supabase_browser_config.py
 
       - name: Subset font
         continue-on-error: true
         run: python scripts/subset_font.py
 
-      - name: Commit and push if changed
+      - name: Commit generated web files
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-
-          git rm -f data/members.xlsx admin.html 2>/dev/null || true
-
-          if git diff --quiet --cached; then
-            echo "변경 없음 - 커밋 생략"
+          git add docs data/members.json data/team_logo_colors_cache.json
+          if git diff --cached --quiet; then
+            echo "No generated changes"
             exit 0
           fi
-          git commit -m "데이터 갱신 (풍고+엘로보드+Supabase): $(date -u +'%Y-%m-%d %H:%M UTC')"
+          git commit -m "Build Synergy web"
+          git pull --rebase origin main
           git push

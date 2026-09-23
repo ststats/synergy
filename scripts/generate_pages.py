@@ -4,7 +4,6 @@ synergy 프로젝트의 CSR 페이지 생성 스크립트.
 
 import sys
 import json
-import re
 import colorsys
 import hashlib
 import shutil
@@ -14,10 +13,6 @@ from PIL import Image
 from _common import ROOT, safe_read_json, atomic_write_json
 from jinja2 import Environment, FileSystemLoader
 
-DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
-
-DATA_PATH = ROOT / "data" / "latest.json"
-ARCHIVE_DIR = ROOT / "data" / "archive"
 MEMBERS_PATH = ROOT / "data" / "members.json"
 DOCS_DIR = ROOT / "docs"
 SCRIPTS_DIR = Path(__file__).resolve().parent
@@ -28,7 +23,6 @@ _jinja_env = Environment(
     trim_blocks=True,
     lstrip_blocks=True,
 )
-DOCS_DATA_DIR = DOCS_DIR / "data" / "daily"
 LOGOS_DIR = DOCS_DIR / "logos"
 OUTPUT_INDEX = DOCS_DIR / "index.html"
 OUTPUT_PROFILE_PATH = DOCS_DIR / "profile.html"
@@ -157,51 +151,7 @@ def _write_if_changed(dst_path: Path, content: str) -> None:
     with open(dst_path, "w", encoding="utf-8") as f:
         f.write(content)
 
-def _copy_if_changed(src_path: Path, dst_path: Path) -> None:
-    if dst_path.exists() and dst_path.stat().st_size == src_path.stat().st_size:
-        try:
-            if dst_path.read_bytes() == src_path.read_bytes():
-                return
-        except Exception:
-            pass
-    shutil.copy(src_path, dst_path)
-
 def main():
-    DOCS_DATA_DIR.mkdir(parents=True, exist_ok=True)
-    all_dates = []
-
-    latest = safe_read_json(DATA_PATH, default=None)
-    if isinstance(latest, dict):
-        d_str = latest.get("date")
-        # 이 값이 그대로 파일명이 되므로 형식을 반드시 검증한다.
-        if isinstance(d_str, str) and DATE_RE.match(d_str):
-            all_dates.append(d_str)
-            _write_if_changed(DOCS_DATA_DIR / f"{d_str}.json", json.dumps(latest, ensure_ascii=False))
-        elif d_str:
-            print(f"[경고] latest.json의 date 형식이 올바르지 않아 무시합니다: {d_str!r}", file=sys.stderr)
-
-    if ARCHIVE_DIR.exists():
-        # rglob를 사용하여 연/월 구조 내의 파일도 모두 탐색
-        for arch in ARCHIVE_DIR.rglob("*.json"):
-            if DATE_RE.match(arch.stem):
-                all_dates.append(arch.stem)
-                _copy_if_changed(arch, DOCS_DATA_DIR / arch.name)
-
-    all_dates = sorted(set(all_dates), reverse=True)
-    if not all_dates:
-        # 조용히 return하면 "성공했는데 아무 일도 안 일어난" 것처럼 보인다.
-        print("[오류] 사용 가능한 날짜 데이터가 하나도 없어 페이지를 생성하지 않았습니다 "
-              "(data/latest.json과 data/archive를 확인하세요).", file=sys.stderr)
-        sys.exit(1)
-
-    expected_files = {f"{d_str}.json" for d_str in all_dates}
-    for existing in DOCS_DATA_DIR.glob("*.json"):
-        if existing.name not in expected_files:
-            existing.unlink()
-
-    dates_js_content = "window.AVAILABLE_DATES = " + json.dumps(all_dates) + ";\n"
-    _write_if_changed(DOCS_DIR / "data" / "dates.js", dates_js_content)
-
     members_config = safe_read_json(MEMBERS_PATH, default=None)
     if not isinstance(members_config, dict):
         # 예전엔 open()을 바로 해서, members.json이 없거나 깨져 있으면

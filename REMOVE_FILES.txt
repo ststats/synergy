@@ -1,0 +1,13 @@
+After Part 8 validation succeeds, delete these Synergy files:
+scripts/sync_members.py
+scripts/fetch_eloboard_data.py
+scripts/fetch_poonggo_data.py
+scripts/update_data.py
+
+Keep:
+scripts/convert_members.py       (Supabase -> small roster build cache)
+scripts/supabase_roster.py       (read-only build adapter)
+scripts/generate_pages.py
+scripts/subset_font.py
+scripts/_common.py
+data/latest.json + data/archive/** + docs/data/daily/** (legacy fallback only; no longer regenerated)
