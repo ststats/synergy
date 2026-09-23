@@ -211,6 +211,7 @@ body { font-family: 'Pretendard Variable', sans-serif; background: #f4f5f7; marg
   const TARGET_TEAM = "";
   const LOGO_PREFIX = "";
   const IS_PROFILE = false;
+  const PROFILE_ID = IS_PROFILE ? new URLSearchParams(window.location.search).get('id') : '';
   // 프로필 페이지의 뒤로가기 목적지 계산용 - URL에 한 번만 실려오는 값이라
   // 페이지 로드 시점에 딱 한 번만 읽어서 상수로 둔다(날짜/지표처럼 나중에
   // 또 바뀌는 값이 아님). document.referrer(브라우저가 알려주는 "직전 페이지")
@@ -404,6 +405,22 @@ body { font-family: 'Pretendard Variable', sans-serif; background: #f4f5f7; marg
       document.body.removeChild(probe);
   }
 
+  // Supabase timestamptz는 UTC로 전달된다. 문자열을 잘라 표시하면 한국보다
+  // 9시간 느리게 보이므로, 모든 데이터 갱신 시각은 명시적으로 KST로 변환한다.
+  function formatKstTimestamp(value) {
+      if (!value) return '';
+      const parsed = new Date(value);
+      if (!Number.isFinite(parsed.getTime())) return String(value).replace('T', ' ').slice(0, 19);
+      const parts = new Intl.DateTimeFormat('en-CA', {
+          timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit',
+          hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23'
+      }).formatToParts(parsed).reduce((out, part) => {
+          if (part.type !== 'literal') out[part.type] = part.value;
+          return out;
+      }, {});
+      return `${parts.year}-${parts.month}-${parts.day} ${parts.hour}:${parts.minute}:${parts.second} KST`;
+  }
+
   // 예전 코드는 AVAILABLE_DATES[0]이 undefined가 되고, 곧 currentDateStr.split()에서
   // TypeError가 나면서 페이지 전체가 백지가 됐다. 원인을 알 수 있는 메시지를
   // 보여주고 조용히 멈춘다.
@@ -444,9 +461,14 @@ body { font-family: 'Pretendard Variable', sans-serif; background: #f4f5f7; marg
       const data = [];
       const pageSize = 1000;
       for (let from = 0; ; from += pageSize) {
-          const { data: batch, error } = await client.from('daily_member_stats')
+          let query = client.from('daily_member_stats')
               .select('stat_date,month_start,soop_id,elo_id,nickname,role,affiliation,race,tier,gender,birth_date,balloons,broadcast_seconds,cumulative_viewers,sponsor_wins,sponsor_losses,updated_at,sponsor_updated_at')
-              .eq('stat_date', dateStr)
+              .eq('stat_date', dateStr);
+          // 팀·개인 페이지는 화면에 필요한 행만 DB에서 받는다. 예전에는 매번
+          // 전체 1,200여 명을 받은 뒤 브라우저에서 한 팀/한 명만 골랐다.
+          if (IS_PROFILE && PROFILE_ID) query = query.eq('soop_id', PROFILE_ID);
+          else if (TARGET_TEAM) query = query.eq('affiliation', TARGET_TEAM);
+          const { data: batch, error } = await query
               .order('nickname', { ascending: true })
               .range(from, from + pageSize - 1);
           if (error) throw error;
@@ -456,7 +478,7 @@ body { font-family: 'Pretendard Variable', sans-serif; background: #f4f5f7; marg
           if (rows.length < pageSize) break;
       }
 
-      if (data.length === 0) {
+      if (data.length === 0 && !TARGET_TEAM && !IS_PROFILE) {
           throw new Error(`No daily stats for ${dateStr}`);
       }
 
@@ -490,12 +512,12 @@ body { font-family: 'Pretendard Variable', sans-serif; background: #f4f5f7; marg
 
       const [year, month] = dateStr.split('-').map(Number);
       return {
-          updated_at: updated ? updated.replace('T', ' ').slice(0, 19) : '',
+          updated_at: formatKstTimestamp(updated),
           date: dateStr,
           year,
           month,
           members,
-          sponsor_updated_at: sponsorUpdated ? sponsorUpdated.replace('T', ' ').slice(0, 19) : '',
+          sponsor_updated_at: formatKstTimestamp(sponsorUpdated),
           sponsor_month: `${year}-${String(month).padStart(2, '0')}`,
       };
   }
@@ -545,12 +567,6 @@ body { font-family: 'Pretendard Variable', sans-serif; background: #f4f5f7; marg
               revealSelect();
           }
       }
-
-      AVAILABLE_DATES.slice(1, 4).forEach(d => {
-          loadDailyData(d)
-              .then(data => { fetchedData[d] = withDerivedFields(data); })
-              .catch(() => {});
-      });
 
       applyData();
   }
@@ -872,7 +888,7 @@ body { font-family: 'Pretendard Variable', sans-serif; background: #f4f5f7; marg
   }
 
   function renderProfile(data) {
-      const tid = new URLSearchParams(window.location.search).get('id');
+      const tid = PROFILE_ID;
       const member = ((data && data.members) || []).find(m => m.id === tid);
       const metaEl = document.getElementById('top-meta-text');
       const cardEl = document.getElementById('profile-card');
