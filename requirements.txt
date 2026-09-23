@@ -10,7 +10,7 @@
 # 특별한 이유가 없다면 <13으로 완화해도 된다.
 Pillow>=10,<12
 
-# 모든 외부 API 호출 (_common.fetch_json, subset_font 다운로드)
+# Supabase 로스터와 subset_font 다운로드
 requests>=2.31,<3
 
 # 폰트 서브셋 (subset_font.py에서 python -m fontTools.subset으로 호출)

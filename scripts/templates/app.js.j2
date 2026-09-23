@@ -1,6 +1,5 @@
 <script>
 (async function () {
-  const STATIC_INFO = {{ static_json }};
   const TEAM_COLORS = {{ colors_json }};
   const TARGET_TEAM = {{ target_team_js }};
   const LOGO_PREFIX = "{{ logo_prefix }}";
@@ -51,7 +50,7 @@
       return /^#[0-9a-fA-F]{3,8}$/.test(String(value || '')) ? String(value) : DEFAULT_TEAM_COLOR;
   }
 
-  // 닉네임/팀명처럼 구글 시트(궁극적으로는 EloBoard API 등 외부 소스)에서
+  // 닉네임/팀명처럼 Supabase 로스터(궁극적으로는 외부 입력)에서
   // 온 문자열을 innerHTML에 꽂기 전에 반드시 이 함수를 거친다. 관리자가
   // new_members(대기) 시트를 검토해서 members 시트로 옮기는 절차가 있긴
   // 하지만, 그 검토는 사람 눈에 의존하는 방어일 뿐이고 최종적으로 이
@@ -214,13 +213,19 @@
   async function loadAvailableDates() {
       const client = synergySupabaseClient();
       if (!client) throw new Error('Supabase browser client is not configured');
-
-      const { data, error } = await client.from('synergy_daily_dates')
-          .select('stat_date')
-          .order('stat_date', { ascending: false });
-      if (error) throw error;
-
-      return (data || [])
+      const data = [];
+      const pageSize = 1000;
+      for (let from = 0; ; from += pageSize) {
+          const { data: batch, error } = await client.from('synergy_daily_dates')
+              .select('stat_date')
+              .order('stat_date', { ascending: false })
+              .range(from, from + pageSize - 1);
+          if (error) throw error;
+          const rows = Array.isArray(batch) ? batch : [];
+          data.push(...rows);
+          if (rows.length < pageSize) break;
+      }
+      return data
           .map(r => String(r.stat_date || ''))
           .filter(Boolean);
   }
@@ -233,7 +238,7 @@
       const pageSize = 1000;
       for (let from = 0; ; from += pageSize) {
           const { data: batch, error } = await client.from('daily_member_stats')
-              .select('stat_date,month_start,soop_id,elo_id,nickname,role,affiliation,race,tier,balloons,broadcast_seconds,cumulative_viewers,sponsor_wins,sponsor_losses,updated_at,sponsor_updated_at')
+              .select('stat_date,month_start,soop_id,elo_id,nickname,role,affiliation,race,tier,gender,birth_date,balloons,broadcast_seconds,cumulative_viewers,sponsor_wins,sponsor_losses,updated_at,sponsor_updated_at')
               .eq('stat_date', dateStr)
               .order('nickname', { ascending: true })
               .range(from, from + pageSize - 1);
@@ -266,6 +271,8 @@
               team: r.affiliation || null,
               race: r.race || null,
               tier: r.tier || null,
+              gender: r.gender || null,
+              birthdate: r.birth_date || null,
               balloons: Number(r.balloons || 0),
               broadcast_seconds: Number(r.broadcast_seconds || 0),
               cumulative_viewers: Number(r.cumulative_viewers || 0),
@@ -425,7 +432,7 @@
           let males = [], females = [];
 
           tMembers.forEach(m => {
-              const sInfo = ownGet(STATIC_INFO, m.id) || {gender: 'm', birthdate: null};
+              const sInfo = { gender: m.gender || '', birthdate: m.birthdate || null };
               const v = m[def.field] || 0;
               const counted = v !== 0 && !(def.excludeRoles && ['수장', '전력외'].includes(m.role));
               m._gender = sInfo.gender;
@@ -433,8 +440,11 @@
               m._val = v;
               m._counted = counted;
 
-              if (m._gender === 'm') { males.push(m); if (counted) { mSum += v; mCount++; tCount++; } }
-              else { females.push(m); if (counted) { fSum += v; fCount++; tCount++; } }
+              if (m._gender === 'f' || m._gender === '여자') {
+                  females.push(m); if (counted) { fSum += v; fCount++; tCount++; }
+              } else {
+                  males.push(m); if (counted) { mSum += v; mCount++; tCount++; }
+              }
           });
 
           males.sort((a, b) => b._val - a._val);
@@ -513,7 +523,7 @@
       });
 
       const itemsHtml = faMembers.map(m => {
-          // m.id / 닉네임은 구글 시트(원천은 외부 API)에서 온 임의 문자열이다.
+          // m.id / 닉네임은 Supabase 로스터에서 온 임의 문자열이다.
           // 속성값 자리에 그대로 넣으면 따옴표 하나로 속성을 탈출해
           // onerror= 같은 걸 붙일 수 있다(저장형 XSS). 모든 삽입 지점을
           // escapeHtml / attrUrlParam으로 감싼다.
@@ -724,8 +734,12 @@
           });
       }
 
-      const sInfo = ownGet(STATIC_INFO, tid) || {gender:'m', birthdate:'-'};
-      document.getElementById('profile-gender').textContent = sInfo.gender === 'f' ? '여' : '남';
+      const sInfo = {
+          gender: member.gender || '',
+          birthdate: member.birthdate || '-',
+      };
+      document.getElementById('profile-gender').textContent =
+          (sInfo.gender === 'f' || sInfo.gender === '여자') ? '여' : (sInfo.gender ? '남' : '-');
       document.getElementById('profile-birthdate').textContent = sInfo.birthdate || '-';
       document.getElementById('profile-team').textContent = member.team || '-';
       document.getElementById('profile-role').textContent = member.role || '-';

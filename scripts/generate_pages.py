@@ -30,7 +30,6 @@ OUTPUT_TEAM_PATH = DOCS_DIR / "team.html"
 OUTPUT_TEAMS_DIR = DOCS_DIR / "teams" 
 TEAM_LOGO_COLOR_CACHE_PATH = ROOT / "data" / "team_logo_colors_cache.json"
 
-PLACEHOLDER_VALUES = {"체크", "todo", "TODO", "?", "미정", "확인", "확인필요", ""}
 DEFAULT_TOPBAR_COLOR = "#4a5ce0"
 
 
@@ -38,8 +37,8 @@ def json_for_script(value) -> str:
     """<script> 태그 안에 JS 리터럴로 박아 넣어도 안전한 JSON 문자열을 만든다.
 
     이 프로젝트의 Jinja Environment는 autoescape가 꺼져 있고(HTML이 아니라
-    JS/CSS를 주로 렌더하므로 켜는 것도 답이 아니다), 그래서 `{{ static_json }}`
-    같은 자리에는 json.dumps 결과가 그대로 들어간다. 문제는 json.dumps가
+    JS/CSS를 주로 렌더하므로 켜는 것도 답이 아니다), 그래서 JSON을 넣는
+    자리에는 json.dumps 결과가 그대로 들어간다. 문제는 json.dumps가
     "<", ">"를 전혀 escape하지 않는다는 점이다 - 팀 이름이나 닉네임(구글
     시트를 거치지만 원천은 EloBoard API의 college/name 필드다)에
     "</script><script>...</script>" 같은 문자열이 한 번이라도 들어오면
@@ -107,11 +106,8 @@ def get_team_topbar_color(team_name: str, cache: dict) -> str:
     cache[team_name] = {"hash": file_hash, "color": color}
     return color
 
-def clean_value(v): return None if str(v).strip() in PLACEHOLDER_VALUES else v
-
-def generate_html(title, target_team, is_profile, logo_prefix, static_info, team_colors, team_from_url=False):
+def generate_html(title, target_team, is_profile, logo_prefix, team_colors, team_from_url=False):
     font_url = f"{logo_prefix}fonts/PretendardVariable.woff2"
-    static_json = json_for_script(static_info)
     colors_json = json_for_script(team_colors)
 
     if team_from_url:
@@ -132,8 +128,6 @@ def generate_html(title, target_team, is_profile, logo_prefix, static_info, team
         include_mobile_css=include_mobile_css,
         is_profile=is_profile,
         logo_prefix=logo_prefix,
-        static_info=static_info,
-        static_json=static_json,
         target_team=target_team,
         target_team_js=target_team_js,
         team_colors=team_colors,
@@ -169,12 +163,6 @@ def main():
         if m.get("team") and m.get("team") not in ("FA", "휴면", "미분류")
     }
 
-    static_info = {}
-    for m in members_data:
-        mid = m.get("id")
-        if mid:
-            static_info[mid] = {"gender": m.get("gender", "m"), "birthdate": clean_value(m.get("birthdate"))}
-
     team_color_cache = safe_read_json(TEAM_LOGO_COLOR_CACHE_PATH, default={})
     if not isinstance(team_color_cache, dict):
         team_color_cache = {}
@@ -185,7 +173,7 @@ def main():
     atomic_write_json(TEAM_LOGO_COLOR_CACHE_PATH, team_color_cache)
     team_colors["FA"], team_colors["휴면"] = "#8b8f99", "#8b8f99"
 
-    index_html = generate_html("시너지", "", False, "", static_info, team_colors)
+    index_html = generate_html("시너지", "", False, "", team_colors)
     OUTPUT_INDEX.parent.mkdir(parents=True, exist_ok=True)
     _write_if_changed(OUTPUT_INDEX, index_html)
 
@@ -194,11 +182,11 @@ def main():
 
     if all_team_names:
         any_team = sorted(all_team_names)[0]
-        team_html = generate_html("팀별 현황", any_team, False, "", static_info, team_colors,
+        team_html = generate_html("팀별 현황", any_team, False, "", team_colors,
                                    team_from_url=True)
         _write_if_changed(OUTPUT_TEAM_PATH, team_html)
 
-    profile_html = generate_html("프로필", "", True, "", static_info, team_colors)
+    profile_html = generate_html("프로필", "", True, "", team_colors)
     _write_if_changed(OUTPUT_PROFILE_PATH, profile_html)
 
 if __name__ == "__main__":
