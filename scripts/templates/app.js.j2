@@ -229,12 +229,22 @@
       const client = synergySupabaseClient();
       if (!client) throw new Error('Supabase browser client is not configured');
 
-      const { data, error } = await client.from('daily_member_stats')
-          .select('stat_date,month_start,soop_id,elo_id,nickname,role,affiliation,race,tier,balloons,broadcast_seconds,cumulative_viewers,sponsor_wins,sponsor_losses,updated_at,sponsor_updated_at')
-          .eq('stat_date', dateStr)
-          .order('nickname', { ascending: true });
-      if (error) throw error;
-      if (!Array.isArray(data) || data.length === 0) {
+      const data = [];
+      const pageSize = 1000;
+      for (let from = 0; ; from += pageSize) {
+          const { data: batch, error } = await client.from('daily_member_stats')
+              .select('stat_date,month_start,soop_id,elo_id,nickname,role,affiliation,race,tier,balloons,broadcast_seconds,cumulative_viewers,sponsor_wins,sponsor_losses,updated_at,sponsor_updated_at')
+              .eq('stat_date', dateStr)
+              .order('nickname', { ascending: true })
+              .range(from, from + pageSize - 1);
+          if (error) throw error;
+
+          const rows = Array.isArray(batch) ? batch : [];
+          data.push(...rows);
+          if (rows.length < pageSize) break;
+      }
+
+      if (data.length === 0) {
           throw new Error(`No daily stats for ${dateStr}`);
       }
 
@@ -276,17 +286,7 @@
       };
   }
 
-  let AVAILABLE_DATES;
-  try {
-      AVAILABLE_DATES = await loadAvailableDates();
-  } catch (e) {
-      console.error('[Synergy] Supabase 날짜 조회 실패:', e);
-      const host = document.getElementById('grid-container') || document.body;
-      host.innerHTML = '<div style="padding:40px;text-align:center;color:#c23636;">Supabase 데이터를 불러오지 못했습니다.<br><small>'
-          + escapeHtml(e && e.message ? e.message : String(e))
-          + '</small></div>';
-      return;
-  }
+  const AVAILABLE_DATES = await loadAvailableDates();
   if (AVAILABLE_DATES.length === 0) {
       const host = document.getElementById('grid-container') || document.body;
       host.innerHTML = '<div style="padding:40px;text-align:center;color:#c23636;">표시할 데이터가 없습니다.</div>';
