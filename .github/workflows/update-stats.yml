@@ -16,6 +16,8 @@ jobs:
     timeout-minutes: 25
     env:
       PYTHONUNBUFFERED: "1"
+      SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -29,30 +31,18 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Sync Google Sheet tiers (EloBoard API)
+      - name: Sync Supabase roster names (EloBoard API)
         continue-on-error: true
-        env:
-          GOOGLE_CREDENTIALS_JSON: ${{ secrets.GOOGLE_CREDENTIALS_JSON }}
-          GOOGLE_SHEET_ID: ${{ secrets.GOOGLE_SHEET_ID }}
         run: python scripts/sync_members.py
 
-      - name: Sync Google Sheet -> members.json (1차, tiers 반영)
+      - name: Sync Supabase tier_members -> members.json (1차)
         continue-on-error: true
-        env:
-          GOOGLE_CREDENTIALS_JSON: ${{ secrets.GOOGLE_CREDENTIALS_JSON }}
-          GOOGLE_SHEET_ID: ${{ secrets.GOOGLE_SHEET_ID }}
         run: python scripts/convert_members.py
 
       - name: Update data (풍고 + 엘로보드)
-        env:
-          GOOGLE_CREDENTIALS_JSON: ${{ secrets.GOOGLE_CREDENTIALS_JSON }}
-          GOOGLE_SHEET_ID: ${{ secrets.GOOGLE_SHEET_ID }}
         run: python scripts/update_data.py
 
-      - name: Sync Google Sheet -> members.json (2차, 신규 미상 반영)
-        env:
-          GOOGLE_CREDENTIALS_JSON: ${{ secrets.GOOGLE_CREDENTIALS_JSON }}
-          GOOGLE_SHEET_ID: ${{ secrets.GOOGLE_SHEET_ID }}
+      - name: Sync Supabase tier_members -> members.json (2차)
         run: python scripts/convert_members.py
 
       - name: Generate pages
@@ -65,15 +55,14 @@ jobs:
       - name: Commit and push if changed
         run: |
           git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
-          
-          # 잔재 엑셀 파일 및 어드민 제거 (만약 남아있다면)
+
           git rm -f data/members.xlsx admin.html 2>/dev/null || true
-          
+
           if git diff --quiet --cached; then
             echo "변경 없음 - 커밋 생략"
             exit 0
           fi
-          git commit -m "데이터 갱신 (풍고+엘로보드+시트동기화): $(date -u +'%Y-%m-%d %H:%M UTC')"
+          git commit -m "데이터 갱신 (풍고+엘로보드+Supabase): $(date -u +'%Y-%m-%d %H:%M UTC')"
           git push
