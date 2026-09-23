@@ -10,9 +10,11 @@ from pathlib import Path
 
 from _common import (
     ROOT, DATETIME_FORMAT, kst_now, last_day_of_month, get_month_date_range,
-    atomic_write_json, safe_read_json, validate_and_clean_members,
-    is_sheet_ready, load_sheet_members, write_sheet, normalize_elo_id,
-    load_pending_members, append_pending_members, PENDING_SHEET_NAME
+    atomic_write_json, safe_read_json, validate_and_clean_members, normalize_elo_id
+)
+from supabase_roster import (
+    is_roster_ready, load_roster_members, update_roster_members,
+    load_pending_members, append_pending_members, PENDING_TABLE_NAME
 )
 from fetch_poonggo_data import fetch_poonggo_monthly
 from fetch_eloboard_data import aggregate_period_data
@@ -57,14 +59,14 @@ def iter_archive_files():
 # ---------------------------------
 
 def _collect_unknown_elo_players(sponsor_list: list, existing_elo_ids: set, today_date_str: str) -> dict:
-    """스폰전적에만 등장하고 members 시트에도, new_members(대기) 시트에도
+    """스폰전적에만 등장하고 tier_members에도, tier_member_candidates에도
     없는 elo_id를 찾아 "신규 후보"로 만든다. 예전에는 이 결과를 곧바로
-    members 시트에 "미상(elo_...)" 임시 프로필로 등록했지만, 검증되지 않은
-    프로필이 실제 로스터 시트에 섞이는 걸 막기 위해 이제는 new_members
-    시트로 보낸다 - 관리자가 실제 SOOP ID/닉네임을 확인해서 검토한 뒤
-    수동으로 members 시트에 옮겨야 한다.
-    existing_elo_ids에는 호출부에서 members 시트뿐 아니라 new_members
-    시트에 이미 대기 중인 elo_id도 함께 넣어줘야, 검토가 아직 안 끝난
+    tier_members에 "미상(elo_...)" 임시 프로필로 등록했지만, 검증되지 않은
+    프로필이 실제 로스터 DB에 섞이는 걸 막기 위해 이제는 tier_member_candidates
+    테이블로 보낸다 - 관리자가 실제 SOOP ID/닉네임을 확인해서 검토한 뒤
+    수동으로 tier_members에 옮겨야 한다.
+    existing_elo_ids에는 호출부에서 tier_members뿐 아니라 tier_member_candidates
+    DB에 이미 대기 중인 elo_id도 함께 넣어줘야, 검토가 아직 안 끝난
     같은 후보가 매 실행마다 new_members에 중복으로 쌓이지 않는다."""
     new_members = {}
     for item in sponsor_list:
@@ -331,36 +333,36 @@ def main():
                     }
 
     existing_elo_ids = set()
-    # 시트 자격 증명 자체가 없으면 "이미 등록된 elo_id 목록"을 알 방법이
+    # DB 자격 증명 자체가 없으면 "이미 등록된 elo_id 목록"을 알 방법이
     # 없다. 예전 코드는 이 경우 existing_elo_ids를 빈 집합으로 둔 채 판별을
     # 그대로 진행해서, 스폰전적에 나온 전원을 "신규 후보"로 잡고 "N명 추가
     # 완료" 로그까지 남겼다(실제 추가는 인증이 없어 조용히 건너뛰어졌으니,
     # 로그만 사실과 다른 상태였다). 알 수 없으면 판별을 건너뛴다.
-    skip_new_member_detection = not is_sheet_ready()
+    skip_new_member_detection = not is_roster_ready()
     if skip_new_member_detection:
-        print("[알림] 구글 시트 설정이 없어 신규 후보 판별을 건너뜁니다.")
-    if is_sheet_ready():
-        sheet_members = load_sheet_members()
+        print("[알림] Supabase 로스터 설정이 없어 신규 후보 판별을 건너뜁니다.")
+    if is_roster_ready():
+        sheet_members = load_roster_members()
         if sheet_members is None:
             # 읽기 실패를 "기존 회원 0명"으로 착각하면, 이미 등록된 회원
-            # 전원을 "신규 후보"로 오판해 new_members 시트에 통째로
+            # 전원을 "신규 후보"로 오판해 new_tier_members에 통째로
             # 밀어넣는 사고로 이어진다. 이번 실행에서는 신규 후보 판별
             # 자체를 건너뛰고(별풍선/스폰전적 갱신 등 나머지 작업은
             # 평소대로 계속 진행), 원인(탭 이름/권한 등)을 알 수 있게
             # 경고를 남긴다.
-            print("[오류] members 시트를 읽지 못해 이번 실행에서는 신규 후보 판별을 건너뜁니다.", file=sys.stderr)
+            print("[오류] tier_members를 읽지 못해 이번 실행에서는 신규 후보 판별을 건너뜁니다.", file=sys.stderr)
             skip_new_member_detection = True
         else:
             existing_elo_ids = {
                 normalize_elo_id(fields["elo_id"]) for fields in sheet_members.values()
                 if fields.get("elo_id") is not None
             }
-            # new_members(대기) 시트에 이미 올라와 검토를 기다리고 있는
+            # tier_member_candidates에 이미 올라와 검토를 기다리고 있는
             # elo_id도 합쳐야, 아직 검토 안 끝난 같은 후보가 매 실행마다
-            # 또 대기 시트에 중복으로 쌓이는 걸 막을 수 있다.
+            # 또 대기 DB에 중복으로 쌓이는 걸 막을 수 있다.
             pending_members = load_pending_members()
             if pending_members is None:
-                print(f"[오류] '{PENDING_SHEET_NAME}' 시트를 읽지 못해 이번 실행에서는 신규 후보 판별을 건너뜁니다.", file=sys.stderr)
+                print(f"[오류] '{PENDING_TABLE_NAME}' 테이블을 읽지 못해 이번 실행에서는 신규 후보 판별을 건너뜁니다.", file=sys.stderr)
                 skip_new_member_detection = True
             else:
                 existing_elo_ids |= {
@@ -490,20 +492,20 @@ def main():
     print(f"[완료] {OUTPUT_PATH.name} 갱신됨 (별풍선 {len(balloon_data)}명, 스폰전적 {len(sponsor_data)}명)")
 
     if applied_correction_ids:
-        if write_sheet({}, [], clear_info_updated_at=applied_correction_ids):
+        if update_roster_members({}, [], clear_info_updated_at=applied_correction_ids):
             print(f"[완료] 소급 정정이 끝난 {len(applied_correction_ids)}명의 수정일을 비웠습니다.")
         else:
-            print(f"[경고] 소급 정정이 끝난 {len(applied_correction_ids)}명의 수정일을 시트에서 "
-                  f"비우지 못했습니다 - 시트에 '수정일'이 남아 있을 수 있습니다(다음 실행에서는 "
+            print(f"[경고] 소급 정정이 끝난 {len(applied_correction_ids)}명의 수정일을 DB에서 "
+                  f"비우지 못했습니다 - DB에 '수정일'이 남아 있을 수 있습니다(다음 실행에서는 "
                   f"이미 적용된 것으로 간주되므로 필요하면 수동으로 지워주세요).", file=sys.stderr)
 
     if new_members_acc:
         # 실제로 써졌을 때만 "완료"라고 말한다.
         if append_pending_members(list(new_members_acc.values())):
-            print(f"[완료] 총 {len(new_members_acc)}명의 신규 후보가 '{PENDING_SHEET_NAME}' 시트에 추가되었습니다 "
-                  f"(검토 후 members 시트로 옮겨주세요).")
+            print(f"[완료] 총 {len(new_members_acc)}명의 신규 후보가 '{PENDING_TABLE_NAME}' DB에 추가되었습니다 "
+                  f"(검토 후 tier_members로 옮겨주세요).")
         else:
-            print(f"[경고] 신규 후보 {len(new_members_acc)}명을 '{PENDING_SHEET_NAME}' 시트에 "
+            print(f"[경고] 신규 후보 {len(new_members_acc)}명을 '{PENDING_TABLE_NAME}' DB에 "
                   f"추가하지 못했습니다 - 다음 실행에서 다시 시도됩니다.", file=sys.stderr)
 
 if __name__ == "__main__":

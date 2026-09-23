@@ -13,17 +13,6 @@ Pillow>=10,<12
 # 모든 외부 API 호출 (_common.fetch_json, subset_font 다운로드)
 requests>=2.31,<3
 
-# 구글 시트 읽기/쓰기 (_common.py)
-# 이 프로젝트의 의존성 중 실제로 파괴적 변경 이력이 있는 유일한 패키지다.
-# gspread 6.0에서 Worksheet.update()의 인자 순서가
-# (range_name, values) -> (values, range_name)으로 뒤집혔다. 다행히 이
-# 코드는 항상 키워드 인자(values=, range_name=)로 호출해서 5.12+/6.x 양쪽과
-# 호환되지만, 다음 메이저에서 또 바뀌면 막아줄 장치가 지금은 없다.
-gspread>=5.12,<7
-
-# 서비스 계정 인증 (_common.get_gspread_client)
-google-auth>=2.23,<3
-
 # 폰트 서브셋 (subset_font.py에서 python -m fontTools.subset으로 호출)
 # [woff] extra가 brotli>=1.0.1을 함께 설치하며, 이게 없으면 --flavor=woff2가
 # 실패한다. 해당 워크플로우 스텝은 continue-on-error라 조용히 넘어가므로,

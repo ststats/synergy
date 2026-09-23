@@ -22,12 +22,13 @@
 ```
 ├── requirements.txt
 ├── data/
-│   ├── members.json          ← (자동생성) 구글 시트로부터 변환
+│   ├── members.json          ← (자동생성) StarUniv Supabase tier_members로부터 변환
 │   ├── latest.json           ← (자동생성) 오늘자 수집 결과
 │   └── archive/YYYY/MM/YYYY-MM-DD.json  ← (자동생성) 날짜별 스냅샷(연/월 하위 폴더)
 ├── scripts/
-│   ├── _common.py                  ← 공용 유틸(HTTP 재시도, 구글 시트 읽기/쓰기 등)
-│   ├── convert_members.py          ← 구글 시트 -> json 변환
+│   ├── _common.py                  ← 공용 유틸(HTTP 재시도, 날짜/파일 처리 등)
+│   ├── supabase_roster.py          ← StarUniv Supabase 로스터 읽기/쓰기
+│   ├── convert_members.py          ← Supabase tier_members -> json 변환
 │   ├── sync_members.py             ← EloBoard 티어 API로 신규 멤버 자동 추가
 │   ├── fetch_poonggo_data.py       ← 풍고 API 수집(순수 함수)
 │   ├── fetch_eloboard_data.py      ← EloBoard API 수집(순수 함수)
@@ -50,11 +51,11 @@
 
 ## 데이터가 도는 방식
 
-- 로스터 원본은 **Google Sheets**에서 100% 관리됩니다 — 시트를 직접 열어서 편집하면 다음 실행 때 반영됨
-- 매일 GitHub Actions가 돌면서: 시트 동기화 → 풍고/EloBoard 수집 → 날짜별 아카이브 저장 → 사이트 페이지 생성
+- 로스터 원본은 **StarUniv와 같은 Supabase의 `tier_members`**입니다 — StarUniv 관리자에서 수정하면 이 프로젝트의 다음 실행 때 반영됩니다
+- GitHub Actions가 돌면서: Supabase 로스터 동기화 → 풍고/EloBoard 수집 → 날짜별 아카이브 저장 → 사이트 페이지 생성
 - 달이 바뀌면 지난달 데이터를 한 번 더 재조회해서 확정치로 갱신
-- 사람 정보(팀/티어 등)를 나중에 고치면, 시트의 "수정일" 칸에 날짜를 넣어서 과거 기록까지 소급 정정 가능 — 정정이 끝나면 수정일은 자동으로 비워짐(예전 날짜가 나중에 다른 변경에 잘못 재사용되는 걸 막기 위함)
-- EloBoard에 새 elo_id가 나타나면 "미상" 임시 프로필을 구글 시트에 자동 등록(관리자가 나중에 채움)
+- 사람 정보(팀/티어 등)를 나중에 고치면, `tier_members.modified_at`의 날짜를 기준으로 과거 기록까지 소급 정정 가능 — 정정이 끝나면 자동으로 비워집니다
+- EloBoard에 새 선수가 나타나면 정식 로스터에 바로 넣지 않고 `tier_member_candidates`에 대기 후보로 저장합니다
 
 ## 그 외 기능
 
@@ -64,6 +65,10 @@
 - 개인 프로필에서 방송 중인 인원은 실시간 임베드(썸네일+LIVE 배지+시청자수) 표시, 방송 중 아니면 자동으로 숨김
 - 모바일 대응, 자체 호스팅 폰트(서브셋으로 용량 최소화)
 
+
+## Supabase 연결
+
+처음 적용할 때는 [`SUPABASE_LINK_SETUP.md`](SUPABASE_LINK_SETUP.md)의 SQL/Actions Secret 설정을 먼저 진행하세요.
 
 ## 수동 갱신
 
