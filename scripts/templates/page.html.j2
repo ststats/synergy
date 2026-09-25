@@ -7,7 +7,7 @@
   <link rel="icon" type="image/webp" href="{{ logo_prefix }}logos/파비콘.webp">
   <link rel="preload" href="{{ font_url }}" as="font" type="font/woff2" crossorigin>
   <style>
-    @font-face { font-family: 'Pretendard Variable'; font-weight: 45 920; font-style: normal; font-display: block; src: url('{{ font_url }}') format('woff2-variations'); }
+    @font-face { font-family: 'Pretendard Variable'; font-weight: 45 920; font-style: normal; font-display: swap; src: url('{{ font_url }}') format('woff2-variations'); }
     {% include 'style.css' %}
     {% if include_mobile_css %}{% include 'mobile.css' %}{% endif %}
   </style>
@@ -101,7 +101,6 @@
   </div>
   {% endif %}
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="{{ logo_prefix }}supabase-config.js"></script>
   {% include 'app.js.j2' %}
 </body>

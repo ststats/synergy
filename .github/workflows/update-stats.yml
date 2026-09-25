@@ -10,6 +10,8 @@ on:
       - 'scripts/subset_font.py'
       - 'scripts/convert_members.py'
       - 'scripts/supabase_roster.py'
+      # 새 대학 로고를 넣으면 상단 띠 색·로고 목록을 다시 만든다
+      - 'assets/logos/**'
 
 permissions:
   contents: write
@@ -28,8 +30,8 @@ jobs:
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
 
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.11"
           cache: pip

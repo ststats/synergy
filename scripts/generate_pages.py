@@ -6,6 +6,7 @@ import sys
 import json
 import colorsys
 import hashlib
+import io
 import shutil
 from pathlib import Path
 from PIL import Image
@@ -23,7 +24,11 @@ _jinja_env = Environment(
     trim_blocks=True,
     lstrip_blocks=True,
 )
-LOGOS_DIR = DOCS_DIR / "logos"
+# 로고 원본(대학 로고·파비콘·숲 로고). 새 로고는 여기에 넣는다. 상단 띠 색도 원본에서 뽑는다.
+LOGOS_DIR = ROOT / "assets" / "logos"
+# 사이트에 싣는 작은 사본(화면에는 최대 28px로 보이므로 긴 변 96px). 빌드가 만든다.
+WEB_LOGOS_DIR = DOCS_DIR / "logos"
+WEB_LOGO_SIZE = 96
 OUTPUT_INDEX = DOCS_DIR / "index.html"
 OUTPUT_PROFILE_PATH = DOCS_DIR / "profile.html"
 OUTPUT_TEAM_PATH = DOCS_DIR / "team.html"
@@ -106,9 +111,34 @@ def get_team_topbar_color(team_name: str, cache: dict) -> str:
     cache[team_name] = {"hash": file_hash, "color": color}
     return color
 
+def build_web_logos() -> None:
+    """assets/logos 원본을 작은 webp로 줄여 docs/logos에 둔다. 원본이 없는 사본은 지운다."""
+    WEB_LOGOS_DIR.mkdir(parents=True, exist_ok=True)
+    sources = {p.name: p for p in LOGOS_DIR.glob("*.webp")}
+    for name, src in sources.items():
+        # 매번 새로 줄이되(작은 파일 20개 남짓) 내용이 같으면 쓰지 않는다 - 빌드 커밋에 안 섞이게
+        with Image.open(src) as im:
+            im = im.convert("RGBA")
+            im.thumbnail((WEB_LOGO_SIZE, WEB_LOGO_SIZE), Image.LANCZOS)
+            buf = io.BytesIO()
+            im.save(buf, "WEBP", quality=90, method=6)
+        dst = WEB_LOGOS_DIR / name
+        if not dst.exists() or dst.read_bytes() != buf.getvalue():
+            dst.write_bytes(buf.getvalue())
+    for old in WEB_LOGOS_DIR.glob("*.webp"):
+        if old.name not in sources:
+            old.unlink()
+
+
+def available_logos(team_names) -> list:
+    """로고 파일이 있는 대학 이름. 없는 대학(신생 등)은 브라우저가 이미지를 요청하지 않고 첫 글자 배지로 대신한다."""
+    return sorted(t for t in team_names if (LOGOS_DIR / f"{t}.webp").is_file())
+
+
 def generate_html(title, target_team, is_profile, logo_prefix, team_colors, team_from_url=False):
     font_url = f"{logo_prefix}fonts/PretendardVariable.woff2"
     colors_json = json_for_script(team_colors)
+    logos_json = json_for_script(available_logos(team_colors))
 
     if team_from_url:
         target_team_js = "new URLSearchParams(window.location.search).get('team') || \"\""
@@ -124,6 +154,7 @@ def generate_html(title, target_team, is_profile, logo_prefix, team_colors, team
     template = _jinja_env.get_template("page.html.j2")
     return template.render(
         colors_json=colors_json,
+        logos_json=logos_json,
         font_url=font_url,
         include_mobile_css=include_mobile_css,
         is_profile=is_profile,
@@ -172,6 +203,7 @@ def main():
     team_color_cache = {k: v for k, v in team_color_cache.items() if k in all_team_names}
     atomic_write_json(TEAM_LOGO_COLOR_CACHE_PATH, team_color_cache)
     team_colors["FA"], team_colors["휴면"] = "#8b8f99", "#8b8f99"
+    build_web_logos()
 
     index_html = generate_html("시너지", "", False, "", team_colors)
     OUTPUT_INDEX.parent.mkdir(parents=True, exist_ok=True)

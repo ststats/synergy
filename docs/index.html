@@ -7,7 +7,7 @@
   <link rel="icon" type="image/webp" href="logos/파비콘.webp">
   <link rel="preload" href="fonts/PretendardVariable.woff2" as="font" type="font/woff2" crossorigin>
   <style>
-    @font-face { font-family: 'Pretendard Variable'; font-weight: 45 920; font-style: normal; font-display: block; src: url('fonts/PretendardVariable.woff2') format('woff2-variations'); }
+    @font-face { font-family: 'Pretendard Variable'; font-weight: 45 920; font-style: normal; font-display: swap; src: url('fonts/PretendardVariable.woff2') format('woff2-variations'); }
 html { scrollbar-gutter: stable; }
 * { box-sizing: border-box; }
 body { font-family: 'Pretendard Variable', sans-serif; background: #f4f5f7; margin: 0; padding: 20px 10px; color: #1a1d29; }
@@ -41,6 +41,7 @@ body { font-family: 'Pretendard Variable', sans-serif; background: #f4f5f7; marg
 .team-link { color: inherit; text-decoration: none; }
 .team-link:hover { text-decoration: underline; }
 .team-logo { width: 28px; height: 28px; border-radius: 10px; object-fit: contain; flex-shrink: 0; }
+.team-logo-initial { display: inline-flex; align-items: center; justify-content: center; color: #fff; font-size: 14px; font-weight: 800; line-height: 1; }
 .team-name { font-size: 16px; font-weight: 800; color: #141821; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .team-count { font-size: 10px; color: #a4a8b2; font-weight: 500; white-space: nowrap; }
 .rank-change { display: inline-flex; align-items: center; line-height: 1; font-size: 12px; font-weight: 700; padding: 4px 12px; border-radius: 20px; white-space: nowrap; flex-shrink: 0; }
@@ -140,6 +141,7 @@ body { font-family: 'Pretendard Variable', sans-serif; background: #f4f5f7; marg
     .team-header { padding: 6px 8px; gap: 4px; }
     .team-header-left { gap: 5px; }
     .team-logo { width: 14px; height: 14px; border-radius: 5px; }
+    .team-logo-initial { font-size: 8px; }
     .team-name { font-size: 8px; }
     .team-count { font-size: 5px; }
     .rank-change { font-size: 6px; padding: 2px 6px; border-radius: 10px; }
@@ -203,11 +205,12 @@ body { font-family: 'Pretendard Variable', sans-serif; background: #f4f5f7; marg
     <span>🎂 생일</span>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="supabase-config.js"></script>
 <script>
 (async function () {
   const TEAM_COLORS = {"BGM": "#643c00", "DM": "#000014", "JSA": "#dc5000", "광준": "#4a5ce0", "뉴캣슬": "#000050", "더블비": "#c87828", "드림즈": "#b40000", "마범대": "#141414", "신세계": "#3c2814", "와플대": "#a02814", "캄몬스타즈": "#0050f0", "케이대": "#3c3c3c", "흑카데미": "#f07814", "FA": "#8b8f99", "휴면": "#8b8f99"};
+  // 로고 파일이 있는 대학만(신생 대학 등 로고가 없으면 이름 첫 글자 배지로 대신한다)
+  const TEAM_LOGOS = new Set(["BGM", "DM", "JSA", "뉴캣슬", "더블비", "드림즈", "마범대", "신세계", "와플대", "캄몬스타즈", "케이대", "흑카데미"]);
   const TARGET_TEAM = "";
   const LOGO_PREFIX = "";
   const IS_PROFILE = false;
@@ -424,14 +427,34 @@ body { font-family: 'Pretendard Variable', sans-serif; background: #f4f5f7; marg
   // 예전 코드는 AVAILABLE_DATES[0]이 undefined가 되고, 곧 currentDateStr.split()에서
   // TypeError가 나면서 페이지 전체가 백지가 됐다. 원인을 알 수 있는 메시지를
   // 보여주고 조용히 멈춘다.
+  // Supabase 공개 읽기(REST). 예전엔 supabase-js(213KB)를 통째로 받았지만 이 페이지는
+  // 표 두 개를 select·eq·order·range로 읽기만 하므로 fetch 몇 줄이면 된다.
   function synergySupabaseClient() {
-      if (window.__SYNERGY_SB) return window.__SYNERGY_SB;
       const cfg = window.SYNERGY_SUPABASE_CONFIG;
-      if (!cfg || !cfg.url || !cfg.key || !window.supabase) return null;
-      window.__SYNERGY_SB = window.supabase.createClient(cfg.url, cfg.key, {
-          auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }
-      });
-      return window.__SYNERGY_SB;
+      if (!cfg || !cfg.url || !cfg.key) return null;
+      return {
+          from(table) {
+              const params = new URLSearchParams();
+              let rangeFrom = 0, rangeTo = null;
+              const q = {
+                  select(cols) { params.set('select', cols); return q; },
+                  eq(col, val) { params.append(col, `eq.${val}`); return q; },
+                  order(col, opt) { params.append('order', `${col}.${opt && opt.ascending === false ? 'desc' : 'asc'}`); return q; },
+                  range(from, to) { rangeFrom = from; rangeTo = to; return q; },
+                  then(resolve, reject) {
+                      if (rangeTo !== null) { params.set('offset', rangeFrom); params.set('limit', rangeTo - rangeFrom + 1); }
+                      return fetch(`${cfg.url}/rest/v1/${table}?${params}`, {
+                          headers: { apikey: cfg.key, Authorization: `Bearer ${cfg.key}` },
+                      }).then(async res => {
+                          const body = await res.json().catch(() => null);
+                          return res.ok ? { data: body, error: null }
+                              : { data: null, error: new Error((body && body.message) || `HTTP ${res.status}`) };
+                      }, err => ({ data: null, error: err })).then(resolve, reject);
+                  },
+              };
+              return q;
+          },
+      };
   }
 
   async function loadAvailableDates() {
@@ -828,9 +851,11 @@ body { font-family: 'Pretendard Variable', sans-serif; background: #f4f5f7; marg
           html = '<div class="team-card" style="padding:24px;text-align:center;color:#999;font-size:13px;">이 날짜에는 팀 정보가 없습니다.</div>';
       } else {
           targetTeamStats.forEach(ts => {
-              const logoHtml = `<img src="${escapeHtml(LOGO_PREFIX)}logos/${attrUrlParam(ts.name)}.webp" class="team-logo" alt="" onerror="this.style.display='none'">`;
               // 색상값은 CSS 컨텍스트에 들어가므로(style="background:...") 화이트리스트로만 받는다.
               const topColor = safeCssColor(ownGet(TEAM_COLORS, ts.name));
+              const logoHtml = TEAM_LOGOS.has(ts.name)
+                  ? `<img src="${escapeHtml(LOGO_PREFIX)}logos/${attrUrlParam(ts.name)}.webp" class="team-logo" alt="" onerror="this.style.display='none'">`
+                  : `<span class="team-logo team-logo-initial" style="background:${topColor}" aria-hidden="true">${escapeHtml(Array.from(ts.name)[0] || '')}</span>`;
               const countHtml = `<span class="team-count">총 ${ts.males.length + ts.females.length}명 · 남 ${ts.males.length} · 여 ${ts.females.length}</span>`;
               const headerLeft = TARGET_TEAM ? `<div class="team-header-left">${logoHtml}<span class="team-name">${escapeHtml(ts.name)}</span>${countHtml}</div>`
                   : `<div class="team-header-left">${logoHtml}<a class="team-link team-name" href="team.html?team=${attrUrlParam(ts.name)}&date=${attrUrlParam(currentDateStr)}&metric=${attrUrlParam(currentMetric)}">${escapeHtml(ts.name)}</a>${countHtml}</div>`;

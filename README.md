@@ -16,3 +16,9 @@ python scripts/write_supabase_browser_config.py
 GitHub Actions는 수동 실행과 관련 소스 변경으로 웹을 다시 빌드합니다. 운영 주기 실행은 외부 크론이 `workflow_dispatch`를 호출합니다. 필요한 설정은 `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_PUBLISHABLE_KEY`입니다.
 
 공유 DB 스키마와 공개 권한은 `ststat/migrations`에서 관리합니다.
+
+## 대학 로고
+
+- 원본은 `assets/logos/<대학 이름>.webp`에 둡니다. 새 대학 로고는 여기에 파일만 넣으면 됩니다(이름이 DB 소속과 같아야 함).
+- 빌드가 원본을 작게 줄여 `docs/logos/`에 싣고(화면에는 최대 28px), 카드 윗줄 색도 원본에서 뽑습니다.
+- 로고가 없는 대학(신생 등)은 이미지를 요청하지 않고 대학 색 바탕에 이름 첫 글자를 보여 줍니다.

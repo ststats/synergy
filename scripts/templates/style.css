@@ -31,6 +31,7 @@ body { font-family: 'Pretendard Variable', sans-serif; background: #f4f5f7; marg
 .team-link { color: inherit; text-decoration: none; }
 .team-link:hover { text-decoration: underline; }
 .team-logo { width: 28px; height: 28px; border-radius: 10px; object-fit: contain; flex-shrink: 0; }
+.team-logo-initial { display: inline-flex; align-items: center; justify-content: center; color: #fff; font-size: 14px; font-weight: 800; line-height: 1; }
 .team-name { font-size: 16px; font-weight: 800; color: #141821; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .team-count { font-size: 10px; color: #a4a8b2; font-weight: 500; white-space: nowrap; }
 .rank-change { display: inline-flex; align-items: center; line-height: 1; font-size: 12px; font-weight: 700; padding: 4px 12px; border-radius: 20px; white-space: nowrap; flex-shrink: 0; }

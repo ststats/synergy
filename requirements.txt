@@ -4,11 +4,8 @@
 # 날에 상위 호환이 깨지는 메이저 버전이 올라와 그날 수집이 통째로 실패할
 # 수 있고, 원인을 찾기도 어렵다. 하한은 보안 패치를 계속 받기 위해 열어둔다.
 
-# 팀 로고에서 상단바 색을 추출 (generate_pages.py)
-# 주의: Pillow 12에서도 이 코드가 쓰는 API(Image.open 컨텍스트 매니저,
-# convert/resize/getdata)는 정상 동작하는 것을 확인했다. <12 상한을 유지할
-# 특별한 이유가 없다면 <13으로 완화해도 된다.
-Pillow>=10,<12
+# 팀 로고에서 상단바 색을 추출 (generate_pages.py). Pillow 12에서도 동작 확인.
+Pillow>=10,<13
 
 # Supabase 로스터와 subset_font 다운로드
 requests>=2.31,<3
