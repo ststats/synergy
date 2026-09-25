@@ -14,23 +14,20 @@ CDN의 "다이나믹 서브셋" 방식(unicode-range로 브라우저가 알아�
 
 문자 수집 범위:
   1. 현재 로스터(members.json)의 닉네임/소속/종족/티어/직책
-  2. 과거 아카이브(archive/*.json) 전체 - 지금은 로스터에 없지만 과거 날짜를
-     browsing할 때 여전히 표시될 수 있는 사람들의 닉네임/팀 이름을 놓치지
-     않기 위함
-  3. generate_pages.py가 만든 docs/*.html - 고정 UI 문구(제목, 라벨, 안내
+  2. generate_pages.py가 만든 docs/*.html - 고정 UI 문구(제목, 라벨, 안내
      텍스트 등)
-  4. 기본 라틴/숫자/기호 + 자주 쓰는 한글 자모(안전판 - 위 스캔에서 혹시
+  3. 기본 라틴/숫자/기호 + 자주 쓰는 한글 자모(안전판 - 위 스캔에서 혹시
      놓친 게 있어도 최소한 이 정도는 항상 포함)
 
-주의: 이 스크립트는 generate_pages.py가 끝난 뒤에 실행돼야 한다(3번 범위가
+주의: 이 스크립트는 generate_pages.py가 끝난 뒤에 실행돼야 한다(2번 범위가
 방금 생성된 HTML을 스캔하기 때문).
+Actions 러너는 매번 새로 시작해 지난 실행 기록이 없으므로 매번 새로 만든다(몇 초 걸림).
 """
 
 import sys
 import json
 import time
 import shutil
-import hashlib
 import subprocess
 import tempfile
 from pathlib import Path
@@ -44,7 +41,7 @@ FONT_DOWNLOAD_BACKOFF_SEC = 3
 # 에러로 터진다.
 WOFF2_MAGIC = b"wOF2"
 
-from _common import ROOT, safe_read_json, atomic_write_json
+from _common import ROOT
 
 FONT_URL = (
     "https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/"
@@ -52,15 +49,7 @@ FONT_URL = (
 )
 OUTPUT_PATH = ROOT / "docs" / "fonts" / "PretendardVariable.woff2"
 MEMBERS_PATH = ROOT / "data" / "members.json"
-ARCHIVE_DIR = ROOT / "data" / "archive"
 DOCS_DIR = ROOT / "docs"
-# 매번 문자를 다시 스캔하는 것 자체는 가벼운데(멤버 수가 많아야 수백~수천
-# 정도), 그 결과로 2.3MB 원본을 새로 받고 fonttools 서브셋을 돌리는 건
-# 무겁다 - 문자 구성이 바뀐 게 없는 날(대부분의 날)까지 매번 이 무거운
-# 작업을 반복할 이유가 없다. 그래서 이 프로젝트의 다른 곳들(members_sync_baseline.json,
-# archive_corrections_applied.json)처럼 스냅샷을 남겨서, 이전 실행이랑
-# 문자 구성이 완전히 같으면 다운로드+서브셋 자체를 건너뛴다.
-CHARS_SNAPSHOT_PATH = ROOT / "data" / "font_subset_chars_hash.json"
 
 MEMBER_TEXT_FIELDS = ("nickname", "team", "race", "tier", "role")
 
@@ -91,15 +80,6 @@ def collect_used_characters() -> set:
         except Exception as e:
             print(f"[경고] members.json 읽기 실패, 건너뜀: {e}", file=sys.stderr)
 
-    if ARCHIVE_DIR.exists():
-        for p in ARCHIVE_DIR.rglob("*.json"):
-            try:
-                with open(p, "r", encoding="utf-8") as f:
-                    data = json.load(f)
-                _add_member_text(chars, data.get("members", []))
-            except Exception:
-                continue  # 아카이브 파일 하나 깨져있다고 전체를 멈출 이유는 없음
-
     if DOCS_DIR.exists():
         for p in DOCS_DIR.glob("*.html"):
             try:
@@ -110,16 +90,6 @@ def collect_used_characters() -> set:
     # 출력 불가능한 제어문자 등은 폰트에 넣을 필요 없음(공백은 이미 BASE_CHARS에 있어 예외 처리)
     chars = {c for c in chars if c == " " or c.isprintable()}
     return chars
-
-
-# 캐시 판단에 문자 구성뿐 아니라 이 버전 번호도 같이 넣는다 - 문자 구성이
-# 하나도 안 바뀌어도, fonttools 서브셋 명령어 자체(예: --layout-features
-# 옵션)가 바뀌면 예전 캐시가 여전히 "완전히 동일함"으로 잘못 판단해서
-# 재생성을 건너뛰어 버린다. 서브셋 로직을 고칠 때마다 이 숫자를 올려서,
-# 다음 실행에서 확실히 한 번은 다시 만들어지게 한다.
-SUBSET_LOGIC_VERSION = 2  # v2: --layout-features+=tnum,lnum 추가(별풍선 등 숫자 폭이
-                          # 안 맞던 문제 수정 - v1은 이 옵션이 없어서 tabular-nums가
-                          # 실제로는 작동 안 했었음)
 
 
 def _download_font():
@@ -150,18 +120,6 @@ def main():
     chars = collect_used_characters()
     print(f"[준비] 실제 사용 문자 {len(chars)}개 확인")
 
-    # 문자 구성 + 서브셋 로직 버전이 지난 실행이랑 완전히 같으면(대부분의 날이
-    # 그렇다 - 로스터나 페이지 UI 문구, 서브셋 로직 자체가 매일 바뀌는 게
-    # 아니므로), 서브셋 결과도 어차피 똑같이 나올 거라 무거운 다운로드+서브셋
-    # 작업 자체를 건너뛴다. 기존 docs/fonts/PretendardVariable.woff2는 지난
-    # 실행 결과 그대로 남는다.
-    chars_hash = hashlib.sha256(
-        f"{SUBSET_LOGIC_VERSION}:{''.join(sorted(chars))}".encode("utf-8")
-    ).hexdigest()
-    snapshot = safe_read_json(CHARS_SNAPSHOT_PATH, default={})
-    if snapshot.get("hash") == chars_hash and OUTPUT_PATH.exists():
-        print("[건너뜀] 지난 실행과 사용 문자 구성이 완전히 동일함 - 폰트 재생성 생략")
-        return
 
     with tempfile.TemporaryDirectory() as tmpdir:
         tmp_full = Path(tmpdir) / "PretendardVariable-full.woff2"
@@ -222,10 +180,6 @@ def main():
 
     size_kb = OUTPUT_PATH.stat().st_size / 1024
     print(f"[완료] {OUTPUT_PATH} 생성됨 ({size_kb:.1f}KB, 원본 대비 대폭 축소)")
-
-    # 서브셋 성공한 뒤에만 스냅샷을 갱신한다 - 중간에 실패했으면 다음 실행에서
-    # 다시 시도해야 하므로, 실패한 실행의 해시를 "완료됨"으로 잘못 남기면 안 된다.
-    atomic_write_json(CHARS_SNAPSHOT_PATH, {"hash": chars_hash, "char_count": len(chars)})
 
 
 if __name__ == "__main__":
