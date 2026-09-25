@@ -220,6 +220,7 @@
   // 보여주고 조용히 멈춘다.
   // Supabase 공개 읽기(REST). 예전엔 supabase-js(213KB)를 통째로 받았지만 이 페이지는
   // 표 두 개를 select·eq·order·range로 읽기만 하므로 fetch 몇 줄이면 된다.
+  const REQUEST_TIMEOUT_MS = 8000;
   function synergySupabaseClient() {
       const cfg = window.SYNERGY_SUPABASE_CONFIG;
       if (!cfg || !cfg.url || !cfg.key) return null;
@@ -239,13 +240,21 @@
                   range(from, to) { rangeFrom = from; rangeTo = to; return q; },
                   then(resolve, reject) {
                       if (rangeTo !== null) { params.set('offset', rangeFrom); params.set('limit', rangeTo - rangeFrom + 1); }
+                      // 응답이 끝내 오지 않으면(연결만 붙고 멈춤 등) 8초에 끊는다 - 본문 받기까지 포함.
+                      // 재시도 1번까지 해도 20초 안에 안내 화면으로 넘어간다.
+                      const ctrl = typeof AbortController === 'function' ? new AbortController() : null;
+                      const timer = ctrl ? setTimeout(() => ctrl.abort(), REQUEST_TIMEOUT_MS) : null;
                       return fetch(`${cfg.url}/rest/v1/${table}?${params}`, {
                           headers: { apikey: cfg.key, Authorization: `Bearer ${cfg.key}` },
+                          signal: ctrl ? ctrl.signal : undefined,
                       }).then(async res => {
                           const body = await res.json().catch(() => null);
+                          if (ctrl && ctrl.signal.aborted) throw new Error('요청 시간 초과');
                           return res.ok ? { data: body, error: null }
                               : { data: null, error: new Error((body && body.message) || `HTTP ${res.status}`) };
-                      }, err => ({ data: null, error: err })).then(resolve, reject);
+                      }).catch(err => ({ data: null, error: err }))
+                        .finally(() => { if (timer) clearTimeout(timer); })
+                        .then(resolve, reject);
                   },
               };
               return q;
