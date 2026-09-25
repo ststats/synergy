@@ -128,9 +128,6 @@ def main():
         sys.exit(1)
     members_data = [m for m in members_config.get("members", []) if isinstance(m, dict)]
 
-    roster_ids = sorted({m.get("id") for m in members_data if m.get("id")})
-    _write_if_changed(DOCS_DIR / "data" / "roster_ids.json", json.dumps(roster_ids, ensure_ascii=False))
-
     all_team_names = {
         m.get("team") for m in members_data
         if m.get("team") and m.get("team") not in ("FA", "휴면", "미분류")

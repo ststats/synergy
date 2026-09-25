@@ -13,8 +13,12 @@ on:
       # 사이트 아이콘(파비콘·숲 로고) 원본
       - 'assets/logos/**'
 
+# 빌드 결과(docs/)를 저장소에 커밋하지 않고 GitHub Pages에 바로 배포한다
+# (저장소 Settings → Pages → Source: GitHub Actions). 봇 커밋이 쌓이지 않는다.
 permissions:
-  contents: write
+  contents: read
+  pages: write
+  id-token: write
 
 concurrency:
   group: synergy-web-build
@@ -48,22 +52,29 @@ jobs:
           SUPABASE_PUBLISHABLE_KEY: ${{ vars.SUPABASE_PUBLISHABLE_KEY || secrets.SUPABASE_ANON_KEY }}
         run: python scripts/write_supabase_browser_config.py
 
+      - id: pages
+        uses: actions/configure-pages@v6
+
+      # 글꼴 서브셋이 실패해도 글꼴이 비지 않게, 지금 배포돼 있는 글꼴을 먼저 받아 둔다
+      - name: Keep last published font
+        run: |
+          mkdir -p docs/fonts
+          curl -fsSL "${{ steps.pages.outputs.base_url }}/fonts/PretendardVariable.woff2" -o docs/fonts/PretendardVariable.woff2 || true
+
       - name: Subset font
         continue-on-error: true
         run: python scripts/subset_font.py
 
-      - name: Commit generated web files
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: docs
 
-          git add -A
-
-          if git diff --cached --quiet; then
-            echo "No generated changes"
-            exit 0
-          fi
-
-          git commit -m "Build Synergy web"
-          git pull --rebase origin main
-          git push
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5
