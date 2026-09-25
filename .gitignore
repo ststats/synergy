@@ -2,6 +2,8 @@ __pycache__/
 *.pyc
 
 # 빌드 결과는 저장소에 두지 않고 Actions가 Pages로 바로 배포한다
-docs/
+# (docs/vercel.json만 둔다: Vercel이 모든 주소를 GitHub Pages로 넘긴다)
+docs/*
+!docs/vercel.json
 data/members.json
 data/font_subset_chars_hash.json

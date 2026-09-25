@@ -1,0 +1,13 @@
+{
+  "ignoreCommand": "git diff --quiet HEAD^ HEAD -- vercel.json",
+  "routes": [
+    {
+      "src": "^/((?:[^/]+/)*)$",
+      "dest": "https://ststats.github.io/synergy/$1index.html"
+    },
+    {
+      "src": "^/(.*)$",
+      "dest": "https://ststats.github.io/synergy/$1"
+    }
+  ]
+}
