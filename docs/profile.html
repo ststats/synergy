@@ -401,7 +401,8 @@ body { font-family: 'Pretendard Variable', sans-serif; background: #f4f5f7; marg
           if (part.type !== 'literal') out[part.type] = part.value;
           return out;
       }, {});
-      return `${parts.year}-${parts.month}-${parts.day} ${parts.hour}:${parts.minute}:${parts.second} KST`;
+      // 한국 시간으로 바꿔 보여 주되 'KST' 글자는 붙이지 않는다(사이트가 한국 시간 기준)
+      return `${parts.year}-${parts.month}-${parts.day} ${parts.hour}:${parts.minute}:${parts.second}`;
   }
 
   // 예전 코드는 AVAILABLE_DATES[0]이 undefined가 되고, 곧 currentDateStr.split()에서
@@ -467,10 +468,9 @@ body { font-family: 'Pretendard Variable', sans-serif; background: #f4f5f7; marg
           let query = client.from('daily_member_stats')
               .select('stat_date,month_start,soop_id,elo_id,nickname,role,affiliation,race,tier,gender,birth_date,balloons,broadcast_seconds,cumulative_viewers,sponsor_wins,sponsor_losses,updated_at,sponsor_updated_at')
               .eq('stat_date', dateStr);
-          // 팀·개인 페이지는 화면에 필요한 행만 DB에서 받는다. 예전에는 매번
-          // 전체 1,200여 명을 받은 뒤 브라우저에서 한 팀/한 명만 골랐다.
+          // 개인 페이지는 그 한 명만 받는다. 팀 페이지는 상위 1·5·10% 표시를 전체페이지와 같이
+          // 전체 선수 기준으로 매기므로 전체를 받고, 화면에는 그 팀만 그린다.
           if (IS_PROFILE && PROFILE_ID) query = query.eq('soop_id', PROFILE_ID);
-          else if (TARGET_TEAM) query = query.eq('affiliation', TARGET_TEAM);
           const { data: batch, error } = await query
               .order('nickname', { ascending: true })
               .range(from, from + pageSize - 1);
