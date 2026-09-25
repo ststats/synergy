@@ -190,9 +190,7 @@ body { font-family: 'Pretendard Variable', sans-serif; background: #f4f5f7; marg
 <script src="supabase-config.js"></script>
 <script>
 (async function () {
-  const TEAM_COLORS = {"BGM": "#643c00", "DM": "#000014", "JSA": "#dc5000", "광준": "#4a5ce0", "뉴캣슬": "#000050", "더블비": "#c87828", "드림즈": "#b40000", "마범대": "#141414", "신세계": "#3c2814", "와플대": "#a02814", "캄몬스타즈": "#0050f0", "케이대": "#3c3c3c", "흑카데미": "#f07814", "FA": "#8b8f99", "휴면": "#8b8f99"};
-  // 로고 파일이 있는 대학만(신생 대학 등 로고가 없으면 이름 첫 글자 배지로 대신한다)
-  const TEAM_LOGOS = new Set(["BGM", "DM", "JSA", "뉴캣슬", "더블비", "드림즈", "마범대", "신세계", "와플대", "캄몬스타즈", "케이대", "흑카데미"]);
+  const TEAM_COLORS = {"BGM": "#4a5ce0", "DM": "#4a5ce0", "JSA": "#4a5ce0", "광준": "#4a5ce0", "뉴캣슬": "#4a5ce0", "더블비": "#4a5ce0", "드림즈": "#4a5ce0", "마범대": "#4a5ce0", "신세계": "#4a5ce0", "와플대": "#4a5ce0", "캄몬스타즈": "#4a5ce0", "케이대": "#4a5ce0", "흑카데미": "#4a5ce0", "FA": "#8b8f99", "휴면": "#8b8f99"};
   const TARGET_TEAM = "";
   const LOGO_PREFIX = "";
   const IS_PROFILE = true;
@@ -527,8 +525,8 @@ body { font-family: 'Pretendard Variable', sans-serif; background: #f4f5f7; marg
       };
   }
 
-  // 어드민(스타유니브 티어표 > 대학 로고)에서 올린 로고: university_logos 표의 이름 → 주소·색.
-  // 표에 없는 대학은 빌드 때 넣은 로고 파일(TEAM_LOGOS)과 색을 그대로 쓴다.
+  // 대학 로고: 스타유니브 어드민(전적 > 팀 관리)에서 올린 것. university_logos 표의 이름 → 주소·카드 색.
+  // 표에 없는 대학(신생 등)은 이미지를 요청하지 않고 이름 첫 글자 배지로 대신한다.
   const LOGO_URLS = Object.create(null);
   async function loadUniversityLogos() {
       try {
@@ -543,12 +541,11 @@ body { font-family: 'Pretendard Variable', sans-serif; background: #f4f5f7; marg
               if (r.color) TEAM_COLORS[r.name] = r.color;
           });
       } catch (e) {
-          console.warn('대학 로고 목록을 불러오지 못했습니다(빌드 때 로고를 씁니다)', e);
+          console.warn('대학 로고 목록을 불러오지 못했습니다(이름 첫 글자 배지로 대신합니다)', e);
       }
   }
   function teamLogoUrl(name) {
-      if (LOGO_URLS[name]) return LOGO_URLS[name];
-      return TEAM_LOGOS.has(name) ? `${LOGO_PREFIX}logos/${encodeURIComponent(name)}.webp` : '';
+      return LOGO_URLS[name] || '';
   }
 
   const logosReady = loadUniversityLogos();

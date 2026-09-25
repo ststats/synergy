@@ -1,8 +1,6 @@
 <script>
 (async function () {
   const TEAM_COLORS = {{ colors_json }};
-  // 로고 파일이 있는 대학만(신생 대학 등 로고가 없으면 이름 첫 글자 배지로 대신한다)
-  const TEAM_LOGOS = new Set({{ logos_json }});
   const TARGET_TEAM = {{ target_team_js }};
   const LOGO_PREFIX = "{{ logo_prefix }}";
   const IS_PROFILE = {{ 'true' if is_profile else 'false' }};
@@ -337,8 +335,8 @@
       };
   }
 
-  // 어드민(스타유니브 티어표 > 대학 로고)에서 올린 로고: university_logos 표의 이름 → 주소·색.
-  // 표에 없는 대학은 빌드 때 넣은 로고 파일(TEAM_LOGOS)과 색을 그대로 쓴다.
+  // 대학 로고: 스타유니브 어드민(전적 > 팀 관리)에서 올린 것. university_logos 표의 이름 → 주소·카드 색.
+  // 표에 없는 대학(신생 등)은 이미지를 요청하지 않고 이름 첫 글자 배지로 대신한다.
   const LOGO_URLS = Object.create(null);
   async function loadUniversityLogos() {
       try {
@@ -353,12 +351,11 @@
               if (r.color) TEAM_COLORS[r.name] = r.color;
           });
       } catch (e) {
-          console.warn('대학 로고 목록을 불러오지 못했습니다(빌드 때 로고를 씁니다)', e);
+          console.warn('대학 로고 목록을 불러오지 못했습니다(이름 첫 글자 배지로 대신합니다)', e);
       }
   }
   function teamLogoUrl(name) {
-      if (LOGO_URLS[name]) return LOGO_URLS[name];
-      return TEAM_LOGOS.has(name) ? `${LOGO_PREFIX}logos/${encodeURIComponent(name)}.webp` : '';
+      return LOGO_URLS[name] || '';
   }
 
   const logosReady = loadUniversityLogos();
