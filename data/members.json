@@ -305,7 +305,7 @@
       "elo_id": 6187,
       "birthdate": "1994-02-18",
       "gender": "m",
-      "race": "저그",
+      "race": "프로토스",
       "tier": "2",
       "team": "더블비",
       "role": "수장",
@@ -385,7 +385,7 @@
       "id": "roa0216"
     },
     {
-      "nickname": "빵체리",
+      "nickname": "유체리",
       "elo_id": 6487,
       "birthdate": "2003-09-18",
       "gender": "f",
@@ -1357,7 +1357,7 @@
       "id": "neverdieyj"
     },
     {
-      "nickname": "김경모",
+      "nickname": "깨모다",
       "elo_id": 8,
       "birthdate": "1988-09-08",
       "gender": "m",
@@ -1651,7 +1651,7 @@
       "gender": "f",
       "race": "저그",
       "tier": "6",
-      "team": "휴면",
+      "team": "FA",
       "role": "",
       "info_updated_at": null,
       "id": "khsoo0105"
@@ -8179,7 +8179,7 @@
       "gender": "m",
       "race": "저그",
       "tier": "8",
-      "team": "FA",
+      "team": "휴면",
       "role": "",
       "info_updated_at": null,
       "id": "dlqudgk1227"
@@ -8395,7 +8395,7 @@
       "gender": "f",
       "race": "저그",
       "tier": "6",
-      "team": "FA",
+      "team": "JSA",
       "role": "",
       "info_updated_at": null,
       "id": "min030606"
@@ -8845,7 +8845,7 @@
       "id": "parkjaehyeon"
     },
     {
-      "nickname": "박지호",
+      "nickname": "라박이",
       "elo_id": 85,
       "birthdate": "1985-01-14",
       "gender": "m",
@@ -9295,7 +9295,7 @@
       "gender": "f",
       "race": "프로토스",
       "tier": "6",
-      "team": "FA",
+      "team": "휴면",
       "role": "",
       "info_updated_at": null,
       "id": "busky3"
@@ -9691,7 +9691,7 @@
       "gender": "f",
       "race": "프로토스",
       "tier": "8",
-      "team": "JSA",
+      "team": "FA",
       "role": "",
       "info_updated_at": null,
       "id": "kjhanna824"
@@ -14753,7 +14753,7 @@
       "elo_id": null,
       "birthdate": null,
       "gender": "f",
-      "race": null,
+      "race": "테란",
       "tier": "베이비",
       "team": "마범대",
       "role": "",
@@ -14765,7 +14765,7 @@
       "elo_id": null,
       "birthdate": null,
       "gender": "f",
-      "race": null,
+      "race": "저그",
       "tier": "베이비",
       "team": "마범대",
       "role": "",
