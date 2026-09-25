@@ -29,6 +29,11 @@ def main(argv=None):
         # 커밋 같은 뒷 단계까지 통째로 스킵되어버린다. 그날 update_data.py가
         # 이미 잘 받아온 별풍선/스폰전적 데이터까지 반영이 안 되는 게 더
         # 큰 손해이므로, 이 실패는 로그만 남기고 조용히 넘어가는 게 맞다.
+        if not MEMBERS_PATH.exists():
+            # Actions 러너는 매번 새로 시작해 지난 members.json이 없다 - 여기서 멈춰야
+            # 원인이 로그에 남는다(다음 단계에서 '파일 없음'으로 죽으면 원인이 가려진다).
+            # 빌드가 실패해도 지금 배포된 사이트는 그대로 유지된다.
+            sys.exit("[오류] Supabase tier_members를 읽지 못했고 이전 members.json도 없어 빌드를 멈춥니다.")
         print("[오류] Supabase tier_members를 읽지 못해 members.json을 건드리지 않고 종료합니다.", file=sys.stderr)
         return
     if not sheet_rows:

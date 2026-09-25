@@ -10,6 +10,9 @@ on:
       - 'scripts/subset_font.py'
       - 'scripts/convert_members.py'
       - 'scripts/supabase_roster.py'
+      - 'scripts/_common.py'
+      - 'scripts/write_supabase_browser_config.py'
+      - 'requirements.txt'
       # 사이트 아이콘(파비콘·숲 로고) 원본
       - 'assets/logos/**'
 

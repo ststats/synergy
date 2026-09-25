@@ -230,7 +230,12 @@
               const q = {
                   select(cols) { params.set('select', cols); return q; },
                   eq(col, val) { params.append(col, `eq.${val}`); return q; },
-                  order(col, opt) { params.append('order', `${col}.${opt && opt.ascending === false ? 'desc' : 'asc'}`); return q; },
+                  // 여러 번 부르면 PostgREST 형식(order=a.asc,b.asc)으로 이어 붙인다
+                  order(col, opt) {
+                      const term = `${col}.${opt && opt.ascending === false ? 'desc' : 'asc'}`;
+                      params.set('order', params.has('order') ? params.get('order') + ',' + term : term);
+                      return q;
+                  },
                   range(from, to) { rangeFrom = from; rangeTo = to; return q; },
                   then(resolve, reject) {
                       if (rangeTo !== null) { params.set('offset', rangeFrom); params.set('limit', rangeTo - rangeFrom + 1); }
@@ -283,6 +288,7 @@
           if (IS_PROFILE && PROFILE_ID) query = query.eq('soop_id', PROFILE_ID);
           const { data: batch, error } = await query
               .order('nickname', { ascending: true })
+              .order('soop_id', { ascending: true })  // 닉네임이 겹쳐도 페이지 경계 순서가 고정되게
               .range(from, from + pageSize - 1);
           if (error) throw error;
 
@@ -358,9 +364,41 @@
       return LOGO_URLS[name] || '';
   }
 
-  const logosReady = loadUniversityLogos();
-  const AVAILABLE_DATES = await loadAvailableDates();
-  await logosReady;
+  // 일시 오류(네트워크 끊김 등)는 1초 뒤 한 번 더 시도한다
+  async function retryOnce(fn) {
+      try {
+          return await fn();
+      } catch (e) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          return fn();
+      }
+  }
+  function showLoadError() {
+      const host = document.getElementById('grid-container') || document.body;
+      host.innerHTML = '<div style="padding:40px;text-align:center;color:#c23636;">데이터를 불러오지 못했습니다.'
+          + '<br><button type="button" class="load-retry" style="margin-top:12px;padding:8px 16px;cursor:pointer;">다시 시도</button></div>';
+      const btn = host.querySelector('.load-retry');
+      if (btn) btn.addEventListener('click', () => location.reload());
+  }
+
+  // 로고는 부가 정보라 본문을 오래 막지 않는다: 1.5초 안에 오면 첫 화면부터 쓰고,
+  // 늦으면 이름 첫 글자 배지로 먼저 그린 뒤 도착했을 때 다시 그린다.
+  let logosLoaded = false;
+  const logosReady = loadUniversityLogos().then(() => { logosLoaded = true; });
+  let AVAILABLE_DATES;
+  try {
+      AVAILABLE_DATES = await retryOnce(loadAvailableDates);
+  } catch (e) {
+      console.error('날짜 목록을 불러오지 못했습니다', e);
+      showLoadError();
+      return;
+  }
+  await Promise.race([logosReady, new Promise(resolve => setTimeout(resolve, 1500))]);
+  if (!logosLoaded) {
+      logosReady.then(() => {
+          if (ownGet(fetchedData, currentDateStr)) applyData();
+      });
+  }
   if (AVAILABLE_DATES.length === 0) {
       const host = document.getElementById('grid-container') || document.body;
       host.innerHTML = '<div style="padding:40px;text-align:center;color:#c23636;">표시할 데이터가 없습니다.</div>';
@@ -453,7 +491,7 @@
           gridEl.innerHTML = '<div style="padding:40px;text-align:center;">불러오는 중...</div>';
       }
       const requestedDate = currentDateStr;
-      loadDailyData(requestedDate)
+      retryOnce(() => loadDailyData(requestedDate))
           .then(data => {
               const normalized = withDerivedFields(data);
               fetchedData[requestedDate] = normalized;
@@ -465,7 +503,10 @@
           .catch(() => {
               if (token !== renderToken) return;
               if (!IS_PROFILE && gridEl) {
-                  gridEl.innerHTML = '<div style="padding:40px;text-align:center;color:#c23636;">오류 발생</div>';
+                  gridEl.innerHTML = '<div style="padding:40px;text-align:center;color:#c23636;">데이터를 불러오지 못했습니다.'
+                      + '<br><button type="button" class="load-retry" style="margin-top:12px;padding:8px 16px;cursor:pointer;">다시 시도</button></div>';
+                  const btn = gridEl.querySelector('.load-retry');
+                  if (btn) btn.addEventListener('click', () => { if (token === renderToken) applyData(); });
               }
           });
   }
