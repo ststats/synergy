@@ -545,7 +545,33 @@ body { font-family: 'Pretendard Variable', sans-serif; background: #f4f5f7; marg
       };
   }
 
+  // 어드민(스타유니브 티어표 > 대학 로고)에서 올린 로고: university_logos 표의 이름 → 주소·색.
+  // 표에 없는 대학은 빌드 때 넣은 로고 파일(TEAM_LOGOS)과 색을 그대로 쓴다.
+  const LOGO_URLS = Object.create(null);
+  async function loadUniversityLogos() {
+      try {
+          const client = synergySupabaseClient();
+          if (!client) return;
+          const { data, error } = await client.from('university_logos').select('name,path,color');
+          if (error) throw error;
+          const base = String(window.SYNERGY_SUPABASE_CONFIG.url).replace(/\/$/, '');
+          (Array.isArray(data) ? data : []).forEach(r => {
+              if (!r || !r.name || !r.path) return;
+              LOGO_URLS[r.name] = `${base}/storage/v1/object/public/staruniv-media/${r.path}`;
+              if (r.color) TEAM_COLORS[r.name] = r.color;
+          });
+      } catch (e) {
+          console.warn('대학 로고 목록을 불러오지 못했습니다(빌드 때 로고를 씁니다)', e);
+      }
+  }
+  function teamLogoUrl(name) {
+      if (LOGO_URLS[name]) return LOGO_URLS[name];
+      return TEAM_LOGOS.has(name) ? `${LOGO_PREFIX}logos/${encodeURIComponent(name)}.webp` : '';
+  }
+
+  const logosReady = loadUniversityLogos();
   const AVAILABLE_DATES = await loadAvailableDates();
+  await logosReady;
   if (AVAILABLE_DATES.length === 0) {
       const host = document.getElementById('grid-container') || document.body;
       host.innerHTML = '<div style="padding:40px;text-align:center;color:#c23636;">표시할 데이터가 없습니다.</div>';
@@ -853,8 +879,9 @@ body { font-family: 'Pretendard Variable', sans-serif; background: #f4f5f7; marg
           targetTeamStats.forEach(ts => {
               // 색상값은 CSS 컨텍스트에 들어가므로(style="background:...") 화이트리스트로만 받는다.
               const topColor = safeCssColor(ownGet(TEAM_COLORS, ts.name));
-              const logoHtml = TEAM_LOGOS.has(ts.name)
-                  ? `<img src="${escapeHtml(LOGO_PREFIX)}logos/${attrUrlParam(ts.name)}.webp" class="team-logo" alt="" onerror="this.style.display='none'">`
+              const logoUrl = teamLogoUrl(ts.name);
+              const logoHtml = logoUrl
+                  ? `<img src="${escapeHtml(logoUrl)}" class="team-logo" alt="" onerror="this.style.display='none'">`
                   : `<span class="team-logo team-logo-initial" style="background:${topColor}" aria-hidden="true">${escapeHtml(Array.from(ts.name)[0] || '')}</span>`;
               const countHtml = `<span class="team-count">총 ${ts.males.length + ts.females.length}명 · 남 ${ts.males.length} · 여 ${ts.females.length}</span>`;
               const headerLeft = TARGET_TEAM ? `<div class="team-header-left">${logoHtml}<span class="team-name">${escapeHtml(ts.name)}</span>${countHtml}</div>`
