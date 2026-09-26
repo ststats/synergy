@@ -11,7 +11,9 @@ sys.path.insert(0, str(ROOT / "scripts"))
 import generate_pages  # noqa: E402
 from _common import validate_and_clean_members  # noqa: E402
 
-# 스타유니브 templates/assets/core.js의 SITE_ORDER.tiers, ststat processors/staruniv_ranking.py의 TIER_ORDER와 같아야 한다
+# 공통 티어 사다리의 사본. 스타유니브 templates/assets/core.js의 SITE_ORDER.tiers, ststat
+# processors/staruniv_ranking.py의 TIER_ORDER와 같아야 한다 - 이 테스트는 다른 저장소를 읽지 않으므로,
+# 사다리를 바꿀 때는 세 곳과 이 사본을 함께 고친다.
 TIER_ORDER = ['갓', '킹', '잭', '조커', '스페이드', '0', '1', '2', '3', '4', '5', '6', '7', '8', '베이비']
 
 
@@ -38,7 +40,7 @@ def test_all_pages_render():
         assert "supabase-config.js" in html
 
 
-def test_tier_order_matches_other_repos():
+def test_tier_order_matches_shared_ladder_copy():
     src = (ROOT / "templates" / "app.js.j2").read_text(encoding="utf-8")
     m = re.search(r"const TIER_ORDER = \[(.*?)\];", src)
     assert m, "app.js.j2에서 TIER_ORDER를 찾지 못함"
