@@ -14,8 +14,7 @@ from jinja2 import Environment, FileSystemLoader
 
 MEMBERS_PATH = ROOT / "data" / "members.json"
 DOCS_DIR = ROOT / "docs"
-SCRIPTS_DIR = Path(__file__).resolve().parent
-TEMPLATES_DIR = SCRIPTS_DIR / "templates"
+TEMPLATES_DIR = ROOT / "templates"
 _jinja_env = Environment(
     loader=FileSystemLoader(TEMPLATES_DIR),
     keep_trailing_newline=True,
@@ -42,8 +41,8 @@ def json_for_script(value) -> str:
     이 프로젝트의 Jinja Environment는 autoescape가 꺼져 있고(HTML이 아니라
     JS/CSS를 주로 렌더하므로 켜는 것도 답이 아니다), 그래서 JSON을 넣는
     자리에는 json.dumps 결과가 그대로 들어간다. 문제는 json.dumps가
-    "<", ">"를 전혀 escape하지 않는다는 점이다 - 팀 이름이나 닉네임(구글
-    시트를 거치지만 원천은 EloBoard API의 college/name 필드다)에
+    "<", ">"를 전혀 escape하지 않는다는 점이다 - 팀 이름이나 닉네임(Supabase
+    tier_members에서 오고, 원천은 EloBoard API·어드민 입력이다)에
     "</script><script>...</script>" 같은 문자열이 한 번이라도 들어오면
     스크립트 블록이 그 자리에서 끊기고 임의 JS가 방문자 전원의 브라우저에서
     실행된다(저장형 XSS).
@@ -65,7 +64,7 @@ def build_web_logos() -> None:
     WEB_LOGOS_DIR.mkdir(parents=True, exist_ok=True)
     sources = {p.name: p for p in LOGOS_DIR.glob("*.webp")}
     for name, src in sources.items():
-        # 매번 새로 줄이되(작은 파일 20개 남짓) 내용이 같으면 쓰지 않는다 - 빌드 커밋에 안 섞이게
+        # 매번 새로 줄이되(작은 파일 20개 남짓) 내용이 같으면 쓰지 않는다
         with Image.open(src) as im:
             im = im.convert("RGBA")
             im.thumbnail((WEB_LOGO_SIZE, WEB_LOGO_SIZE), Image.LANCZOS)
@@ -123,7 +122,7 @@ def main():
     if not isinstance(members_config, dict):
         # 예전엔 open()을 바로 해서, members.json이 없거나 깨져 있으면
         # FileNotFoundError/JSONDecodeError로 죽으면서 원인이 안 남았다.
-        # (convert_members.py 스텝은 continue-on-error라 실제로 발생 가능한 경로다.)
+        # (convert_members.py가 Supabase를 못 읽으면 members.json 없이 여기로 올 수 있다.)
         print(f"[오류] {MEMBERS_PATH}를 읽을 수 없거나 형식이 올바르지 않습니다.", file=sys.stderr)
         sys.exit(1)
     members_data = [m for m in members_config.get("members", []) if isinstance(m, dict)]
