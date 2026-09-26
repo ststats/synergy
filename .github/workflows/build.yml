@@ -28,7 +28,12 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # 테스트(test.yml)를 먼저 돌리고, 통과해야 빌드·배포한다(정기 실행 포함).
+  test:
+    uses: ./.github/workflows/test.yml
+
   build:
+    needs: test
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:

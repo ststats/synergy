@@ -1,11 +1,12 @@
 name: Test
 
-# python -m pytest (tests/). 사이트 배포(build.yml)와는 따로 돌아서
-# 테스트가 실패해도 정기 배포를 막지 않는다 - 실패하면 Actions 탭에 빨갛게 남는다.
+# python -m pytest (tests/).
+# Build도 배포 전에 이 워크플로를 불러 돌린다 - 테스트가 실패하면 정기 실행을 포함해 배포하지 않는다.
 on:
   push:
     branches: [main]
   pull_request:
+  workflow_call:
 
 jobs:
   test:

@@ -18,7 +18,7 @@ python -m pytest -q                   # tests/ (escape·페이지 렌더·티어
 
 `data/members.json`은 팀 색상과 정적 셸 생성에 쓰는 빌드 캐시입니다. 일별 수치와 성별·생일을 포함한 프로필 데이터는 `daily_member_stats`에서 읽습니다.
 
-GitHub Actions는 수동 실행과 관련 소스 변경으로 웹을 다시 빌드하고, 결과(`docs/`)를 저장소에 커밋하지 않고 GitHub Pages로 바로 배포합니다(Settings → Pages → Source: GitHub Actions). Vercel 주소는 빌드하지 않고 `docs/vercel.json`이 모든 주소를 GitHub Pages로 넘깁니다(Vercel 프로젝트의 Root Directory = `docs`, 스타유니브와 같음). 운영 주기 실행은 외부 크론이 `workflow_dispatch`를 호출합니다. 필요한 설정은 `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_PUBLISHABLE_KEY`입니다.
+GitHub Actions는 수동 실행과 관련 소스 변경으로 웹을 다시 빌드하고, 결과(`docs/`)를 저장소에 커밋하지 않고 GitHub Pages로 바로 배포합니다(Settings → Pages → Source: GitHub Actions). Vercel 주소는 빌드하지 않고 `docs/vercel.json`이 모든 주소를 GitHub Pages로 넘깁니다(Vercel 프로젝트의 Root Directory = `docs`, 스타유니브와 같음). 운영 주기 실행은 cron-job.org가 매일 00:05·12:05(한국 시간)에 `https://api.github.com/repos/ststats/synergy/actions/workflows/build.yml/dispatches`로 `workflow_dispatch`를 호출합니다. 빌드는 먼저 테스트(`test.yml`)를 돌리고, 실패하면 배포하지 않습니다. 필요한 설정은 `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_PUBLISHABLE_KEY`입니다.
 
 공유 DB 스키마와 공개 권한은 `ststat/supabase/ststat.sql`에서 관리합니다.
 
