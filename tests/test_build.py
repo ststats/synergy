@@ -56,3 +56,15 @@ def test_validate_and_clean_members_drops_incomplete_rows():
     ]
     cleaned = validate_and_clean_members(rows)
     assert [(m["id"], m["elo_id"]) for m in cleaned] == [("abc", 12)]
+
+
+def test_daily_queries_fetch_only_used_columns():
+    src = (ROOT / "templates" / "app.js.j2").read_text(encoding="utf-8")
+    full = re.search(r"const DAILY_COLUMNS = '([^']+)'", src).group(1).split(",")
+    rank = re.search(r"const DAILY_RANK_COLUMNS = '([^']+)'", src).group(1).split(",")
+    # 화면에서 안 쓰는 칸은 받지 않는다
+    assert "month_start" not in full and "elo_id" not in full
+    # 지난달 순위 계산용은 소속·직책·성별·지표만(생일·닉네임 등 개인 정보는 받지 않는다)
+    assert set(rank) == {"soop_id", "role", "affiliation", "gender", "balloons", "broadcast_seconds",
+                         "cumulative_viewers", "sponsor_wins", "sponsor_losses"}
+    assert "loadDailyData(prevDate, { light: true })" in src

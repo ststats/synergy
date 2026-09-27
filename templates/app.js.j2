@@ -273,7 +273,11 @@
           .filter(Boolean);
   }
 
-  async function loadDailyData(dateStr) {
+  // 화면에 쓰는 칸만 받는다. light는 지난달 대학 순위 증감(▲▼) 계산용 - 소속·직책·성별·지표 값만
+  // (닉네임·생일·종족·티어는 받지 않는다). light 결과는 rankOnlyData에 따로 둬서 그 날짜를 직접 열면 전체를 새로 받는다.
+  const DAILY_COLUMNS = 'stat_date,soop_id,nickname,role,affiliation,race,tier,gender,birth_date,balloons,broadcast_seconds,cumulative_viewers,sponsor_wins,sponsor_losses,updated_at,sponsor_updated_at';
+  const DAILY_RANK_COLUMNS = 'soop_id,role,affiliation,gender,balloons,broadcast_seconds,cumulative_viewers,sponsor_wins,sponsor_losses';
+  async function loadDailyData(dateStr, { light = false } = {}) {
       const client = synergySupabaseClient();
       if (!client) throw new Error('Supabase browser client is not configured');
 
@@ -281,13 +285,13 @@
       const pageSize = 1000;
       for (let from = 0; ; from += pageSize) {
           let query = client.from('daily_member_stats')
-              .select('stat_date,month_start,soop_id,elo_id,nickname,role,affiliation,race,tier,gender,birth_date,balloons,broadcast_seconds,cumulative_viewers,sponsor_wins,sponsor_losses,updated_at,sponsor_updated_at')
+              .select(light ? DAILY_RANK_COLUMNS : DAILY_COLUMNS)
               .eq('stat_date', dateStr);
           // 개인 페이지는 그 한 명만 받는다. 팀 페이지는 상위 1·5·10% 표시를 전체페이지와 같이
           // 전체 선수 기준으로 매기므로 전체를 받고, 화면에는 그 팀만 그린다.
           if (IS_PROFILE && PROFILE_ID) query = query.eq('soop_id', PROFILE_ID);
+          if (!light) query = query.order('nickname', { ascending: true });
           const { data: batch, error } = await query
-              .order('nickname', { ascending: true })
               .order('soop_id', { ascending: true })  // 닉네임이 겹쳐도 페이지 경계 순서가 고정되게
               .range(from, from + pageSize - 1);
           if (error) throw error;
@@ -313,7 +317,6 @@
 
           return {
               id: r.soop_id,
-              elo_id: r.elo_id,
               nickname: r.nickname,
               role: r.role || '',
               team: r.affiliation || null,
@@ -408,6 +411,7 @@
   let currentDateStr = AVAILABLE_DATES[0];
   let currentMetric = "balloon";
   const fetchedData = Object.create(null);
+  const rankOnlyData = Object.create(null);   // 지난달 순위 계산용 가벼운 데이터(loadDailyData light)
   // 날짜를 빠르게 여러 번 바꾸면 여러 fetch가 동시에 떠 있게 되고, 먼저 보낸
   // 느린 응답이 나중에 도착해 최신 화면을 옛날 데이터로 덮어쓸 수 있었다
   // (전형적인 렌더 경합). 요청마다 번호를 매겨서, 도착한 응답이 "지금도
@@ -578,11 +582,11 @@
       if (!prevDate) return;
 
       const token = renderToken;
-      let prevData = ownGet(fetchedData, prevDate);
+      let prevData = ownGet(fetchedData, prevDate) || ownGet(rankOnlyData, prevDate);
       if (!prevData) {
           try {
-              prevData = withDerivedFields(await loadDailyData(prevDate));
-              fetchedData[prevDate] = prevData;
+              prevData = withDerivedFields(await loadDailyData(prevDate, { light: true }));
+              rankOnlyData[prevDate] = prevData;
           } catch (e) { return; }
       }
       // 이 함수는 async라서, 위 await 동안 사용자가 날짜/지표를 바꿨을 수
