@@ -66,28 +66,16 @@
       }[c]));
   }
 
-  // 외부 API가 응답하지 않을 때 요청이 영원히 매달려 있지 않도록 상한을 둔다.
-  function fetchWithTimeout(url, ms) {
-      if (typeof AbortController === 'undefined') return fetch(url);
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), ms);
-      return fetch(url, { signal: controller.signal }).finally(() => clearTimeout(timer));
-  }
-
+  // 방송 중 여부: ststat live-status가 2분마다 채우는 live_broadcasts_current(스타유니브와 같은 표)에서
+  // 이 사람 한 줄만 읽는다. 시청자 수는 최대 2분 전 값이다. 못 읽거나 방송 중이 아니면 null.
   async function checkIsLiveRealtime(soopId) {
-      try {
-          const res = await fetchWithTimeout(
-              `https://bjapi.afreecatv.com/api/${encodeURIComponent(soopId)}/station`, 8000);
-          if (!res.ok) return null;
-          const data = await res.json();
-          if (!data || !data.broad) return null;
-          return {
-              broad: data.broad,
-              broadStart: (data.station && data.station.broad_start) || null,
-          };
-      } catch (e) {
-          return null;
-      }
+      const client = synergySupabaseClient();
+      if (!client || !soopId) return null;
+      const { data, error } = await client.from('live_broadcasts_current')
+          .select('broad_no,broad_title,current_sum_viewer,broad_start').eq('soop_id', soopId).range(0, 0);
+      const row = !error && Array.isArray(data) ? data[0] : null;
+      if (!row || !row.broad_no) return null;
+      return { broad: row, broadStart: row.broad_start || null };
   }
 
   function fitTextToWidth(el, fullText) {
