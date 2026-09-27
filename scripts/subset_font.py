@@ -140,9 +140,7 @@ def main():
         )
 
         # 서브셋 결과는 임시 파일에 먼저 만들고, 완전히 성공했을 때만
-        # 최종 위치로 옮긴다. 예전엔 fonttools가 OUTPUT_PATH에 직접 쓰게
-        # 해서, 중간에 실패하면 기존의 멀쩡한 폰트가 반쯤 쓰인 파일로
-        # 덮여 사이트 글꼴이 깨질 수 있었다.
+        # 최종 위치로 옮긴다(중간에 실패해도 멀쩡한 폰트가 반쯤 쓰인 파일로 덮이지 않게).
         tmp_out = Path(tmpdir) / "subset.woff2"
         OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
         cmd = [

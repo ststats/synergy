@@ -206,11 +206,10 @@
       return `${parts.year}-${parts.month}-${parts.day} ${parts.hour}:${parts.minute}:${parts.second}`;
   }
 
-  // 예전 코드는 AVAILABLE_DATES[0]이 undefined가 되고, 곧 currentDateStr.split()에서
-  // TypeError가 나면서 페이지 전체가 백지가 됐다. 원인을 알 수 있는 메시지를
-  // 보여주고 조용히 멈춘다.
-  // Supabase 공개 읽기(REST). 예전엔 supabase-js(213KB)를 통째로 받았지만 이 페이지는
-  // 표 두 개를 select·eq·order·range로 읽기만 하므로 fetch 몇 줄이면 된다.
+  // (그냥 진행하면 AVAILABLE_DATES[0]이 undefined라 currentDateStr.split()에서 페이지 전체가
+  // 백지가 된다.) 원인을 알 수 있는 메시지를 보여주고 조용히 멈춘다.
+  // Supabase 공개 읽기(REST). 이 페이지는 표 두 개를 select·eq·order·range로 읽기만 하므로
+  // supabase-js(213KB) 없이 fetch 몇 줄이면 된다.
   const REQUEST_TIMEOUT_MS = 8000;
   function synergySupabaseClient() {
       const cfg = window.SYNERGY_SUPABASE_CONFIG;
@@ -419,8 +418,8 @@
       return pendingLoads[key];
   }
   // 날짜를 빠르게 여러 번 바꾸면 여러 fetch가 동시에 떠 있게 되고, 먼저 보낸
-  // 느린 응답이 나중에 도착해 최신 화면을 옛날 데이터로 덮어쓸 수 있었다
-  // (전형적인 렌더 경합). 요청마다 번호를 매겨서, 도착한 응답이 "지금도
+  // 느린 응답이 나중에 도착해 최신 화면을 이전 데이터로 덮어쓸 수 있다
+  // (렌더 경합). 요청마다 번호를 매겨서, 도착한 응답이 "지금도
   // 최신인 요청"의 것일 때만 그린다.
   let renderToken = 0;
 
@@ -479,10 +478,8 @@
                   + '&metric=' + encodeURIComponent(currentMetric);
           }
       } else if (IS_PROFILE) {
-          // 날짜/지표가 바뀔 때마다 applyData()가 매번 호출되므로, 여기서
-          // 매번 다시 계산해야 뒤로가기 링크가 항상 지금 보고 있는 날짜를
-          // 그대로 들고 돌아간다(페이지 처음 열 때 딱 한 번만 계산하면,
-          // 그 이후 날짜를 바꿔도 뒤로가기는 예전 날짜로 남는 문제가 있었다).
+          // 날짜/지표가 바뀔 때마다 applyData()가 호출되므로 여기서 매번 다시
+          // 계산해야 뒤로가기 링크가 항상 지금 보고 있는 날짜를 들고 돌아간다.
           const backHref = FROM_TEAM
               ? `team.html?team=${encodeURIComponent(FROM_TEAM)}&date=${encodeURIComponent(currentDateStr)}&metric=${encodeURIComponent(currentMetric)}`
               : `index.html?date=${encodeURIComponent(currentDateStr)}&metric=${encodeURIComponent(currentMetric)}`;
@@ -684,9 +681,8 @@
       const roleLegend = document.getElementById('role-legend-item');
       if(roleLegend) roleLegend.style.display = def.excludeRoles ? '' : 'none';
 
-      // 예전엔 `nickname + '|' + team`을 키로 쓰는 객체였는데, 같은 팀에
-      // 동명이인이 있으면 한 명의 등급이 다른 사람에게도 칠해졌다. 멤버
-      // 객체 자체를 키로 쓰는 Map은 이런 충돌이 원천적으로 불가능하다.
+      // 멤버 객체 자체를 키로 쓰는 Map이다(`nickname + '|' + team` 같은 문자열 키는 같은 팀
+      // 동명이인이면 한 명의 등급이 다른 사람에게도 칠해진다).
       const tiers = new Map();
       const pool = members.filter(m => {
           const v = m[def.field] || 0;
@@ -809,7 +805,7 @@
           const liveToken = renderToken;
           checkIsLiveRealtime(tid).then(result => {
               // 조회가 끝났을 때 화면이 이미 다른 날짜/사람으로 넘어갔다면
-              // 그 화면 위에 옛 방송 정보를 얹지 않는다.
+              // 그 화면 위에 이전 방송 정보를 얹지 않는다.
               if (liveToken !== renderToken) return;
               if (result && result.broad) {
                   const { broad, broadStart } = result;
@@ -869,8 +865,8 @@
 
       const sponsorEl = document.getElementById('profile-sponsor');
       // interval뿐 아니라 그 안에서 예약된 setTimeout까지 반드시 같이 정리해야
-      // 한다. 예전엔 interval만 지워서, 이미 예약돼 있던 timeout이 300ms 뒤에
-      // 깨어나 "새로 그린" 사람의 전적 위에 이전 사람의 문자열을 덮어썼다.
+      // 한다(남은 timeout이 300ms 뒤에 깨어나 새로 그린 사람의 전적 위에 이전 사람의
+      // 문자열을 덮어쓴다).
       if (window.__sponsorToggleTimer) clearInterval(window.__sponsorToggleTimer);
       if (window.__sponsorFadeTimer) clearTimeout(window.__sponsorFadeTimer);
       const sGames = member.sponsor_games || 0;

@@ -85,11 +85,9 @@ def generate_html(title, target_team, is_profile, logo_prefix, team_colors, team
     if team_from_url:
         target_team_js = "new URLSearchParams(window.location.search).get('team') || \"\""
     else:
-        # 예전엔 f'"{team_name_str}"'로 팀 이름을 JS 문자열 리터럴 안에 그대로
-        # 끼워 넣었다. 팀 이름에 따옴표나 역슬래시, 줄바꿈이 하나만 있어도
-        # 스크립트가 문법 오류로 통째로 죽고(= 페이지 전체 백지), 악의적인
-        # 값이면 임의 코드 실행이 된다. json.dumps는 이 모든 경우를 정확히
-        # 처리하는 표준 방식이다.
+        # 팀 이름은 json.dumps로 JS 문자열 리터럴을 만든다. 그대로 끼워 넣으면 따옴표·역슬래시·
+        # 줄바꿈 하나에 스크립트가 문법 오류로 통째로 죽고(= 페이지 전체 백지), 악의적인 값이면
+        # 임의 코드 실행이 된다.
         target_team_js = json_for_script(target_team if target_team else "")
 
     include_mobile_css = not is_profile and not target_team
@@ -120,9 +118,8 @@ def _write_if_changed(dst_path: Path, content: str) -> None:
 def main():
     members_config = safe_read_json(MEMBERS_PATH, default=None)
     if not isinstance(members_config, dict):
-        # 예전엔 open()을 바로 해서, members.json이 없거나 깨져 있으면
-        # FileNotFoundError/JSONDecodeError로 죽으면서 원인이 안 남았다.
-        # (convert_members.py가 Supabase를 못 읽으면 members.json 없이 여기로 올 수 있다.)
+        # members.json이 없거나 깨져 있으면 원인을 남기고 멈춘다
+        # (convert_members.py가 Supabase를 못 읽으면 members.json 없이 여기로 올 수 있다).
         print(f"[오류] {MEMBERS_PATH}를 읽을 수 없거나 형식이 올바르지 않습니다.", file=sys.stderr)
         sys.exit(1)
     members_data = [m for m in members_config.get("members", []) if isinstance(m, dict)]
