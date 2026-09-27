@@ -412,6 +412,12 @@
   let currentMetric = "balloon";
   const fetchedData = Object.create(null);
   const rankOnlyData = Object.create(null);   // 지난달 순위 계산용 가벼운 데이터(loadDailyData light)
+  // 같은 날짜를 받는 중에 또 부르면(지표를 빠르게 바꾸는 등) 새로 요청하지 않고 떠 있는 요청을 같이 기다린다
+  const pendingLoads = Object.create(null);
+  function loadOnce(key, load) {
+      if (!pendingLoads[key]) pendingLoads[key] = load().finally(() => { delete pendingLoads[key]; });
+      return pendingLoads[key];
+  }
   // 날짜를 빠르게 여러 번 바꾸면 여러 fetch가 동시에 떠 있게 되고, 먼저 보낸
   // 느린 응답이 나중에 도착해 최신 화면을 옛날 데이터로 덮어쓸 수 있었다
   // (전형적인 렌더 경합). 요청마다 번호를 매겨서, 도착한 응답이 "지금도
@@ -495,9 +501,8 @@
           gridEl.innerHTML = '<div style="padding:40px;text-align:center;">불러오는 중...</div>';
       }
       const requestedDate = currentDateStr;
-      retryOnce(() => loadDailyData(requestedDate))
-          .then(data => {
-              const normalized = withDerivedFields(data);
+      loadOnce('full:' + requestedDate, () => retryOnce(() => loadDailyData(requestedDate)).then(withDerivedFields))
+          .then(normalized => {
               fetchedData[requestedDate] = normalized;
               // 내가 요청을 보낸 뒤 사용자가 날짜/지표를 또 바꿨다면, 이
               // 응답은 이미 낡은 것이므로 그리지 않는다(캐시에는 남겨둔다).
@@ -585,7 +590,7 @@
       let prevData = ownGet(fetchedData, prevDate) || ownGet(rankOnlyData, prevDate);
       if (!prevData) {
           try {
-              prevData = withDerivedFields(await loadDailyData(prevDate, { light: true }));
+              prevData = await loadOnce('light:' + prevDate, () => loadDailyData(prevDate, { light: true }).then(withDerivedFields));
               rankOnlyData[prevDate] = prevData;
           } catch (e) { return; }
       }
