@@ -12,7 +12,10 @@ on:
       - 'scripts/supabase_roster.py'
       - 'scripts/_common.py'
       - 'scripts/write_supabase_browser_config.py'
+      - 'scripts/minify_assets.mjs'
       - 'requirements.txt'
+      - 'package.json'
+      - 'package-lock.json'
       # 사이트 아이콘(파비콘·숲 로고) 원본
       - 'assets/logos/**'
 
@@ -59,6 +62,15 @@ jobs:
         env:
           SUPABASE_PUBLISHABLE_KEY: ${{ vars.SUPABASE_PUBLISHABLE_KEY || secrets.SUPABASE_ANON_KEY }}
         run: python scripts/write_supabase_browser_config.py
+
+      # 배포본에서 주석·공백 빼기(원본 templates/는 그대로). 글꼴 서브셋이 docs/*.html을 읽으므로 그 전에 한다.
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+          cache: npm
+      - run: npm ci
+      - name: Minify assets
+        run: node scripts/minify_assets.mjs docs
 
       - id: pages
         uses: actions/configure-pages@v6

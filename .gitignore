@@ -7,3 +7,6 @@ docs/*
 !docs/vercel.json
 data/members.json
 data/font_subset_chars_hash.json
+
+# 배포용 압축 도구(npm ci)
+node_modules/

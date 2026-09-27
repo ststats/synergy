@@ -1,0 +1,16 @@
+{
+  "name": "synergy",
+  "private": true,
+  "description": "배포용 HTML 안 JS·CSS 압축(scripts/minify_assets.mjs). 웹 빌드는 파이썬(scripts/).",
+  "scripts": {
+    "minify": "node scripts/minify_assets.mjs docs"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "devDependencies": {
+    "acorn": "8.15.0",
+    "esbuild": "0.25.10",
+    "terser": "5.44.0"
+  }
+}
