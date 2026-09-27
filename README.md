@@ -15,7 +15,8 @@ python -m pytest -q                   # tests/ (escape·페이지 렌더·티어
 
 - 페이지 원본은 `templates/`(스타유니브와 같은 자리)이고, 빌드 결과 `docs/`는 저장소에 없습니다.
 - 배포 때 `scripts/minify_assets.mjs`가 `docs/`의 JS·CSS·HTML에서 주석과 공백을 뺍니다(변수 이름·코드는 그대로, 원본과 구문 트리가 같을 때만). 원본의 주석은 그대로 두면 됩니다. 로컬에서 확인: `npm ci && npm run minify`.
-- 티어 순서(`templates/app.js.j2`의 `TIER_ORDER`)는 스타유니브 `core.js`의 `SITE_ORDER.tiers`, ststat `processors/staruniv_ranking.py`와 같아야 합니다(테스트가 확인).
+- 페이지 스크립트는 `templates/app.js` 파일 하나이고(빌드가 `docs/app.js`로 복사), 페이지마다 다른 값은 HTML의 `<script type="application/json" id="page-config">`로 넘깁니다. CSP로 인라인 스크립트를 막으므로 `onclick="…"`·`onerror="…"`나 실행되는 인라인 `<script>`는 쓰지 않습니다(이미지 대체는 `data-fallback="hidden|none"`, 테스트가 확인).
+- 티어 순서(`templates/app.js`의 `TIER_ORDER`)는 스타유니브 `core.js`의 `SITE_ORDER.tiers`, ststat `processors/staruniv_ranking.py`와 같아야 합니다(테스트가 확인).
 
 `data/members.json`은 팀 색상과 정적 셸 생성에 쓰는 빌드 캐시입니다. 일별 수치와 성별·생일을 포함한 프로필 데이터는 `daily_member_stats`에서 읽습니다.
 

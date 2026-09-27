@@ -5,7 +5,9 @@ synergy 프로젝트의 CSR 페이지 생성 스크립트.
 import sys
 import json
 import io
+import os
 import shutil
+import hashlib
 from pathlib import Path
 from PIL import Image
 
@@ -33,6 +35,9 @@ OUTPUT_TEAM_PATH = DOCS_DIR / "team.html"
 OUTPUT_TEAMS_DIR = DOCS_DIR / "teams" 
 
 DEFAULT_TOPBAR_COLOR = "#4a5ce0"
+# 검색엔진용 사이트 주소(JSON-LD). 다른 주소로 배포하면 환경변수 SITE_URL로 바꾼다(끝의 / 없이).
+SITE_URL = os.environ.get("SITE_URL", "https://ststats.github.io/synergy").rstrip("/")
+APP_JS = TEMPLATES_DIR / "app.js"
 
 
 def json_for_script(value) -> str:
@@ -78,32 +83,56 @@ def build_web_logos() -> None:
             old.unlink()
 
 
+def app_version() -> str:
+    """app.js 내용이 바뀌면 주소(?v=)도 바뀌어 브라우저가 새 파일을 받는다."""
+    return hashlib.sha1(APP_JS.read_bytes()).hexdigest()[:10]
+
+
 def generate_html(title, target_team, is_profile, logo_prefix, team_colors, team_from_url=False):
     font_url = f"{logo_prefix}fonts/PretendardVariable.woff2"
-    colors_json = json_for_script(team_colors)
-
-    if team_from_url:
-        target_team_js = "new URLSearchParams(window.location.search).get('team') || \"\""
-    else:
-        # 팀 이름은 json.dumps로 JS 문자열 리터럴을 만든다. 그대로 끼워 넣으면 따옴표·역슬래시·
-        # 줄바꿈 하나에 스크립트가 문법 오류로 통째로 죽고(= 페이지 전체 백지), 악의적인 값이면
-        # 임의 코드 실행이 된다.
-        target_team_js = json_for_script(target_team if target_team else "")
+    # 페이지마다 다른 값은 app.js가 읽는 JSON 데이터 블록으로 넘긴다. 팀 이름 같은 값은 json_for_script로
+    # 만들어 따옴표·역슬래시·"</script>"가 섞여도 블록이 끊기지 않는다(저장형 XSS 방지).
+    page_config = json_for_script({
+        "colors": team_colors,
+        "targetTeam": "" if team_from_url else (target_team or ""),
+        "teamFromUrl": bool(team_from_url),
+        "logoPrefix": logo_prefix,
+        "isProfile": bool(is_profile),
+    })
+    is_index = not is_profile and not target_team and not team_from_url
+    json_ld = json_for_script({"@context": "https://schema.org", "@type": "WebSite",
+                               "name": "시너지", "url": f"{SITE_URL}/"}) if is_index else ""
 
     include_mobile_css = not is_profile and not target_team
     template = _jinja_env.get_template("page.html.j2")
     return template.render(
-        colors_json=colors_json,
+        app_version=app_version(),
         font_url=font_url,
         include_mobile_css=include_mobile_css,
         is_profile=is_profile,
+        json_ld=json_ld,
         logo_prefix=logo_prefix,
+        page_config=page_config,
         target_team=target_team,
-        target_team_js=target_team_js,
         team_colors=team_colors,
         team_from_url=team_from_url,
         title=title,
     )
+
+
+def build_static_files() -> None:
+    """app.js와 홈 화면 아이콘(파비콘을 180px 정사각형에 채운 PNG)을 docs에 둔다."""
+    DOCS_DIR.mkdir(parents=True, exist_ok=True)
+    _write_if_changed(DOCS_DIR / "app.js", APP_JS.read_text(encoding="utf-8"))
+    with Image.open(LOGOS_DIR / "파비콘.webp") as im:
+        im = im.convert("RGBA")
+        square = Image.new("RGBA", im.size, im.getpixel((im.width // 10, im.height // 2))[:3] + (255,))
+        square.alpha_composite(im)
+        buf = io.BytesIO()
+        square.convert("RGB").resize((180, 180), Image.LANCZOS).save(buf, "PNG", optimize=True)
+    dst = DOCS_DIR / "apple-touch-icon.png"
+    if not dst.exists() or dst.read_bytes() != buf.getvalue():
+        dst.write_bytes(buf.getvalue())
 
 def _write_if_changed(dst_path: Path, content: str) -> None:
     if dst_path.exists():
@@ -133,6 +162,7 @@ def main():
     team_colors = {team: DEFAULT_TOPBAR_COLOR for team in sorted(all_team_names)}
     team_colors["FA"], team_colors["휴면"] = "#8b8f99", "#8b8f99"
     build_web_logos()
+    build_static_files()
 
     index_html = generate_html("시너지", "", False, "", team_colors)
     OUTPUT_INDEX.parent.mkdir(parents=True, exist_ok=True)

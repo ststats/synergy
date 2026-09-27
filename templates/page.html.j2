@@ -2,9 +2,18 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
+  {#- 스크립트는 이 사이트 파일만 실행한다(인라인 코드 · 외부 스크립트 차단, XSS 방지). 이미지는 https 어디서든, 데이터는 Supabase만. #}
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{{ title }}</title>
   <link rel="icon" type="image/webp" href="{{ logo_prefix }}logos/파비콘.webp">
+  <link rel="apple-touch-icon" href="{{ logo_prefix }}apple-touch-icon.png">
+  {#- 모바일 주소창 색: 페이지 바탕 #}
+  <meta name="theme-color" content="#f4f5f7">
+  {% if json_ld %}
+  {#- 검색엔진이 읽는 사이트 정보(JSON-LD). 실행되는 스크립트가 아니라 데이터라 CSP에 걸리지 않는다. #}
+  <script type="application/ld+json">{{ json_ld }}</script>
+  {% endif %}
   <link rel="preload" href="{{ font_url }}" as="font" type="font/woff2" crossorigin>
   <style>
     @font-face { font-family: 'Pretendard Variable'; font-weight: 45 920; font-style: normal; font-display: swap; src: url('{{ font_url }}') format('woff2-variations'); }
@@ -64,7 +73,7 @@
         <div class="profile-row">
           <span class="profile-row-label">방송국</span>
           <a id="profile-station-link" href="#" target="_blank" rel="noopener">
-            <img class="profile-station-icon" src="{{ logo_prefix }}logos/숲로고.webp" alt="방송국 바로가기" onerror="this.style.display='none'">
+            <img class="profile-station-icon" src="{{ logo_prefix }}logos/숲로고.webp" alt="방송국 바로가기" data-fallback="none">
           </a>
         </div>
       </div>
@@ -103,6 +112,7 @@
   {% endif %}
 
 <script src="{{ logo_prefix }}supabase-config.js"></script>
-  {% include 'app.js.j2' %}
+<script type="application/json" id="page-config">{{ page_config }}</script>
+<script src="{{ logo_prefix }}app.js?v={{ app_version }}"></script>
 </body>
 </html>

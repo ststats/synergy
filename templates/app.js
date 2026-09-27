@@ -1,9 +1,16 @@
-<script>
+// 시너지 페이지 스크립트(모든 페이지가 같이 쓴다). CSP로 인라인 스크립트를 막으므로 HTML 안이 아니라 파일로 두고,
+// 페이지마다 다른 값(대학 색 · 대상 팀 · 경로 · 프로필 여부)은 HTML의 <script type="application/json" id="page-config">에서 읽는다.
 (async function () {
-  const TEAM_COLORS = {{ colors_json }};
-  const TARGET_TEAM = {{ target_team_js }};
-  const LOGO_PREFIX = "{{ logo_prefix }}";
-  const IS_PROFILE = {{ 'true' if is_profile else 'false' }};
+  const PAGE = JSON.parse(document.getElementById('page-config').textContent);
+  const TEAM_COLORS = PAGE.colors;
+  const TARGET_TEAM = PAGE.teamFromUrl ? (new URLSearchParams(window.location.search).get('team') || "") : PAGE.targetTeam;
+  const LOGO_PREFIX = PAGE.logoPrefix;
+  const IS_PROFILE = PAGE.isProfile;
+  // 이미지를 못 불러오면 data-fallback대로 가린다(hidden: 자리는 두고 숨김, none: 자리까지 없앰).
+  // 인라인 onerror를 쓰지 않는다. 이 파일보다 먼저 실패한 HTML 속 이미지는 바로 아래에서 마저 처리한다.
+  const hideBrokenImage = img => { img.style[img.dataset.fallback === 'none' ? 'display' : 'visibility'] = img.dataset.fallback; };
+  document.addEventListener('error', e => { if (e.target instanceof HTMLImageElement && e.target.dataset.fallback) hideBrokenImage(e.target); }, true);
+  document.querySelectorAll('img[data-fallback]').forEach(img => { if (img.complete && !img.naturalWidth) hideBrokenImage(img); });
   const PROFILE_ID = IS_PROFILE ? new URLSearchParams(window.location.search).get('id') : '';
   // 프로필 페이지의 뒤로가기 목적지 계산용 - URL에 한 번만 실려오는 값이라
   // 페이지 로드 시점에 딱 한 번만 읽어서 상수로 둔다(날짜/지표처럼 나중에
@@ -619,7 +626,7 @@
           // 속성값 자리에 그대로 넣으면 따옴표 하나로 속성을 탈출해
           // onerror= 같은 걸 붙일 수 있다(저장형 XSS). 모든 삽입 지점을
           // escapeHtml / attrUrlParam으로 감싼다.
-          const photoImg = `<img class="fa-bar-photo" src="${escapeHtml(soopPhotoUrl(m.id))}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">`;
+          const photoImg = `<img class="fa-bar-photo" src="${escapeHtml(soopPhotoUrl(m.id))}" alt="" loading="lazy" data-fallback="hidden">`;
           const liveDot = m.id ? `<span class="live-dot" data-live-id="${escapeHtml(m.id)}"></span>` : '';
           const inner = `${photoImg}${liveDot}<span class="member-name">${escapeHtml(m.nickname)}</span>`;
           return m.id
@@ -700,7 +707,7 @@
               const topColor = safeCssColor(ownGet(TEAM_COLORS, ts.name));
               const logoUrl = teamLogoUrl(ts.name);
               const logoHtml = logoUrl
-                  ? `<img src="${escapeHtml(logoUrl)}" class="team-logo" alt="" onerror="this.style.display='none'">`
+                  ? `<img src="${escapeHtml(logoUrl)}" class="team-logo" alt="" data-fallback="none">`
                   : `<span class="team-logo team-logo-initial" style="background:${topColor}" aria-hidden="true">${escapeHtml(Array.from(ts.name)[0] || '')}</span>`;
               const countHtml = `<span class="team-count">총 ${ts.males.length + ts.females.length}명 · 남 ${ts.males.length} · 여 ${ts.females.length}</span>`;
               const headerLeft = TARGET_TEAM ? `<div class="team-header-left">${logoHtml}<span class="team-name">${escapeHtml(ts.name)}</span>${countHtml}</div>`
@@ -924,4 +931,3 @@
       });
   }
 })();
-</script>
