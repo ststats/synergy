@@ -3,6 +3,18 @@
   "ignoreCommand": "git diff --quiet HEAD^ HEAD -- vercel.json",
   "routes": [
     {
+      "src": "^/(.*)$",
+      "continue": true,
+      "headers": {
+        "Strict-Transport-Security": "max-age=63072000",
+        "X-Content-Type-Options": "nosniff",
+        "Referrer-Policy": "strict-origin-when-cross-origin",
+        "Content-Security-Policy": "frame-ancestors 'self'",
+        "X-Frame-Options": "SAMEORIGIN",
+        "Permissions-Policy": "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+      }
+    },
+    {
       "src": "^/((?:[^/]+/)*)$",
       "dest": "https://ststats.github.io/synergy/$1index.html"
     },
