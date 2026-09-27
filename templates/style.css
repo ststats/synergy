@@ -5,6 +5,8 @@ body { font-family: 'Pretendard Variable', sans-serif; background: #f4f5f7; marg
 .month-select-group { display: inline-flex; align-items: center; gap: 6px; position: relative; vertical-align: middle; }
 .top-date-btn { background: transparent; border: none; font-size: 20px; font-weight: 800; color: #141821; cursor: pointer; padding: 2px 0; font-family: inherit; display: inline-flex; align-items: center; vertical-align: middle; gap: 6px; line-height: 1.2; }
 .top-date-btn:hover { color: #4a5ce0; }
+/* 화면에는 안 보이고 화면 읽기 프로그램만 읽는 글자(페이지 제목) */
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .hidden-date-input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; border: 0; padding: 0; margin: 0; }
 
 .select-wrapper { position: relative; display: inline-flex; align-items: center; vertical-align: middle; gap: 6px; visibility: hidden; font-weight: 800; }

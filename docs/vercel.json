@@ -22,5 +22,10 @@
       "src": "^/(.*)$",
       "dest": "https://ststats.github.io/synergy/$1"
     }
-  ]
+  ],
+  "git": {
+    "deploymentEnabled": {
+      "claude/**": false
+    }
+  }
 }
