@@ -365,12 +365,11 @@
           return fn();
       }
   }
-  function showLoadError() {
-      const host = document.getElementById('grid-container') || document.body;
+  // 불러오기 실패 안내와 '다시 시도' 버튼(기본은 페이지 새로고침)
+  function showLoadError(host = document.getElementById('grid-container') || document.body, onRetry = () => location.reload()) {
       host.innerHTML = '<div style="padding:40px;text-align:center;color:#c23636;">데이터를 불러오지 못했습니다.'
           + '<br><button type="button" class="load-retry" style="margin-top:12px;padding:8px 16px;cursor:pointer;">다시 시도</button></div>';
-      const btn = host.querySelector('.load-retry');
-      if (btn) btn.addEventListener('click', () => location.reload());
+      host.querySelector('.load-retry').addEventListener('click', onRetry);
   }
 
   // 로고는 부가 정보라 본문을 오래 막지 않는다: 1.5초 안에 오면 첫 화면부터 쓰고,
@@ -498,12 +497,7 @@
           })
           .catch(() => {
               if (token !== renderToken) return;
-              if (!IS_PROFILE && gridEl) {
-                  gridEl.innerHTML = '<div style="padding:40px;text-align:center;color:#c23636;">데이터를 불러오지 못했습니다.'
-                      + '<br><button type="button" class="load-retry" style="margin-top:12px;padding:8px 16px;cursor:pointer;">다시 시도</button></div>';
-                  const btn = gridEl.querySelector('.load-retry');
-                  if (btn) btn.addEventListener('click', () => { if (token === renderToken) applyData(); });
-              }
+              if (!IS_PROFILE && gridEl) showLoadError(gridEl, () => { if (token === renderToken) applyData(); });
           });
   }
 
