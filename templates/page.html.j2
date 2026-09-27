@@ -14,14 +14,14 @@
 </head>
 <body>
   <div class="top-bar">
-    <span class="month-select-group">
+    <div class="month-select-group">
       <button id="calendar-btn" class="top-date-btn" type="button"></button>
       {# required: 크롬 달력 창의 '삭제' 버튼을 없앤다(날짜는 비울 수 없으므로) #}
       <input type="date" id="date-picker" class="hidden-date-input" tabindex="-1" aria-hidden="true" required>
       
       {% if not is_profile %}
       <div class="select-wrapper">
-          <select class="top-date-select" id="ms-metric-select">
+          <select class="top-date-select" id="ms-metric-select" aria-label="지표">
               <option value='balloon'>별풍선</option>
               <option value='broadcast'>방송시간</option>
               <option value='viewer'>누적시청자</option>
@@ -30,7 +30,7 @@
           <span class="nav-chevron">▾</span>
       </div>
       {% endif %}
-    </span>
+    </div>
     <span class="top-meta-group">
       {% if is_profile %}
         <a href="{{ logo_prefix }}index.html" id="back-link" class="back-link">뒤로가기</a>
