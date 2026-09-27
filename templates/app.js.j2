@@ -20,9 +20,11 @@
       sponsor: { field: 'sponsor_games', label: '스폰판수', unit: '스폰판수', format: v => v ? v + '판' : '', excludeRoles: true, rankByFemale: true, source: 'Elo', url: 'https://eloboard.co.kr/' }
   };
 
+  // SOOP 프로필 사진의 작은 판(약 66px WebP, 스타유니브 core.js getProfileImgUrl과 같은 주소).
+  // 화면에는 22~24px로만 쓰므로 원본 JPG(큰 것은 수백 KB) 대신 이것을 받는다.
   function soopPhotoUrl(id) {
-      const safe = encodeURIComponent(id || '');
-      return `https://profile.img.sooplive.com/LOGO/${encodeURIComponent((id || '').substring(0, 2))}/${safe}/${safe}.jpg`;
+      const safe = encodeURIComponent(String(id || '').trim().toLowerCase());
+      return `https://stimg.sooplive.com/LOGO/${safe.substring(0, 2)}/${safe}/m/${safe}.webp`;
   }
 
   // URL 파라미터/속성 값으로 쓰이는 문자열 전용 헬퍼.
