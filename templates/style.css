@@ -56,6 +56,7 @@ body { font-family: 'Pretendard Variable', sans-serif; background: #f4f5f7; marg
 .bday-mark { font-size: 8px; opacity: 0.75; flex-shrink: 0; }
 .live-dot { display: none; position: absolute; left: 5px; top: 50%; transform: translateY(-50%); width: 4px; height: 4px; border-radius: 50%; background: #e53935; animation: live-dot-pulse 1.4s infinite; --live-dot-spread: 3px; }
 .live-dot.is-live { display: block; }
+@media (prefers-reduced-motion: reduce) { .live-dot { animation: none; } }
 @keyframes live-dot-pulse {
   0% { box-shadow: 0 0 0 0 rgba(229,57,53,0.55); }
   70% { box-shadow: 0 0 0 var(--live-dot-spread) rgba(229,57,53,0); }

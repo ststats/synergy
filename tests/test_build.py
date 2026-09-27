@@ -41,9 +41,9 @@ def test_all_pages_render():
 
 
 def test_tier_order_matches_shared_ladder_copy():
-    src = (ROOT / "templates" / "app.js.j2").read_text(encoding="utf-8")
+    src = (ROOT / "templates" / "app.js").read_text(encoding="utf-8")
     m = re.search(r"const TIER_ORDER = \[(.*?)\];", src)
-    assert m, "app.js.j2에서 TIER_ORDER를 찾지 못함"
+    assert m, "app.js에서 TIER_ORDER를 찾지 못함"
     assert re.findall(r"'([^']*)'", m.group(1)) == TIER_ORDER
 
 
@@ -59,7 +59,7 @@ def test_validate_and_clean_members_drops_incomplete_rows():
 
 
 def test_daily_queries_fetch_only_used_columns():
-    src = (ROOT / "templates" / "app.js.j2").read_text(encoding="utf-8")
+    src = (ROOT / "templates" / "app.js").read_text(encoding="utf-8")
     full = re.search(r"const DAILY_COLUMNS = '([^']+)'", src).group(1).split(",")
     rank = re.search(r"const DAILY_RANK_COLUMNS = '([^']+)'", src).group(1).split(",")
     # 화면에서 안 쓰는 칸은 받지 않는다
@@ -68,3 +68,17 @@ def test_daily_queries_fetch_only_used_columns():
     assert set(rank) == {"soop_id", "role", "affiliation", "gender", "balloons", "broadcast_seconds",
                          "cumulative_viewers", "sponsor_wins", "sponsor_losses"}
     assert "loadDailyData(prevDate, { light: true })" in src
+
+
+def test_pages_have_csp_and_no_inline_code():
+    """CSP로 인라인 스크립트를 막으므로 페이지에 on*="..." 속성이나 실행되는 인라인 <script>가 없어야 한다."""
+    colors = {"테스트대": "#123456", "FA": "#8b8f99", "휴면": "#8b8f99"}
+    for args in [("시너지", "", False), ("팀별 현황", "테스트대", False), ("프로필", "", True)]:
+        html = generate_pages.generate_html(*args, "", colors)
+        csp = re.search(r'http-equiv="Content-Security-Policy" content="([^"]+)"', html).group(1)
+        assert "unsafe-inline" not in re.search(r"script-src ([^;]+)", csp).group(1)
+        assert not re.search(r"\son[a-z]+\s*=", html)
+        for tag in re.findall(r"<script\b[^>]*>", html):
+            assert "src=" in tag or 'type="application/json"' in tag or 'type="application/ld+json"' in tag, tag
+    app = (ROOT / "templates" / "app.js").read_text(encoding="utf-8")
+    assert not re.search(r"\son[a-z]+=[\"']", app)
