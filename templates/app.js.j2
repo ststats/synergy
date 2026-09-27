@@ -140,10 +140,10 @@
       const seq = ++liveDotsSeq;
       const client = synergySupabaseClient();
       if (!client) return;
-      const { data, error } = await client.from('live_broadcasts_current').select('soop_id,broad_no').range(0, 4999);
+      const { data, error } = await client.from('live_broadcasts_current').select('soop_id').range(0, 4999);
       // 생방송 점은 부가 정보라, 실패해도 페이지 본문에는 아무 영향이 없어야 한다.
       if (error || !Array.isArray(data) || seq !== liveDotsSeq) return;
-      const live = new Set(data.filter(r => r && r.soop_id && r.broad_no).map(r => String(r.soop_id).toLowerCase()));
+      const live = new Set(data.filter(r => r && r.soop_id).map(r => String(r.soop_id).toLowerCase()));
       ids.forEach(id => {
           if (live.has(id.toLowerCase())) idToEls[id].forEach(el => el.classList.add('is-live'));
       });
@@ -264,7 +264,7 @@
 
   // 화면에 쓰는 칸만 받는다. light는 지난달 대학 순위 증감(▲▼) 계산용 - 소속·직책·성별·지표 값만
   // (닉네임·생일·종족·티어는 받지 않는다). light 결과는 rankOnlyData에 따로 둬서 그 날짜를 직접 열면 전체를 새로 받는다.
-  const DAILY_COLUMNS = 'stat_date,soop_id,nickname,role,affiliation,race,tier,gender,birth_date,balloons,broadcast_seconds,cumulative_viewers,sponsor_wins,sponsor_losses,updated_at,sponsor_updated_at';
+  const DAILY_COLUMNS = 'soop_id,nickname,role,affiliation,race,tier,gender,birth_date,balloons,broadcast_seconds,cumulative_viewers,sponsor_wins,sponsor_losses,updated_at,sponsor_updated_at';
   const DAILY_RANK_COLUMNS = 'soop_id,role,affiliation,gender,balloons,broadcast_seconds,cumulative_viewers,sponsor_wins,sponsor_losses';
   async function loadDailyData(dateStr, { light = false } = {}) {
       const client = synergySupabaseClient();
