@@ -15,6 +15,9 @@
   <script type="application/ld+json">{{ json_ld }}</script>
   {% endif %}
   <link rel="preload" href="{{ font_url }}" as="font" type="font/woff2" crossorigin>
+  {%- if supabase_origin %}
+  <link rel="preconnect" href="{{ supabase_origin }}" crossorigin>
+  {%- endif %}
   <style>
     @font-face { font-family: 'Pretendard Variable'; font-weight: 45 920; font-style: normal; font-display: swap; src: url('{{ font_url }}') format('woff2-variations'); }
     {% include 'style.css' %}
