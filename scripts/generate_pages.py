@@ -9,6 +9,7 @@ import os
 import shutil
 import hashlib
 from pathlib import Path
+from urllib.parse import urlsplit
 from PIL import Image
 
 from _common import ROOT, safe_read_json
@@ -29,6 +30,10 @@ LOGOS_DIR = ROOT / "assets" / "logos"
 # 사이트에 싣는 작은 사본(긴 변 96px). 빌드가 만든다.
 WEB_LOGOS_DIR = DOCS_DIR / "logos"
 WEB_LOGO_SIZE = 96
+# 브라우저가 데이터를 받는 Supabase 주소. 있으면 페이지 머리에 preconnect를 넣어 스크립트가 도는 동안
+# 연결(DNS·TLS)을 미리 맺어 둔다. 빌드 환경에 SUPABASE_URL이 없으면(로컬 빌드) 태그를 넣지 않는다.
+_SUPABASE = urlsplit((os.getenv("SUPABASE_URL") or "").strip())
+SUPABASE_ORIGIN = f"https://{_SUPABASE.netloc}" if _SUPABASE.scheme == "https" and _SUPABASE.netloc else ""
 OUTPUT_INDEX = DOCS_DIR / "index.html"
 OUTPUT_PROFILE_PATH = DOCS_DIR / "profile.html"
 OUTPUT_TEAM_PATH = DOCS_DIR / "team.html"
@@ -108,6 +113,7 @@ def generate_html(title, target_team, is_profile, logo_prefix, team_colors, team
     return template.render(
         app_version=app_version(),
         font_url=font_url,
+        supabase_origin=SUPABASE_ORIGIN,
         include_mobile_css=include_mobile_css,
         is_profile=is_profile,
         json_ld=json_ld,
