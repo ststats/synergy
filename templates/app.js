@@ -132,6 +132,16 @@
       liveDotsTimer = setTimeout(refreshLiveDots, wait);
   }
 
+  // 방송 중인 SOOP ID 목록(소문자 Set). 첫 그리기 전에 미리 받아 둔 것(liveIdsPrefetch)은 처음 한 번만 쓴다.
+  let liveIdsPrefetch = null;
+  async function fetchLiveIds() {
+      const client = synergySupabaseClient();
+      if (!client) throw new Error('Supabase browser client is not configured');
+      const { data, error } = await client.from('live_broadcasts_current').select('soop_id').range(0, 4999);
+      if (error || !Array.isArray(data)) throw error || new Error('Invalid live status');
+      return new Set(data.filter(r => r && r.soop_id).map(r => String(r.soop_id).toLowerCase()));
+  }
+
   async function refreshLiveDots() {
       liveDotsLastRun = Date.now();
       const dotEls = Array.from(document.querySelectorAll('.live-dot[data-live-id]'));
@@ -145,12 +155,11 @@
       const ids = Object.keys(idToEls);
 
       const seq = ++liveDotsSeq;
-      const client = synergySupabaseClient();
-      if (!client) return;
-      const { data, error } = await client.from('live_broadcasts_current').select('soop_id').range(0, 4999);
+      const prefetched = liveIdsPrefetch;
+      liveIdsPrefetch = null;
       // 생방송 점은 부가 정보라, 실패해도 페이지 본문에는 아무 영향이 없어야 한다.
-      if (error || !Array.isArray(data) || seq !== liveDotsSeq) return;
-      const live = new Set(data.filter(r => r && r.soop_id).map(r => String(r.soop_id).toLowerCase()));
+      const live = (prefetched && await prefetched) || await fetchLiveIds().catch(() => null);
+      if (!live || seq !== liveDotsSeq) return;
       ids.forEach(id => {
           if (live.has(id.toLowerCase())) idToEls[id].forEach(el => el.classList.add('is-live'));
       });
@@ -273,16 +282,18 @@
   // (닉네임·생일·종족·티어는 받지 않는다). light 결과는 rankOnlyData에 따로 둬서 그 날짜를 직접 열면 전체를 새로 받는다.
   const DAILY_COLUMNS = 'soop_id,nickname,role,affiliation,race,tier,gender,birth_date,balloons,broadcast_seconds,cumulative_viewers,sponsor_wins,sponsor_losses,updated_at,sponsor_updated_at';
   const DAILY_RANK_COLUMNS = 'soop_id,role,affiliation,gender,balloons,broadcast_seconds,cumulative_viewers,sponsor_wins,sponsor_losses';
-  async function loadDailyData(dateStr, { light = false } = {}) {
+  // latest: 날짜 대신 가장 최근 날짜의 뷰(daily_member_stats_latest, ststat.sql)에서 받는다 - 날짜 목록을
+  // 기다리지 않고 첫 화면을 받으려고 쓴다. 이때 dateStr은 받은 행의 날짜로 정해진다.
+  async function loadDailyData(dateStr, { light = false, latest = false } = {}) {
       const client = synergySupabaseClient();
       if (!client) throw new Error('Supabase browser client is not configured');
 
       const data = [];
       const pageSize = 1000;
       for (let from = 0; ; from += pageSize) {
-          let query = client.from('daily_member_stats')
-              .select(light ? DAILY_RANK_COLUMNS : DAILY_COLUMNS)
-              .eq('stat_date', dateStr);
+          let query = latest
+              ? client.from('daily_member_stats_latest').select('stat_date,' + DAILY_COLUMNS)
+              : client.from('daily_member_stats').select(light ? DAILY_RANK_COLUMNS : DAILY_COLUMNS).eq('stat_date', dateStr);
           // 개인 페이지는 그 한 명만 받는다. 팀 페이지는 상위 1·5·10% 표시를 전체페이지와 같이
           // 전체 선수 기준으로 매기므로 전체를 받고, 화면에는 그 팀만 그린다.
           if (IS_PROFILE && PROFILE_ID) query = query.eq('soop_id', PROFILE_ID);
@@ -297,6 +308,10 @@
           if (rows.length < pageSize) break;
       }
 
+      if (latest) {
+          dateStr = data.length ? String(data[0].stat_date || '') : '';
+          if (!dateStr) throw new Error('No latest daily stats');
+      }
       if (data.length === 0 && !TARGET_TEAM && !IS_PROFILE) {
           throw new Error(`No daily stats for ${dateStr}`);
       }
@@ -383,6 +398,14 @@
   // 늦으면 이름 첫 글자 배지로 먼저 그린 뒤 도착했을 때 다시 그린다.
   let logosLoaded = false;
   const logosReady = loadUniversityLogos().then(() => { logosLoaded = true; });
+  // 주소에 날짜가 없으면 첫 화면은 최신 날짜다: 날짜 목록을 기다리지 않고 최신 통계를 같이 받기 시작한다
+  // (뷰가 아직 없거나 실패하면 applyData가 날짜로 다시 받는다). 방송 중 표시도 그리기 전에 미리 받는다.
+  const latestPrefetch = new URLSearchParams(window.location.search).get('date')
+      ? null : loadDailyData('', { latest: true }).catch(() => null);
+  // 방송 중 표시: 목록 화면은 점 찍을 ID 목록을, 개인 페이지는 그 사람의 방송 정보를 미리 받는다(처음 한 번만 쓴다)
+  let profileLivePrefetch = null;
+  if (IS_PROFILE) { if (PROFILE_ID) profileLivePrefetch = checkIsLiveRealtime(PROFILE_ID).catch(() => null); }
+  else liveIdsPrefetch = fetchLiveIds().catch(() => null);
   let AVAILABLE_DATES;
   try {
       AVAILABLE_DATES = await retryOnce(loadAvailableDates);
@@ -494,7 +517,11 @@
           gridEl.innerHTML = '<div style="padding:40px;text-align:center;">불러오는 중...</div>';
       }
       const requestedDate = currentDateStr;
-      loadOnce('full:' + requestedDate, () => retryOnce(() => loadDailyData(requestedDate)).then(withDerivedFields))
+      // 미리 받은 최신 통계가 이 날짜면 그것을 쓴다(한 번만)
+      const prefetched = requestedDate === AVAILABLE_DATES[0] && latestPrefetch;
+      const load = () => (prefetched || Promise.resolve(null))
+          .then(data => (data && data.date === requestedDate ? data : retryOnce(() => loadDailyData(requestedDate))));
+      loadOnce('full:' + requestedDate, () => load().then(withDerivedFields))
           .then(normalized => {
               fetchedData[requestedDate] = normalized;
               // 내가 요청을 보낸 뒤 사용자가 날짜/지표를 또 바꿨다면, 이
@@ -794,7 +821,9 @@
       const liveEmbedEl = document.getElementById('profile-live-embed');
       if (tid && liveEmbedEl) {
           const liveToken = renderToken;
-          checkIsLiveRealtime(tid).then(result => {
+          const prefetchedLive = profileLivePrefetch && tid === PROFILE_ID ? profileLivePrefetch : null;
+          profileLivePrefetch = null;
+          (prefetchedLive || checkIsLiveRealtime(tid)).then(result => {
               // 조회가 끝났을 때 화면이 이미 다른 날짜/사람으로 넘어갔다면
               // 그 화면 위에 이전 방송 정보를 얹지 않는다.
               if (liveToken !== renderToken) return;
