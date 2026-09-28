@@ -9,9 +9,15 @@
         "Strict-Transport-Security": "max-age=63072000",
         "X-Content-Type-Options": "nosniff",
         "Referrer-Policy": "strict-origin-when-cross-origin",
-        "Content-Security-Policy": "frame-ancestors 'self'",
         "X-Frame-Options": "SAMEORIGIN",
         "Permissions-Policy": "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+      }
+    },
+    {
+      "src": "^/(?:index\\.html|profile\\.html|team\\.html)?$",
+      "continue": true,
+      "headers": {
+        "Content-Security-Policy": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'"
       }
     },
     {

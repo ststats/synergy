@@ -70,13 +70,24 @@ def test_daily_queries_fetch_only_used_columns():
     assert "loadDailyData(prevDate, { light: true })" in src
 
 
-def test_pages_have_csp_and_no_inline_code():
-    """CSP로 인라인 스크립트를 막으므로 페이지에 on*="..." 속성이나 실행되는 인라인 <script>가 없어야 한다."""
+def test_pages_get_csp_header_and_have_no_inline_code():
+    """CSP(Vercel 응답 헤더)로 인라인 스크립트를 막으므로 페이지에 on*="..." 속성이나 실행되는 인라인 <script>가 없어야 한다.
+    CSP를 <meta>로 두면 Chrome이 미리 읽기를 꺼서 파일을 차례로 받으므로 페이지에는 두지 않는다."""
+    vercel = json.loads((ROOT / "docs" / "vercel.json").read_text(encoding="utf-8"))
+    routes = [r for r in vercel["routes"] if "script-src" in r.get("headers", {}).get("Content-Security-Policy", "")]
+    assert len(routes) == 1
+    csp = routes[0]["headers"]["Content-Security-Policy"]
+    assert "unsafe-inline" not in re.search(r"script-src ([^;]+)", csp).group(1)
+    assert "frame-ancestors 'self'" in csp
+    page_src = re.compile(routes[0]["src"])
+    for url in ["/", "/index.html", "/profile.html", "/team.html"]:
+        assert page_src.match(url), url
+    for url in ["/app.js", "/style.css", "/logos/a.webp", "/nope.html"]:
+        assert not page_src.match(url), url
     colors = {"테스트대": "#123456", "FA": "#8b8f99", "휴면": "#8b8f99"}
     for args in [("시너지", "", False), ("팀별 현황", "테스트대", False), ("프로필", "", True)]:
         html = generate_pages.generate_html(*args, "", colors)
-        csp = re.search(r'http-equiv="Content-Security-Policy" content="([^"]+)"', html).group(1)
-        assert "unsafe-inline" not in re.search(r"script-src ([^;]+)", csp).group(1)
+        assert "Content-Security-Policy" not in html
         assert not re.search(r"\son[a-z]+\s*=", html)
         for tag in re.findall(r"<script\b[^>]*>", html):
             assert "src=" in tag or 'type="application/json"' in tag or 'type="application/ld+json"' in tag, tag
