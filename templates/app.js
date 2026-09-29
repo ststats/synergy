@@ -67,6 +67,11 @@
   // daily_member_stats를 거쳐 사이트 방문자 전원에게 그대로 렌더링된다.
   // <, >, & 같은 문자가 실수로라도 섞이면 화면이 깨지거나(레이아웃 손상),
   // 악의적인 경우 스크립트가 실행(XSS)될 수 있어 코드 레벨 방어가 필요하다.
+  // 성별 표기는 '남자'/'여자'로 통일돼 있다(DB가 저장할 때 맞춤). 예전 표기('f'·'여'·'여성'·'female')도 여자로 센다.
+  function isFemale(g) {
+      const v = String(g || '').trim().toLowerCase();
+      return v === '여자' || v === '여' || v === '여성' || v === 'f' || v === 'female';
+  }
   function escapeHtml(s) {
       return String(s ?? '').replace(/[&<>"']/g, c => ({
           '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
@@ -616,7 +621,7 @@
               m._val = v;
               m._counted = counted;
 
-              if (m._gender === 'f' || m._gender === '여자') {
+              if (isFemale(m._gender)) {
                   females.push(m); if (counted) { fSum += v; fCount++; tCount++; }
               } else {
                   males.push(m); if (counted) { mSum += v; mCount++; tCount++; }
@@ -919,7 +924,7 @@
           birthdate: member.birthdate || '-',
       };
       document.getElementById('profile-gender').textContent =
-          (sInfo.gender === 'f' || sInfo.gender === '여자') ? '여' : (sInfo.gender ? '남' : '-');
+          isFemale(sInfo.gender) ? '여자' : (sInfo.gender ? '남자' : '-');
       document.getElementById('profile-birthdate').textContent = sInfo.birthdate || '-';
       document.getElementById('profile-team').textContent = member.team || '-';
       document.getElementById('profile-role').textContent = member.role || '-';
