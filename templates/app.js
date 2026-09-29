@@ -483,6 +483,84 @@
 
   function applyData() {
       const token = ++renderToken;
+      updateDateChrome();
+
+      const cached = ownGet(fetchedData, currentDateStr);
+      if (cached) {
+          if (IS_PROFILE) profileLoaded(currentDateStr);
+          IS_PROFILE ? renderProfile(cached) : renderDashboard(cached);
+          return;
+      }
+
+      const gridEl = document.getElementById('grid-container');
+      if (!IS_PROFILE && gridEl) {
+          gridEl.innerHTML = '<div style="padding:40px;text-align:center;">불러오는 중...</div>';
+      }
+      if (IS_PROFILE) profileBusy(true);
+      const requestedDate = currentDateStr;
+      // 미리 받은 최신 통계가 이 날짜면 그것을 쓴다(한 번만)
+      const prefetched = requestedDate === AVAILABLE_DATES[0] && latestPrefetch;
+      const load = () => (prefetched || Promise.resolve(null))
+          .then(data => (data && data.date === requestedDate ? data : retryOnce(() => loadDailyData(requestedDate))));
+      loadOnce('full:' + requestedDate, () => load().then(withDerivedFields))
+          .then(normalized => {
+              fetchedData[requestedDate] = normalized;
+              // 내가 요청을 보낸 뒤 사용자가 날짜/지표를 또 바꿨다면, 이
+              // 응답은 이미 낡은 것이므로 그리지 않는다(캐시에는 남겨둔다).
+              if (token !== renderToken) return;
+              if (IS_PROFILE) profileLoaded(requestedDate);
+              IS_PROFILE ? renderProfile(normalized) : renderDashboard(normalized);
+          })
+          .catch(() => {
+              if (token !== renderToken) return;
+              if (IS_PROFILE) profileLoadFailed(requestedDate);
+              else if (gridEl) showLoadError(gridEl, () => { if (token === renderToken) applyData(); });
+          });
+  }
+
+  // 개인 페이지: 날짜를 바꾸는 동안에는 카드를 흐리게 하고, 실패하면 날짜를 지금 보이는 데이터의
+  // 날짜로 되돌린 뒤 알린다 - 새 날짜 옆에 이전 날짜의 수치가 그대로 남아 새 값처럼 보이지 않게.
+  let profileShownDate = null;
+  function profileBusy(on) {
+      const card = document.getElementById('profile-card');
+      if (!card) return;
+      card.style.opacity = on ? '0.5' : '';
+      if (on) card.setAttribute('aria-busy', 'true'); else card.removeAttribute('aria-busy');
+  }
+  function profileNotice() {
+      let el = document.getElementById('profile-load-notice');
+      const card = document.getElementById('profile-card');
+      if (!el && card) {
+          el = document.createElement('div');
+          el.id = 'profile-load-notice';
+          el.setAttribute('role', 'alert');
+          card.parentNode.insertBefore(el, card);
+      }
+      return el;
+  }
+  function profileLoaded(date) {
+      profileShownDate = date;
+      profileBusy(false);
+      const el = document.getElementById('profile-load-notice');
+      if (el) el.remove();
+  }
+  function profileLoadFailed(failedDate) {
+      profileBusy(false);
+      const host = profileNotice();
+      if (!host) return;
+      const retry = () => { currentDateStr = failedDate; applyData(); };
+      if (!profileShownDate) { showLoadError(host, retry); return; }
+      currentDateStr = profileShownDate;
+      updateDateChrome();
+      const label = d => { const p = d.split('-'); return `${Number(p[1])}월 ${Number(p[2])}일`; };
+      host.innerHTML = '<div style="padding:12px 16px;margin-bottom:12px;text-align:center;color:#c23636;">'
+          + escapeHtml(label(failedDate)) + ' 데이터를 불러오지 못해 ' + escapeHtml(label(profileShownDate))
+          + ' 데이터를 보여 줍니다.<br><button type="button" class="load-retry" style="margin-top:8px;padding:6px 14px;cursor:pointer;">다시 시도</button></div>';
+      host.querySelector('.load-retry').addEventListener('click', retry);
+  }
+
+  // 날짜 버튼·날짜 입력·뒤로가기 링크를 지금 날짜(currentDateStr)에 맞춘다
+  function updateDateChrome() {
       const parts = currentDateStr.split('-');
       if (calBtn) {
           calBtn.innerHTML = escapeHtml(parts[0].slice(-2)) + '년 ' + escapeHtml(parts[1]) + '월 '
@@ -505,34 +583,6 @@
           const backLinkEl = document.getElementById('back-link');
           if (backLinkEl) backLinkEl.href = LOGO_PREFIX + backHref;
       }
-
-      const cached = ownGet(fetchedData, currentDateStr);
-      if (cached) {
-          IS_PROFILE ? renderProfile(cached) : renderDashboard(cached);
-          return;
-      }
-
-      const gridEl = document.getElementById('grid-container');
-      if (!IS_PROFILE && gridEl) {
-          gridEl.innerHTML = '<div style="padding:40px;text-align:center;">불러오는 중...</div>';
-      }
-      const requestedDate = currentDateStr;
-      // 미리 받은 최신 통계가 이 날짜면 그것을 쓴다(한 번만)
-      const prefetched = requestedDate === AVAILABLE_DATES[0] && latestPrefetch;
-      const load = () => (prefetched || Promise.resolve(null))
-          .then(data => (data && data.date === requestedDate ? data : retryOnce(() => loadDailyData(requestedDate))));
-      loadOnce('full:' + requestedDate, () => load().then(withDerivedFields))
-          .then(normalized => {
-              fetchedData[requestedDate] = normalized;
-              // 내가 요청을 보낸 뒤 사용자가 날짜/지표를 또 바꿨다면, 이
-              // 응답은 이미 낡은 것이므로 그리지 않는다(캐시에는 남겨둔다).
-              if (token !== renderToken) return;
-              IS_PROFILE ? renderProfile(normalized) : renderDashboard(normalized);
-          })
-          .catch(() => {
-              if (token !== renderToken) return;
-              if (!IS_PROFILE && gridEl) showLoadError(gridEl, () => { if (token === renderToken) applyData(); });
-          });
   }
 
   function findPrevMonthDate(dateStr) {
