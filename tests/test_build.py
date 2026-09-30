@@ -69,7 +69,7 @@ def test_daily_queries_fetch_only_used_columns():
     # 개인 페이지(휴면 선수 포함)는 한 사람용 함수로 읽는다
     assert "client.rpc('player_profile_stats'" in src and "client.rpc('player_live'" in src
     # 지난달 순위 계산용은 소속·직책·성별·지표만(생일·닉네임 등 개인 정보는 받지 않는다)
-    assert set(rank) == {"soop_id", "role", "affiliation", "gender", "balloons", "broadcast_seconds",
+    assert set(rank) == {"role", "affiliation", "gender", "balloons", "broadcast_seconds",
                          "cumulative_viewers", "sponsor_wins", "sponsor_losses"}
     assert "loadDailyData(prevDate, { light: true })" in src
 
