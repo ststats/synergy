@@ -80,8 +80,9 @@ def collect_used_characters() -> set:
         except Exception as e:
             print(f"[경고] members.json 읽기 실패, 건너뜀: {e}", file=sys.stderr)
 
+    # 화면 글자는 페이지 HTML뿐 아니라 app.js가 그려 넣는 문구(불러오기 안내·팀 인원 등)에도 있다
     if DOCS_DIR.exists():
-        for p in DOCS_DIR.glob("*.html"):
+        for p in [*DOCS_DIR.glob("*.html"), *DOCS_DIR.glob("*.js")]:
             try:
                 chars.update(p.read_text(encoding="utf-8"))
             except Exception as e:

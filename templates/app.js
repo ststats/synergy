@@ -442,19 +442,38 @@
 
   // 주소에 날짜가 없으면 첫 화면은 최신 날짜다: 날짜 목록을 기다리지 않고 최신 통계를 같이 받기 시작한다
   // (뷰가 아직 없거나 실패하면 applyData가 날짜로 다시 받는다). 방송 중 표시도 그리기 전에 미리 받는다.
-  const latestPrefetch = new URLSearchParams(window.location.search).get('date')
-      ? null : loadDailyData('', { latest: true }).catch(() => null);
+  // 주소에 날짜가 있으면 그 날짜를 바로 받는다(날짜 목록과 같이). 받은 게 비어 있으면(없는 날짜) 예전처럼 목록을 보고 고른다.
+  const URL_DATE = new URLSearchParams(window.location.search).get('date') || '';
+  const latestPrefetch = URL_DATE ? null : loadDailyData('', { latest: true }).catch(() => null);
+  const urlDatePrefetch = URL_DATE && /^\d{4}-\d{2}-\d{2}$/.test(URL_DATE)
+      ? loadDailyData(URL_DATE).then(d => (d && d.members.length ? d : null), () => null) : null;
   // 방송 중 표시: 목록 화면은 점 찍을 ID 목록을, 개인 페이지는 그 사람의 방송 정보를 미리 받는다(처음 한 번만 쓴다)
   let profileLivePrefetch = null;
   if (IS_PROFILE) { if (PROFILE_ID) profileLivePrefetch = checkIsLiveRealtime(PROFILE_ID).catch(() => null); }
   else liveIdsPrefetch = fetchLiveIds().catch(() => null);
+  // 날짜 목록은 달력(고를 수 있는 범위)과 지난달 순위 비교에만 쓴다. 첫 화면 통계(최신 또는 주소의 날짜)를 이미 받았으면
+  // 목록을 기다리지 않고 그 날짜로 먼저 그리고, 목록이 오면 달력·순위 비교를 채운다. 목록만 실패해도 화면은 그대로 보인다.
+  // 첫 화면 통계를 못 받았으면 예전처럼 목록을 받은 뒤 시작한다.
+  const datesRequest = retryOnce(loadAvailableDates);
+  datesRequest.catch(() => {});
+  const latestFirst = latestPrefetch ? await latestPrefetch : (urlDatePrefetch ? await urlDatePrefetch : null);
   let AVAILABLE_DATES;
-  try {
-      AVAILABLE_DATES = await retryOnce(loadAvailableDates);
-  } catch (e) {
-      console.error('날짜 목록을 불러오지 못했습니다', e);
-      showLoadError();
-      return;
+  if (latestFirst && latestFirst.date) {
+      AVAILABLE_DATES = [latestFirst.date];
+      datesRequest.then(list => {
+          if (!Array.isArray(list) || !list.length) return;
+          AVAILABLE_DATES = list.includes(latestFirst.date) ? list : [...list, latestFirst.date].sort().reverse();
+          applyDateRange();
+          if (!IS_PROFILE && ownGet(fetchedData, currentDateStr)) applyData();   // 지난달 순위 비교(▲▼)를 붙인다
+      }, e => console.warn('날짜 목록을 불러오지 못했습니다(최신 날짜만 보여 줍니다)', e));
+  } else {
+      try {
+          AVAILABLE_DATES = await datesRequest;
+      } catch (e) {
+          console.error('날짜 목록을 불러오지 못했습니다', e);
+          showLoadError();
+          return;
+      }
   }
   if (AVAILABLE_DATES.length === 0) {
       const host = document.getElementById('grid-container') || document.body;
@@ -480,10 +499,12 @@
 
   const calBtn = document.getElementById('calendar-btn');
   const datePicker = document.getElementById('date-picker');
-  if (datePicker) {
+  function applyDateRange() {
+      if (!datePicker) return;
       datePicker.min = AVAILABLE_DATES[AVAILABLE_DATES.length - 1];
       datePicker.max = AVAILABLE_DATES[0];
   }
+  applyDateRange();
 
   function initializePage() {
       const params = new URLSearchParams(window.location.search);
@@ -549,7 +570,7 @@
       if (IS_PROFILE) profileBusy(true);
       const requestedDate = currentDateStr;
       // 미리 받은 최신 통계가 이 날짜면 그것을 쓴다(한 번만)
-      const prefetched = requestedDate === AVAILABLE_DATES[0] && latestPrefetch;
+      const prefetched = (requestedDate === AVAILABLE_DATES[0] && latestPrefetch) || (requestedDate === URL_DATE && urlDatePrefetch);
       const load = () => (prefetched || Promise.resolve(null))
           .then(data => (data && data.date === requestedDate ? data : retryOnce(() => loadDailyData(requestedDate))));
       loadOnce('full:' + requestedDate, () => load().then(withDerivedFields))

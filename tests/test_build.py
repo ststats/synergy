@@ -97,3 +97,16 @@ def test_pages_get_csp_header_and_have_no_inline_code():
             assert "src=" in tag or 'type="application/json"' in tag or 'type="application/ld+json"' in tag, tag
     app = (ROOT / "templates" / "app.js").read_text(encoding="utf-8")
     assert not re.search(r"\son[a-z]+=[\"']", app)
+
+
+def test_font_subset_includes_app_js_text():
+    """app.js가 그려 넣는 문구(불러오기 안내 등) 글자도 글꼴에 넣는다(빠지면 그 글자만 다른 글꼴로 보인다)."""
+    src = (ROOT / "scripts" / "subset_font.py").read_text(encoding="utf-8")
+    assert 'DOCS_DIR.glob("*.js")' in src
+
+
+def test_first_render_does_not_wait_for_date_list():
+    """최신(또는 주소의) 통계를 받았으면 날짜 목록을 기다리지 않고 그린다(목록은 달력·순위 비교용)."""
+    src = (ROOT / "templates" / "app.js").read_text(encoding="utf-8")
+    assert "const latestFirst = latestPrefetch ? await latestPrefetch : (urlDatePrefetch ? await urlDatePrefetch : null);" in src
+    assert "AVAILABLE_DATES = [latestFirst.date];" in src
