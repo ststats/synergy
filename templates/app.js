@@ -83,8 +83,8 @@
   async function checkIsLiveRealtime(soopId) {
       const client = synergySupabaseClient();
       if (!client || !soopId) return null;
-      const { data, error } = await client.from('live_broadcasts_current')
-          .select('broad_no,broad_title,current_sum_viewer,broad_start').eq('soop_id', soopId).range(0, 0);
+      // 휴면 선수 프로필에서도 보이도록 한 사람용 함수(player_live, ststat.sql)로 읽는다
+      const { data, error } = await client.rpc('player_live', { p_soop_id: soopId });
       const row = !error && Array.isArray(data) ? data[0] : null;
       if (!row || !row.broad_no) return null;
       return { broad: row, broadStart: row.broad_start || null };
@@ -225,6 +225,22 @@
   function synergySupabaseClient() {
       const cfg = window.SYNERGY_SUPABASE_CONFIG;
       if (!cfg || !cfg.url || !cfg.key) return null;
+      // 응답이 끝내 오지 않으면(연결만 붙고 멈춤 등) 8초에 끊는다 - 본문 받기까지 포함.
+      // 재시도 1번까지 해도 20초 안에 안내 화면으로 넘어간다.
+      const get = (path, params) => {
+          const ctrl = typeof AbortController === 'function' ? new AbortController() : null;
+          const timer = ctrl ? setTimeout(() => ctrl.abort(), REQUEST_TIMEOUT_MS) : null;
+          return fetch(`${cfg.url}/rest/v1/${path}?${params}`, {
+              headers: { apikey: cfg.key, Authorization: `Bearer ${cfg.key}` },
+              signal: ctrl ? ctrl.signal : undefined,
+          }).then(async res => {
+              const body = await res.json().catch(() => null);
+              if (ctrl && ctrl.signal.aborted) throw new Error('요청 시간 초과');
+              return res.ok ? { data: body, error: null }
+                  : { data: null, error: new Error((body && body.message) || `HTTP ${res.status}`) };
+          }).catch(err => ({ data: null, error: err }))
+            .finally(() => { if (timer) clearTimeout(timer); });
+      };
       return {
           from(table) {
               const params = new URLSearchParams();
@@ -241,24 +257,16 @@
                   range(from, to) { rangeFrom = from; rangeTo = to; return q; },
                   then(resolve, reject) {
                       if (rangeTo !== null) { params.set('offset', rangeFrom); params.set('limit', rangeTo - rangeFrom + 1); }
-                      // 응답이 끝내 오지 않으면(연결만 붙고 멈춤 등) 8초에 끊는다 - 본문 받기까지 포함.
-                      // 재시도 1번까지 해도 20초 안에 안내 화면으로 넘어간다.
-                      const ctrl = typeof AbortController === 'function' ? new AbortController() : null;
-                      const timer = ctrl ? setTimeout(() => ctrl.abort(), REQUEST_TIMEOUT_MS) : null;
-                      return fetch(`${cfg.url}/rest/v1/${table}?${params}`, {
-                          headers: { apikey: cfg.key, Authorization: `Bearer ${cfg.key}` },
-                          signal: ctrl ? ctrl.signal : undefined,
-                      }).then(async res => {
-                          const body = await res.json().catch(() => null);
-                          if (ctrl && ctrl.signal.aborted) throw new Error('요청 시간 초과');
-                          return res.ok ? { data: body, error: null }
-                              : { data: null, error: new Error((body && body.message) || `HTTP ${res.status}`) };
-                      }).catch(err => ({ data: null, error: err }))
-                        .finally(() => { if (timer) clearTimeout(timer); })
-                        .then(resolve, reject);
+                      return get(table, params).then(resolve, reject);
                   },
               };
               return q;
+          },
+          // 읽기 전용(STABLE) 함수는 GET으로 부른다. 값이 null/빈 문자열인 인자는 보내지 않는다(기본값 사용).
+          rpc(fn, args) {
+              const params = new URLSearchParams();
+              Object.entries(args || {}).forEach(([k, v]) => { if (v !== null && v !== undefined && v !== '') params.set(k, v); });
+              return get(`rpc/${fn}`, params);
           },
       };
   }
@@ -283,9 +291,11 @@
           .filter(Boolean);
   }
 
-  // 화면에 쓰는 칸만 받는다. light는 지난달 대학 순위 증감(▲▼) 계산용 - 소속·직책·성별·지표 값만
-  // (닉네임·생일·종족·티어는 받지 않는다). light 결과는 rankOnlyData에 따로 둬서 그 날짜를 직접 열면 전체를 새로 받는다.
-  const DAILY_COLUMNS = 'soop_id,nickname,role,affiliation,race,tier,gender,birth_date,balloons,broadcast_seconds,cumulative_viewers,sponsor_wins,sponsor_losses,updated_at,sponsor_updated_at';
+  // 화면에 쓰는 칸만 받는다. 목록 화면은 생일 표시(🎂)에 달만 쓰므로 birth_month만 받고 생년월일·종족은
+  // 받지 않는다(공개 권한도 없다). 개인 페이지는 player_profile_stats 함수로 그 한 명의 전체 칸을 받는다.
+  // light는 지난달 대학 순위 증감(▲▼) 계산용 - 소속·직책·성별·지표 값만.
+  // light 결과는 rankOnlyData에 따로 둬서 그 날짜를 직접 열면 전체를 새로 받는다.
+  const DAILY_COLUMNS = 'soop_id,nickname,role,affiliation,tier,gender,birth_month,balloons,broadcast_seconds,cumulative_viewers,sponsor_wins,sponsor_losses,updated_at,sponsor_updated_at';
   const DAILY_RANK_COLUMNS = 'soop_id,role,affiliation,gender,balloons,broadcast_seconds,cumulative_viewers,sponsor_wins,sponsor_losses';
   // latest: 날짜 대신 가장 최근 날짜의 뷰(daily_member_stats_latest, ststat.sql)에서 받는다 - 날짜 목록을
   // 기다리지 않고 첫 화면을 받으려고 쓴다. 이때 dateStr은 받은 행의 날짜로 정해진다.
@@ -295,13 +305,16 @@
 
       const data = [];
       const pageSize = 1000;
-      for (let from = 0; ; from += pageSize) {
+      // 개인 페이지는 그 한 명만 받는다(휴면 선수도 보이도록 함수로 읽는다). 팀 페이지는 상위 1·5·10% 표시를
+      // 전체페이지와 같이 전체 선수 기준으로 매기므로 전체를 받고, 화면에는 그 팀만 그린다.
+      if (IS_PROFILE && PROFILE_ID) {
+          const { data: rows, error } = await client.rpc('player_profile_stats', { p_soop_id: PROFILE_ID, p_date: latest ? null : dateStr });
+          if (error) throw error;
+          if (Array.isArray(rows)) data.push(...rows);
+      } else for (let from = 0; ; from += pageSize) {
           let query = latest
               ? client.from('daily_member_stats_latest').select('stat_date,' + DAILY_COLUMNS)
               : client.from('daily_member_stats').select(light ? DAILY_RANK_COLUMNS : DAILY_COLUMNS).eq('stat_date', dateStr);
-          // 개인 페이지는 그 한 명만 받는다. 팀 페이지는 상위 1·5·10% 표시를 전체페이지와 같이
-          // 전체 선수 기준으로 매기므로 전체를 받고, 화면에는 그 팀만 그린다.
-          if (IS_PROFILE && PROFILE_ID) query = query.eq('soop_id', PROFILE_ID);
           if (!light) query = query.order('nickname', { ascending: true });
           const { data: batch, error } = await query
               .order('soop_id', { ascending: true })  // 닉네임이 겹쳐도 페이지 경계 순서가 고정되게
@@ -340,6 +353,7 @@
               tier: r.tier || null,
               gender: r.gender || null,
               birthdate: r.birth_date || null,
+              birth_month: Number(r.birth_month) || (r.birth_date ? parseInt(String(r.birth_date).split('-')[1], 10) : null),
               balloons: Number(r.balloons || 0),
               broadcast_seconds: Number(r.broadcast_seconds || 0),
               cumulative_viewers: Number(r.cumulative_viewers || 0),
@@ -613,11 +627,9 @@
           let males = [], females = [];
 
           tMembers.forEach(m => {
-              const sInfo = { gender: m.gender || '', birthdate: m.birthdate || null };
               const v = m[def.field] || 0;
               const counted = v !== 0 && !(def.excludeRoles && ['수장', '전력외'].includes(m.role));
-              m._gender = sInfo.gender;
-              m._bday = sInfo.birthdate;
+              m._gender = m.gender || '';
               m._val = v;
               m._counted = counted;
 
@@ -808,8 +820,7 @@
                       const tier = tiers.get(m);
                       if (tier) cClass.push(tier);
 
-                      const isBday = typeof m._bday === 'string'
-                          && parseInt(m._bday.split('-')[1], 10) === monthNum;
+                      const isBday = m.birth_month === monthNum;
                       const liveDot = m.id ? `<span class="live-dot" data-live-id="${escapeHtml(m.id)}"></span>` : '';
                       const bdayMark = isBday ? '<span class="bday-mark">🎂</span>' : '';
                       const nameContent = m.id
