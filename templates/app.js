@@ -248,6 +248,11 @@
               const q = {
                   select(cols) { params.set('select', cols); return q; },
                   eq(col, val) { params.append(col, `eq.${val}`); return q; },
+                  // 값마다 큰따옴표로 감싼다(이름에 쉼표·괄호가 있어도 PostgREST가 한 값으로 읽게)
+                  in(col, vals) {
+                      params.append(col, `in.(${vals.map(v => '"' + String(v).replace(/["\\]/g, '\\$&') + '"').join(',')})`);
+                      return q;
+                  },
                   // 여러 번 부르면 PostgREST 형식(order=a.asc,b.asc)으로 이어 붙인다
                   order(col, opt) {
                       const term = `${col}.${opt && opt.ascending === false ? 'desc' : 'asc'}`;
@@ -296,7 +301,7 @@
   // light는 지난달 대학 순위 증감(▲▼) 계산용 - 소속·직책·성별·지표 값만.
   // light 결과는 rankOnlyData에 따로 둬서 그 날짜를 직접 열면 전체를 새로 받는다.
   const DAILY_COLUMNS = 'soop_id,nickname,role,affiliation,tier,gender,birth_month,balloons,broadcast_seconds,cumulative_viewers,sponsor_wins,sponsor_losses,updated_at,sponsor_updated_at';
-  const DAILY_RANK_COLUMNS = 'soop_id,role,affiliation,gender,balloons,broadcast_seconds,cumulative_viewers,sponsor_wins,sponsor_losses';
+  const DAILY_RANK_COLUMNS = 'role,affiliation,gender,balloons,broadcast_seconds,cumulative_viewers,sponsor_wins,sponsor_losses';
   // latest: 날짜 대신 가장 최근 날짜의 뷰(daily_member_stats_latest, ststat.sql)에서 받는다 - 날짜 목록을
   // 기다리지 않고 첫 화면을 받으려고 쓴다. 이때 dateStr은 받은 행의 날짜로 정해진다.
   async function loadDailyData(dateStr, { light = false, latest = false } = {}) {
@@ -375,23 +380,45 @@
   }
 
   // 대학 로고: 스타유니브 어드민(전적 > 팀 관리)에서 올린 것. university_logos 표의 이름 → 주소·카드 색.
+  // 화면에 카드가 그려지는 대학 것만 받는다(날짜를 바꿔 새 대학이 나오면 그 대학만 더 받는다).
   // 표에 없는 대학(신생 등)은 이미지를 요청하지 않고 이름 첫 글자 배지로 대신한다.
   const LOGO_URLS = Object.create(null);
-  async function loadUniversityLogos() {
-      try {
-          const client = synergySupabaseClient();
-          if (!client) return;
-          const { data, error } = await client.from('university_logos').select('name,path,color');
-          if (error) throw error;
-          const base = String(window.SYNERGY_SUPABASE_CONFIG.url).replace(/\/$/, '');
-          (Array.isArray(data) ? data : []).forEach(r => {
-              if (!r || !r.name || !r.path) return;
-              LOGO_URLS[r.name] = `${base}/storage/v1/object/public/staruniv-media/${r.path}`;
-              if (r.color) TEAM_COLORS[r.name] = r.color;
+  const logoRequests = Object.create(null);
+  function loadUniversityLogos(names) {
+      const missing = names.filter(n => !logoRequests[n]);
+      const client = synergySupabaseClient();
+      if (missing.length && client) {
+          const request = client.from('university_logos').select('name,path,color').in('name', missing).then(({ data, error }) => {
+              if (error) throw error;
+              const base = String(window.SYNERGY_SUPABASE_CONFIG.url).replace(/\/$/, '');
+              (Array.isArray(data) ? data : []).forEach(r => {
+                  if (!r || !r.name || !r.path) return;
+                  LOGO_URLS[r.name] = `${base}/storage/v1/object/public/staruniv-media/${r.path}`;
+                  if (r.color) TEAM_COLORS[r.name] = r.color;
+              });
+          }).catch(e => {
+              // 실패한 대학은 다음 그리기 때 다시 묻는다
+              missing.forEach(n => { if (logoRequests[n] === request) delete logoRequests[n]; });
+              console.warn('대학 로고를 불러오지 못했습니다(이름 첫 글자 배지로 대신합니다)', e);
           });
-      } catch (e) {
-          console.warn('대학 로고 목록을 불러오지 못했습니다(이름 첫 글자 배지로 대신합니다)', e);
+          missing.forEach(n => { logoRequests[n] = request; });
       }
+      return Promise.all(names.map(n => logoRequests[n]));
+  }
+  // 개인 페이지는 로고를 그리지 않고 윗줄 색만 쓴다: 그 사람 대학의 색 하나만 받는다(대학별 한 번).
+  const teamColorRequests = Object.create(null);
+  function loadTeamColor(team) {
+      if (!team) return Promise.resolve(null);
+      if (!teamColorRequests[team]) {
+          const client = synergySupabaseClient();
+          teamColorRequests[team] = !client ? Promise.resolve(null)
+              : client.from('university_logos').select('color').eq('name', team).range(0, 0).then(({ data, error }) => {
+                  const color = !error && Array.isArray(data) && data[0] ? data[0].color : null;
+                  if (color) TEAM_COLORS[team] = color;
+                  return color;
+              });
+      }
+      return teamColorRequests[team];
   }
   function teamLogoUrl(name) {
       return LOGO_URLS[name] || '';
@@ -413,10 +440,6 @@
       host.querySelector('.load-retry').addEventListener('click', onRetry);
   }
 
-  // 로고는 부가 정보라 본문을 오래 막지 않는다: 1.5초 안에 오면 첫 화면부터 쓰고,
-  // 늦으면 이름 첫 글자 배지로 먼저 그린 뒤 도착했을 때 다시 그린다.
-  let logosLoaded = false;
-  const logosReady = loadUniversityLogos().then(() => { logosLoaded = true; });
   // 주소에 날짜가 없으면 첫 화면은 최신 날짜다: 날짜 목록을 기다리지 않고 최신 통계를 같이 받기 시작한다
   // (뷰가 아직 없거나 실패하면 applyData가 날짜로 다시 받는다). 방송 중 표시도 그리기 전에 미리 받는다.
   const latestPrefetch = new URLSearchParams(window.location.search).get('date')
@@ -432,12 +455,6 @@
       console.error('날짜 목록을 불러오지 못했습니다', e);
       showLoadError();
       return;
-  }
-  await Promise.race([logosReady, new Promise(resolve => setTimeout(resolve, 1500))]);
-  if (!logosLoaded) {
-      logosReady.then(() => {
-          if (ownGet(fetchedData, currentDateStr)) applyData();
-      });
   }
   if (AVAILABLE_DATES.length === 0) {
       const host = document.getElementById('grid-container') || document.body;
@@ -500,6 +517,20 @@
       initializePage();
   }
 
+  // 대학 카드 화면: 그 날짜에 카드가 그려지는 대학의 로고를 받은 뒤 그린다. 로고는 부가 정보라 본문을 오래
+  // 막지 않는다 - 1.5초 안에 오면 첫 화면부터 쓰고, 늦으면 이름 첫 글자 배지로 먼저 그린 뒤 도착했을 때 다시 그린다.
+  // 개인 페이지는 로고를 그리지 않는다(윗줄 색은 loadTeamColor로 그 대학 것만).
+  function renderDashboardWithLogos(data, token) {
+      const names = TARGET_TEAM ? [TARGET_TEAM] : [...new Set(data.members.map(m => m.team).filter(Boolean))];
+      let done = false;
+      const ready = loadUniversityLogos(names).then(() => { done = true; });
+      return Promise.race([ready, new Promise(resolve => setTimeout(resolve, 1500))]).then(() => {
+          if (token !== renderToken) return;
+          renderDashboard(data);
+          if (!done) ready.then(() => { if (token === renderToken) renderDashboard(data); });
+      });
+  }
+
   function applyData() {
       const token = ++renderToken;
       updateDateChrome();
@@ -507,7 +538,7 @@
       const cached = ownGet(fetchedData, currentDateStr);
       if (cached) {
           if (IS_PROFILE) profileLoaded(currentDateStr);
-          IS_PROFILE ? renderProfile(cached) : renderDashboard(cached);
+          IS_PROFILE ? renderProfile(cached) : renderDashboardWithLogos(cached, token);
           return;
       }
 
@@ -528,7 +559,7 @@
               // 응답은 이미 낡은 것이므로 그리지 않는다(캐시에는 남겨둔다).
               if (token !== renderToken) return;
               if (IS_PROFILE) profileLoaded(requestedDate);
-              IS_PROFILE ? renderProfile(normalized) : renderDashboard(normalized);
+              IS_PROFILE ? renderProfile(normalized) : renderDashboardWithLogos(normalized, token);
           })
           .catch(() => {
               if (token !== renderToken) return;
@@ -875,7 +906,12 @@
       const prevLiveEl = document.getElementById('profile-live-embed');
       if (prevLiveEl) { prevLiveEl.innerHTML = ''; prevLiveEl.style.display = 'none'; }
 
-      document.getElementById('profile-topbar').style.background = safeCssColor(ownGet(TEAM_COLORS, member.team));
+      const topbar = document.getElementById('profile-topbar');
+      topbar.style.background = safeCssColor(ownGet(TEAM_COLORS, member.team));
+      loadTeamColor(member.team).then(color => {
+          if (color && topbar.dataset.team === member.team) topbar.style.background = safeCssColor(color);
+      }).catch(() => {});
+      topbar.dataset.team = member.team || '';
       document.getElementById('profile-nickname').textContent = member.nickname || '';
       document.getElementById('profile-card').style.display = '';
 
