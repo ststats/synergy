@@ -64,6 +64,10 @@ def test_daily_queries_fetch_only_used_columns():
     rank = re.search(r"const DAILY_RANK_COLUMNS = '([^']+)'", src).group(1).split(",")
     # 화면에서 안 쓰는 칸은 받지 않는다
     assert "month_start" not in full and "elo_id" not in full
+    # 목록 화면은 생일 달만 쓴다: 생년월일·종족은 받지 않는다(공개 권한도 없다)
+    assert "birth_month" in full and "birth_date" not in full and "race" not in full
+    # 개인 페이지(휴면 선수 포함)는 한 사람용 함수로 읽는다
+    assert "client.rpc('player_profile_stats'" in src and "client.rpc('player_live'" in src
     # 지난달 순위 계산용은 소속·직책·성별·지표만(생일·닉네임 등 개인 정보는 받지 않는다)
     assert set(rank) == {"soop_id", "role", "affiliation", "gender", "balloons", "broadcast_seconds",
                          "cumulative_viewers", "sponsor_wins", "sponsor_losses"}
