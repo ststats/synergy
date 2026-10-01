@@ -1,892 +1,1127 @@
 // 시너지 페이지 스크립트(모든 페이지가 같이 쓴다). CSP로 인라인 스크립트를 막으므로 HTML 안이 아니라 파일로 두고,
 // 페이지마다 다른 값(대학 색 · 대상 팀 · 경로 · 프로필 여부)은 HTML의 <script type="application/json" id="page-config">에서 읽는다.
 (async function () {
-  const PAGE = JSON.parse(document.getElementById('page-config').textContent);
-  const TEAM_COLORS = PAGE.colors;
-  const TARGET_TEAM = PAGE.teamFromUrl ? (new URLSearchParams(window.location.search).get('team') || "") : PAGE.targetTeam;
-  const LOGO_PREFIX = PAGE.logoPrefix;
-  const IS_PROFILE = PAGE.isProfile;
-  // 이미지를 못 불러오면 data-fallback대로 가린다(hidden: 자리는 두고 숨김, none: 자리까지 없앰).
-  // 인라인 onerror를 쓰지 않는다. 이 파일보다 먼저 실패한 HTML 속 이미지는 바로 아래에서 마저 처리한다.
-  const hideBrokenImage = img => { img.style[img.dataset.fallback === 'none' ? 'display' : 'visibility'] = img.dataset.fallback; };
-  document.addEventListener('error', e => { if (e.target instanceof HTMLImageElement && e.target.dataset.fallback) hideBrokenImage(e.target); }, true);
-  document.querySelectorAll('img[data-fallback]').forEach(img => { if (img.complete && !img.naturalWidth) hideBrokenImage(img); });
-  const PROFILE_ID = IS_PROFILE ? new URLSearchParams(window.location.search).get('id') : '';
-  // 프로필 페이지의 뒤로가기 목적지 계산용 - URL에 한 번만 실려오는 값이라
-  // 페이지 로드 시점에 딱 한 번만 읽어서 상수로 둔다(날짜/지표처럼 나중에
-  // 또 바뀌는 값이 아님). document.referrer(브라우저가 알려주는 "직전 페이지")
-  // 대신 이걸 쓰는 이유: referrer는 새 탭에서 열거나 브라우저 프라이버시
-  // 설정에 따라 아예 안 올 수도 있어서 불안정했다. fromTeam은 프로필 링크를
-  // 만드는 쪽(renderFaBar/renderDashboard)에서 항상 명시적으로 실어 보낸다.
-  const FROM_TEAM = new URLSearchParams(window.location.search).get('fromTeam');
-
-  const metricDefs = {
-      balloon: { field: 'balloons', label: '별풍선', unit: '별풍선', format: v => v ? v.toLocaleString('ko-KR') : '', excludeRoles: true, rankByFemale: false, source: '풍고', url: 'https://poonggo.com' },
-      broadcast: { field: 'broadcast_seconds', label: '방송시간', unit: '방송시간', format: formatTime, excludeRoles: true, rankByFemale: false, source: '풍고', url: 'https://poonggo.com' },
-      viewer: { field: 'cumulative_viewers', label: '누적시청자', unit: '누적시청자', format: v => v ? v.toLocaleString('ko-KR') : '', excludeRoles: true, rankByFemale: false, source: '풍고', url: 'https://poonggo.com' },
-      sponsor: { field: 'sponsor_games', label: '스폰판수', unit: '스폰판수', format: v => v ? v + '판' : '', excludeRoles: true, rankByFemale: true, source: 'Elo', url: 'https://eloboard.co.kr/' }
-  };
-
-  // SOOP 프로필 사진의 작은 판(약 66px WebP, 스타유니브 core.js getProfileImgUrl과 같은 주소).
-  // 화면에는 22~24px로만 쓰므로 원본 JPG(큰 것은 수백 KB) 대신 이것을 받는다.
-  function soopPhotoUrl(id) {
-      const safe = encodeURIComponent(String(id || '').trim().toLowerCase());
-      return `https://stimg.sooplive.com/LOGO/${safe.substring(0, 2)}/${safe}/m/${safe}.webp`;
-  }
-
-  // URL 파라미터/속성 값으로 쓰이는 문자열 전용 헬퍼.
-  // escapeHtml만으로는 부족하다 - escapeHtml은 "속성 안에서 따옴표를 깨지
-  // 않게" 해줄 뿐이고, id에 &나 =가 들어가면 쿼리스트링의 의미 자체가
-  // 바뀐다(파라미터 주입). 그래서 URL 컴포넌트는 encodeURIComponent로 먼저
-  // 인코딩하고, 그 결과를 다시 속성용으로 escape한다.
-  function attrUrlParam(value) {
-      return escapeHtml(encodeURIComponent(value == null ? '' : value));
-  }
-
-  // 객체를 "맵"처럼 쓸 때 상속된 프로퍼티(constructor, __proto__, toString 등)가
-  // 값처럼 잡히는 걸 막는다. 예: ?metric=constructor 로 접속하면
-  // metricDefs['constructor']가 Object 생성자라 truthy로 통과해버리고,
-  // 곧바로 def.field가 undefined가 되면서 페이지 전체가 빈 화면이 됐다.
-  function ownGet(obj, key) {
-      if (!obj || key == null) return undefined;
-      return Object.prototype.hasOwnProperty.call(obj, key) ? obj[key] : undefined;
-  }
-
-  // style="background:..." 처럼 CSS 컨텍스트로 들어가는 값은 escapeHtml로는
-  // 부족하다(따옴표 없이도 `red;background-image:url(...)` 같은 주입이 가능).
-  // 이 사이트가 실제로 쓰는 건 #rrggbb 형태뿐이므로 그 형태만 통과시킨다.
-  const DEFAULT_TEAM_COLOR = '#4a5ce0';
-  function safeCssColor(value) {
-      return /^#[0-9a-fA-F]{3,8}$/.test(String(value || '')) ? String(value) : DEFAULT_TEAM_COLOR;
-  }
-
-  // 닉네임/팀명처럼 Supabase 로스터(궁극적으로는 외부 입력)에서
-  // 온 문자열을 innerHTML에 꽂기 전에 반드시 이 함수를 거친다. 새 선수는
-  // 어드민이 후보(tier_member_candidates)를 검토해서 명단에 올리지만, 그 검토는
-  // 사람 눈에 의존하는 방어일 뿐이고 최종적으로 이 값들은
-  // daily_member_stats를 거쳐 사이트 방문자 전원에게 그대로 렌더링된다.
-  // <, >, & 같은 문자가 실수로라도 섞이면 화면이 깨지거나(레이아웃 손상),
-  // 악의적인 경우 스크립트가 실행(XSS)될 수 있어 코드 레벨 방어가 필요하다.
-  // 성별 표기는 '남자'/'여자'로 통일돼 있다(DB가 저장할 때 맞춤). 예전 표기('f'·'여'·'여성'·'female')도 여자로 센다.
-  function isFemale(g) {
-      const v = String(g || '').trim().toLowerCase();
-      return v === '여자' || v === '여' || v === '여성' || v === 'f' || v === 'female';
-  }
-  function escapeHtml(s) {
-      return String(s ?? '').replace(/[&<>"']/g, c => ({
-          '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-      }[c]));
-  }
-
-  // 방송 중 여부: ststat live-status가 2분마다 채우는 live_broadcasts_current(스타유니브와 같은 표)에서
-  // 이 사람 한 줄만 읽는다. 시청자 수는 최대 2분 전 값이다. 못 읽거나 방송 중이 아니면 null.
-  async function checkIsLiveRealtime(soopId) {
-      const client = synergySupabaseClient();
-      if (!client || !soopId) return null;
-      // 휴면 선수 프로필에서도 보이도록 한 사람용 함수(player_live, ststat.sql)로 읽는다
-      const { data, error } = await client.rpc('player_live', { p_soop_id: soopId });
-      const row = !error && Array.isArray(data) ? data[0] : null;
-      if (!row || !row.broad_no) return null;
-      return { broad: row, broadStart: row.broad_start || null };
-  }
-
-  function fitTextToWidth(el, fullText) {
-      if (!el) return;
-      fullText = fullText || '';
-      el.dataset.fullText = fullText;
-      el.textContent = fullText;
-      if (!fullText || el.scrollWidth <= el.clientWidth) return;
-      // 한 글자씩 줄이면 글자 수만큼 레이아웃을 다시 계산하게 된다(긴 방송
-      // 제목에서 수십~수백 번의 강제 리플로우). 들어갈 수 있는 최대 길이를
-      // 이분 탐색으로 찾으면 log(n)번이면 충분하고 결과는 동일하다.
-      let lo = 0, hi = fullText.length, best = 0;
-      while (lo <= hi) {
-          const mid = (lo + hi) >> 1;
-          el.textContent = fullText.slice(0, mid) + '…';
-          if (el.scrollWidth <= el.clientWidth) { best = mid; lo = mid + 1; }
-          else { hi = mid - 1; }
-      }
-      el.textContent = fullText.slice(0, Math.max(1, best)) + '…';
-  }
-
-  function refitLiveTexts() {
-      document.querySelectorAll('#profile-live-embed [data-full-text]').forEach(el => {
-          fitTextToWidth(el, el.dataset.fullText);
-      });
-  }
-
-  let liveFitResizeTimer = null;
-  window.addEventListener('resize', () => {
-      clearTimeout(liveFitResizeTimer);
-      liveFitResizeTimer = setTimeout(refitLiveTexts, 150);
-  });
-
-  // 방송 중 여부: ststat live-status(Supabase Edge Function)가 2분마다 SOOP 전체 방송 목록을 훑어
-  // 채우는 live_broadcasts_current(5분 안에 갱신된 것만)를 읽는다.
-  // 렌더링이 일어날 때마다(날짜/지표를 빠르게 바꾸면 연달아 일어난다) 매번
-  // 요청을 보내면 클릭 몇 번에 요청 폭주가 된다. 마지막 요청 이후
-  // 최소 간격을 두고, 늦게 온 이전 응답은 버린다.
-  const LIVE_DOTS_MIN_INTERVAL_MS = 3000;
-  let liveDotsLastRun = 0;
-  let liveDotsTimer = null;
-  let liveDotsSeq = 0;
-
-  function scheduleLiveDots() {
-      clearTimeout(liveDotsTimer);
-      const wait = Math.max(0, LIVE_DOTS_MIN_INTERVAL_MS - (Date.now() - liveDotsLastRun));
-      liveDotsTimer = setTimeout(refreshLiveDots, wait);
-  }
-
-  // 방송 중인 SOOP ID 목록(소문자 Set). 첫 그리기 전에 미리 받아 둔 것(liveIdsPrefetch)은 처음 한 번만 쓴다.
-  let liveIdsPrefetch = null;
-  async function fetchLiveIds() {
-      const client = synergySupabaseClient();
-      if (!client) throw new Error('Supabase browser client is not configured');
-      const { data, error } = await client.from('live_broadcasts_current').select('soop_id').range(0, 4999);
-      if (error || !Array.isArray(data)) throw error || new Error('Invalid live status');
-      return new Set(data.filter(r => r && r.soop_id).map(r => String(r.soop_id).toLowerCase()));
-  }
-
-  async function refreshLiveDots() {
-      liveDotsLastRun = Date.now();
-      const dotEls = Array.from(document.querySelectorAll('.live-dot[data-live-id]'));
-      if (dotEls.length === 0) return;
-
-      const idToEls = Object.create(null);
-      dotEls.forEach(el => {
-          const id = el.dataset.liveId;
-          (idToEls[id] = idToEls[id] || []).push(el);
-      });
-      const ids = Object.keys(idToEls);
-
-      const seq = ++liveDotsSeq;
-      const prefetched = liveIdsPrefetch;
-      liveIdsPrefetch = null;
-      // 생방송 점은 부가 정보라, 실패해도 페이지 본문에는 아무 영향이 없어야 한다.
-      const live = (prefetched && await prefetched) || await fetchLiveIds().catch(() => null);
-      if (!live || seq !== liveDotsSeq) return;
-      ids.forEach(id => {
-          if (live.has(id.toLowerCase())) idToEls[id].forEach(el => el.classList.add('is-live'));
-      });
-  }
-
-  function withDerivedFields(data) {
-      // data가 null이거나 members가 배열이 아닐 수 있다(파일이 깨졌거나,
-      // 배포 중간에 받은 경우). 여기서 정상화해두면 아래 모든 렌더 함수가
-      // members를 항상 배열로 믿고 쓸 수 있다.
-      if (!data || typeof data !== 'object') data = {};
-      if (!Array.isArray(data.members)) data.members = [];
-      data.members.forEach(m => { m.sponsor_games = (m.sponsor_wins || 0) + (m.sponsor_losses || 0); });
-      return data;
-  }
-
-  function formatTime(sec) {
-      if (!sec) return '';
-      let h = Math.floor(sec / 3600);
-      let m = Math.floor((sec % 3600) / 60);
-      let s = Math.floor(sec % 60);
-      return (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
-  }
-
-  function fitSelectWidth(selectEl) {
-      if (!selectEl || selectEl.selectedIndex < 0) return;
-      const text = selectEl.options[selectEl.selectedIndex].text;
-      const probe = document.createElement('span');
-      probe.style.cssText = 'position:absolute;visibility:hidden;white-space:pre;';
-      probe.style.font = getComputedStyle(selectEl).font;
-      probe.textContent = text;
-      document.body.appendChild(probe);
-      selectEl.style.width = (probe.getBoundingClientRect().width + 2) + 'px';
-      document.body.removeChild(probe);
-  }
-
-  // Supabase timestamptz는 UTC로 전달된다. 문자열을 잘라 표시하면 한국보다
-  // 9시간 느리게 보이므로, 모든 데이터 갱신 시각은 명시적으로 KST로 변환한다.
-  function formatKstTimestamp(value) {
-      if (!value) return '';
-      const parsed = new Date(value);
-      if (!Number.isFinite(parsed.getTime())) return String(value).replace('T', ' ').slice(0, 19);
-      const parts = new Intl.DateTimeFormat('en-CA', {
-          timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit',
-          hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23'
-      }).formatToParts(parsed).reduce((out, part) => {
-          if (part.type !== 'literal') out[part.type] = part.value;
-          return out;
-      }, {});
-      // 한국 시간으로 바꿔 보여 주되 'KST' 글자는 붙이지 않는다(사이트가 한국 시간 기준)
-      return `${parts.year}-${parts.month}-${parts.day} ${parts.hour}:${parts.minute}:${parts.second}`;
-  }
-
-  // (그냥 진행하면 AVAILABLE_DATES[0]이 undefined라 currentDateStr.split()에서 페이지 전체가
-  // 백지가 된다.) 원인을 알 수 있는 메시지를 보여주고 조용히 멈춘다.
-  // Supabase 공개 읽기(REST). 이 페이지는 표 두 개를 select·eq·order·range로 읽기만 하므로
-  // supabase-js(213KB) 없이 fetch 몇 줄이면 된다.
-  const REQUEST_TIMEOUT_MS = 8000;
-  function synergySupabaseClient() {
-      const cfg = window.SYNERGY_SUPABASE_CONFIG;
-      if (!cfg || !cfg.url || !cfg.key) return null;
-      // 응답이 끝내 오지 않으면(연결만 붙고 멈춤 등) 8초에 끊는다 - 본문 받기까지 포함.
-      // 재시도 1번까지 해도 20초 안에 안내 화면으로 넘어간다.
-      const get = (path, params) => {
-          const ctrl = typeof AbortController === 'function' ? new AbortController() : null;
-          const timer = ctrl ? setTimeout(() => ctrl.abort(), REQUEST_TIMEOUT_MS) : null;
-          return fetch(`${cfg.url}/rest/v1/${path}?${params}`, {
-              headers: { apikey: cfg.key, Authorization: `Bearer ${cfg.key}` },
-              signal: ctrl ? ctrl.signal : undefined,
-          }).then(async res => {
-              const body = await res.json().catch(() => null);
-              if (ctrl && ctrl.signal.aborted) throw new Error('요청 시간 초과');
-              return res.ok ? { data: body, error: null }
-                  : { data: null, error: new Error((body && body.message) || `HTTP ${res.status}`) };
-          }).catch(err => ({ data: null, error: err }))
-            .finally(() => { if (timer) clearTimeout(timer); });
-      };
-      return {
-          from(table) {
-              const params = new URLSearchParams();
-              let rangeFrom = 0, rangeTo = null;
-              const q = {
-                  select(cols) { params.set('select', cols); return q; },
-                  eq(col, val) { params.append(col, `eq.${val}`); return q; },
-                  // 값마다 큰따옴표로 감싼다(이름에 쉼표·괄호가 있어도 PostgREST가 한 값으로 읽게)
-                  in(col, vals) {
-                      params.append(col, `in.(${vals.map(v => '"' + String(v).replace(/["\\]/g, '\\$&') + '"').join(',')})`);
-                      return q;
-                  },
-                  // 여러 번 부르면 PostgREST 형식(order=a.asc,b.asc)으로 이어 붙인다
-                  order(col, opt) {
-                      const term = `${col}.${opt && opt.ascending === false ? 'desc' : 'asc'}`;
-                      params.set('order', params.has('order') ? params.get('order') + ',' + term : term);
-                      return q;
-                  },
-                  range(from, to) { rangeFrom = from; rangeTo = to; return q; },
-                  then(resolve, reject) {
-                      if (rangeTo !== null) { params.set('offset', rangeFrom); params.set('limit', rangeTo - rangeFrom + 1); }
-                      return get(table, params).then(resolve, reject);
-                  },
-              };
-              return q;
-          },
-          // 읽기 전용(STABLE) 함수는 GET으로 부른다. 값이 null/빈 문자열인 인자는 보내지 않는다(기본값 사용).
-          rpc(fn, args) {
-              const params = new URLSearchParams();
-              Object.entries(args || {}).forEach(([k, v]) => { if (v !== null && v !== undefined && v !== '') params.set(k, v); });
-              return get(`rpc/${fn}`, params);
-          },
-      };
-  }
-
-  async function loadAvailableDates() {
-      const client = synergySupabaseClient();
-      if (!client) throw new Error('Supabase browser client is not configured');
-      const data = [];
-      const pageSize = 1000;
-      for (let from = 0; ; from += pageSize) {
-          const { data: batch, error } = await client.from('synergy_daily_dates')
-              .select('stat_date')
-              .order('stat_date', { ascending: false })
-              .range(from, from + pageSize - 1);
-          if (error) throw error;
-          const rows = Array.isArray(batch) ? batch : [];
-          data.push(...rows);
-          if (rows.length < pageSize) break;
-      }
-      return data
-          .map(r => String(r.stat_date || ''))
-          .filter(Boolean);
-  }
-
-  // 화면에 쓰는 칸만 받는다. 목록 화면은 생일 표시(🎂)에 달만 쓰므로 birth_month만 받고 생년월일·종족은
-  // 받지 않는다(공개 권한도 없다). 개인 페이지는 player_profile_stats 함수로 그 한 명의 전체 칸을 받는다.
-  // light는 지난달 대학 순위 증감(▲▼) 계산용 - 소속·직책·성별·지표 값만.
-  // light 결과는 rankOnlyData에 따로 둬서 그 날짜를 직접 열면 전체를 새로 받는다.
-  const DAILY_COLUMNS = 'soop_id,nickname,role,affiliation,tier,gender,birth_month,balloons,broadcast_seconds,cumulative_viewers,sponsor_wins,sponsor_losses,updated_at,sponsor_updated_at';
-  const DAILY_RANK_COLUMNS = 'role,affiliation,gender,balloons,broadcast_seconds,cumulative_viewers,sponsor_wins,sponsor_losses';
-  // latest: 날짜 대신 가장 최근 날짜의 뷰(daily_member_stats_latest, ststat.sql)에서 받는다 - 날짜 목록을
-  // 기다리지 않고 첫 화면을 받으려고 쓴다. 이때 dateStr은 받은 행의 날짜로 정해진다.
-  async function loadDailyData(dateStr, { light = false, latest = false } = {}) {
-      const client = synergySupabaseClient();
-      if (!client) throw new Error('Supabase browser client is not configured');
-
-      const data = [];
-      const pageSize = 1000;
-      // 개인 페이지는 그 한 명만 받는다(휴면 선수도 보이도록 함수로 읽는다). 팀 페이지는 상위 1·5·10% 표시를
-      // 전체페이지와 같이 전체 선수 기준으로 매기므로 전체를 받고, 화면에는 그 팀만 그린다.
-      if (IS_PROFILE && PROFILE_ID) {
-          const { data: rows, error } = await client.rpc('player_profile_stats', { p_soop_id: PROFILE_ID, p_date: latest ? null : dateStr });
-          if (error) throw error;
-          if (Array.isArray(rows)) data.push(...rows);
-      } else for (let from = 0; ; from += pageSize) {
-          let query = latest
-              ? client.from('daily_member_stats_latest').select('stat_date,' + DAILY_COLUMNS)
-              : client.from('daily_member_stats').select(light ? DAILY_RANK_COLUMNS : DAILY_COLUMNS).eq('stat_date', dateStr);
-          if (!light) query = query.order('nickname', { ascending: true });
-          const { data: batch, error } = await query
-              .order('soop_id', { ascending: true })  // 닉네임이 겹쳐도 페이지 경계 순서가 고정되게
-              .range(from, from + pageSize - 1);
-          if (error) throw error;
-
-          const rows = Array.isArray(batch) ? batch : [];
-          data.push(...rows);
-          if (rows.length < pageSize) break;
-      }
-
-      if (latest) {
-          dateStr = data.length ? String(data[0].stat_date || '') : '';
-          if (!dateStr) throw new Error('No latest daily stats');
-      }
-      if (data.length === 0 && !TARGET_TEAM && !IS_PROFILE) {
-          throw new Error(`No daily stats for ${dateStr}`);
-      }
-
-      let updated = '';
-      let sponsorUpdated = '';
-      const members = data.map(r => {
-          updated = (!updated || String(r.updated_at || '') > updated)
-              ? String(r.updated_at || '')
-              : updated;
-          sponsorUpdated = (!sponsorUpdated || String(r.sponsor_updated_at || '') > sponsorUpdated)
-              ? String(r.sponsor_updated_at || '')
-              : sponsorUpdated;
-
-          return {
-              id: r.soop_id,
-              nickname: r.nickname,
-              role: r.role || '',
-              team: r.affiliation || null,
-              race: r.race || null,
-              tier: r.tier || null,
-              gender: r.gender || null,
-              birthdate: r.birth_date || null,
-              birth_month: Number(r.birth_month) || (r.birth_date ? parseInt(String(r.birth_date).split('-')[1], 10) : null),
-              balloons: Number(r.balloons || 0),
-              broadcast_seconds: Number(r.broadcast_seconds || 0),
-              cumulative_viewers: Number(r.cumulative_viewers || 0),
-              sponsor_wins: Number(r.sponsor_wins || 0),
-              sponsor_losses: Number(r.sponsor_losses || 0),
-          };
-      });
-
-      const [year, month] = dateStr.split('-').map(Number);
-      return {
-          updated_at: formatKstTimestamp(updated),
-          date: dateStr,
-          year,
-          month,
-          members,
-          sponsor_updated_at: formatKstTimestamp(sponsorUpdated),
-          sponsor_month: `${year}-${String(month).padStart(2, '0')}`,
-      };
-  }
-
-  // 대학 로고: 스타유니브 어드민(전적 > 팀 관리)에서 올린 것. university_logos 표의 이름 → 주소·카드 색.
-  // 화면에 카드가 그려지는 대학 것만 받는다(날짜를 바꿔 새 대학이 나오면 그 대학만 더 받는다).
-  // 표에 없는 대학(신생 등)은 이미지를 요청하지 않고 이름 첫 글자 배지로 대신한다.
-  const LOGO_URLS = Object.create(null);
-  const logoRequests = Object.create(null);
-  function loadUniversityLogos(names) {
-      const missing = names.filter(n => !logoRequests[n]);
-      const client = synergySupabaseClient();
-      if (missing.length && client) {
-          const request = client.from('university_logos').select('name,path,color').in('name', missing).then(({ data, error }) => {
-              if (error) throw error;
-              const base = String(window.SYNERGY_SUPABASE_CONFIG.url).replace(/\/$/, '');
-              (Array.isArray(data) ? data : []).forEach(r => {
-                  if (!r || !r.name || !r.path) return;
-                  LOGO_URLS[r.name] = `${base}/storage/v1/object/public/staruniv-media/${r.path}`;
-                  if (r.color) TEAM_COLORS[r.name] = r.color;
-              });
-          }).catch(e => {
-              // 실패한 대학은 다음 그리기 때 다시 묻는다
-              missing.forEach(n => { if (logoRequests[n] === request) delete logoRequests[n]; });
-              console.warn('대학 로고를 불러오지 못했습니다(이름 첫 글자 배지로 대신합니다)', e);
-          });
-          missing.forEach(n => { logoRequests[n] = request; });
-      }
-      return Promise.all(names.map(n => logoRequests[n]));
-  }
-  // 개인 페이지는 로고를 그리지 않고 윗줄 색만 쓴다: 그 사람 대학의 색 하나만 받는다(대학별 한 번).
-  const teamColorRequests = Object.create(null);
-  function loadTeamColor(team) {
-      if (!team) return Promise.resolve(null);
-      if (!teamColorRequests[team]) {
-          const client = synergySupabaseClient();
-          teamColorRequests[team] = !client ? Promise.resolve(null)
-              : client.from('university_logos').select('color').eq('name', team).range(0, 0).then(({ data, error }) => {
-                  const color = !error && Array.isArray(data) && data[0] ? data[0].color : null;
-                  if (color) TEAM_COLORS[team] = color;
-                  return color;
-              });
-      }
-      return teamColorRequests[team];
-  }
-  function teamLogoUrl(name) {
-      return LOGO_URLS[name] || '';
-  }
-
-  // 일시 오류(네트워크 끊김 등)는 1초 뒤 한 번 더 시도한다
-  async function retryOnce(fn) {
-      try {
-          return await fn();
-      } catch (e) {
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          return fn();
-      }
-  }
-  // 불러오기 실패 안내와 '다시 시도' 버튼(기본은 페이지 새로고침)
-  function showLoadError(host = document.getElementById('grid-container') || document.body, onRetry = () => location.reload()) {
-      host.innerHTML = '<div style="padding:40px;text-align:center;color:#c23636;">데이터를 불러오지 못했습니다.'
-          + '<br><button type="button" class="load-retry" style="margin-top:12px;padding:8px 16px;cursor:pointer;">다시 시도</button></div>';
-      host.querySelector('.load-retry').addEventListener('click', onRetry);
-  }
-
-  // 주소에 날짜가 없으면 첫 화면은 최신 날짜다: 날짜 목록을 기다리지 않고 최신 통계를 같이 받기 시작한다
-  // (뷰가 아직 없거나 실패하면 applyData가 날짜로 다시 받는다). 방송 중 표시도 그리기 전에 미리 받는다.
-  // 주소에 날짜가 있으면 그 날짜를 바로 받는다(날짜 목록과 같이). 받은 게 비어 있으면(없는 날짜) 예전처럼 목록을 보고 고른다.
-  const URL_DATE = new URLSearchParams(window.location.search).get('date') || '';
-  const latestPrefetch = URL_DATE ? null : loadDailyData('', { latest: true }).catch(() => null);
-  const urlDatePrefetch = URL_DATE && /^\d{4}-\d{2}-\d{2}$/.test(URL_DATE)
-      ? loadDailyData(URL_DATE).then(d => (d && d.members.length ? d : null), () => null) : null;
-  // 방송 중 표시: 목록 화면은 점 찍을 ID 목록을, 개인 페이지는 그 사람의 방송 정보를 미리 받는다(처음 한 번만 쓴다)
-  let profileLivePrefetch = null;
-  if (IS_PROFILE) { if (PROFILE_ID) profileLivePrefetch = checkIsLiveRealtime(PROFILE_ID).catch(() => null); }
-  else liveIdsPrefetch = fetchLiveIds().catch(() => null);
-  // 날짜 목록은 달력(고를 수 있는 범위)과 지난달 순위 비교에만 쓴다. 첫 화면 통계(최신 또는 주소의 날짜)를 이미 받았으면
-  // 목록을 기다리지 않고 그 날짜로 먼저 그리고, 목록이 오면 달력·순위 비교를 채운다. 목록만 실패해도 화면은 그대로 보인다.
-  // 첫 화면 통계를 못 받았으면 예전처럼 목록을 받은 뒤 시작한다.
-  const datesRequest = retryOnce(loadAvailableDates);
-  datesRequest.catch(() => {});
-  const latestFirst = latestPrefetch ? await latestPrefetch : (urlDatePrefetch ? await urlDatePrefetch : null);
-  let AVAILABLE_DATES;
-  if (latestFirst && latestFirst.date) {
-      AVAILABLE_DATES = [latestFirst.date];
-      datesRequest.then(list => {
-          if (!Array.isArray(list) || !list.length) return;
-          AVAILABLE_DATES = list.includes(latestFirst.date) ? list : [...list, latestFirst.date].sort().reverse();
-          applyDateRange();
-          if (!IS_PROFILE && ownGet(fetchedData, currentDateStr)) applyData();   // 지난달 순위 비교(▲▼)를 붙인다
-      }, e => console.warn('날짜 목록을 불러오지 못했습니다(최신 날짜만 보여 줍니다)', e));
-  } else {
-      try {
-          AVAILABLE_DATES = await datesRequest;
-      } catch (e) {
-          console.error('날짜 목록을 불러오지 못했습니다', e);
-          showLoadError();
-          return;
-      }
-  }
-  if (AVAILABLE_DATES.length === 0) {
-      const host = document.getElementById('grid-container') || document.body;
-      host.innerHTML = '<div style="padding:40px;text-align:center;color:#c23636;">표시할 데이터가 없습니다.</div>';
-      return;
-  }
-
-  let currentDateStr = AVAILABLE_DATES[0];
-  let currentMetric = "balloon";
-  const fetchedData = Object.create(null);
-  const rankOnlyData = Object.create(null);   // 지난달 순위 계산용 가벼운 데이터(loadDailyData light)
-  // 같은 날짜를 받는 중에 또 부르면(지표를 빠르게 바꾸는 등) 새로 요청하지 않고 떠 있는 요청을 같이 기다린다
-  const pendingLoads = Object.create(null);
-  function loadOnce(key, load) {
-      if (!pendingLoads[key]) pendingLoads[key] = load().finally(() => { delete pendingLoads[key]; });
-      return pendingLoads[key];
-  }
-  // 날짜를 빠르게 여러 번 바꾸면 여러 fetch가 동시에 떠 있게 되고, 먼저 보낸
-  // 느린 응답이 나중에 도착해 최신 화면을 이전 데이터로 덮어쓸 수 있다
-  // (렌더 경합). 요청마다 번호를 매겨서, 도착한 응답이 "지금도
-  // 최신인 요청"의 것일 때만 그린다.
-  let renderToken = 0;
-
-  const calBtn = document.getElementById('calendar-btn');
-  const datePicker = document.getElementById('date-picker');
-  function applyDateRange() {
-      if (!datePicker) return;
-      datePicker.min = AVAILABLE_DATES[AVAILABLE_DATES.length - 1];
-      datePicker.max = AVAILABLE_DATES[0];
-  }
-  applyDateRange();
-
-  function initializePage() {
-      const params = new URLSearchParams(window.location.search);
-      if (params.get('date') && AVAILABLE_DATES.includes(params.get('date'))) currentDateStr = params.get('date');
-      if (ownGet(metricDefs, params.get('metric'))) currentMetric = params.get('metric');
-
-      const metricSel = document.getElementById('ms-metric-select');
-      if(metricSel) {
-          metricSel.value = currentMetric;
-          fitSelectWidth(metricSel);
-
-          const wrapper = metricSel.closest('.select-wrapper');
-          const revealSelect = () => {
-              fitSelectWidth(metricSel);
-              if (wrapper) wrapper.classList.add('ready');
-          };
-
-          if (document.fonts && document.fonts.ready) {
-              document.fonts.ready.then(revealSelect);
-          } else {
-              revealSelect();
-          }
-      }
-
-      applyData();
-  }
-
-  if (document.readyState === 'loading') {
-      window.addEventListener('DOMContentLoaded', initializePage, { once: true });
-  } else {
-      initializePage();
-  }
-
-  // 대학 카드 화면: 그 날짜에 카드가 그려지는 대학의 로고를 받은 뒤 그린다. 로고는 부가 정보라 본문을 오래
-  // 막지 않는다 - 1.5초 안에 오면 첫 화면부터 쓰고, 늦으면 이름 첫 글자 배지로 먼저 그린 뒤 도착했을 때 다시 그린다.
-  // 개인 페이지는 로고를 그리지 않는다(윗줄 색은 loadTeamColor로 그 대학 것만).
-  function renderDashboardWithLogos(data, token) {
-      const names = TARGET_TEAM ? [TARGET_TEAM] : [...new Set(data.members.map(m => m.team).filter(Boolean))];
-      let done = false;
-      const ready = loadUniversityLogos(names).then(() => { done = true; });
-      return Promise.race([ready, new Promise(resolve => setTimeout(resolve, 1500))]).then(() => {
-          if (token !== renderToken) return;
-          renderDashboard(data);
-          if (!done) ready.then(() => { if (token === renderToken) renderDashboard(data); });
-      });
-  }
-
-  function applyData() {
-      const token = ++renderToken;
-      updateDateChrome();
-
-      const cached = ownGet(fetchedData, currentDateStr);
-      if (cached) {
-          if (IS_PROFILE) profileLoaded(currentDateStr);
-          IS_PROFILE ? renderProfile(cached) : renderDashboardWithLogos(cached, token);
-          return;
-      }
-
-      const gridEl = document.getElementById('grid-container');
-      if (!IS_PROFILE && gridEl) {
-          gridEl.innerHTML = '<div style="padding:40px;text-align:center;">불러오는 중...</div>';
-      }
-      if (IS_PROFILE) profileBusy(true);
-      const requestedDate = currentDateStr;
-      // 미리 받은 최신 통계가 이 날짜면 그것을 쓴다(한 번만)
-      const prefetched = (requestedDate === AVAILABLE_DATES[0] && latestPrefetch) || (requestedDate === URL_DATE && urlDatePrefetch);
-      const load = () => (prefetched || Promise.resolve(null))
-          .then(data => (data && data.date === requestedDate ? data : retryOnce(() => loadDailyData(requestedDate))));
-      loadOnce('full:' + requestedDate, () => load().then(withDerivedFields))
-          .then(normalized => {
-              fetchedData[requestedDate] = normalized;
-              // 내가 요청을 보낸 뒤 사용자가 날짜/지표를 또 바꿨다면, 이
-              // 응답은 이미 낡은 것이므로 그리지 않는다(캐시에는 남겨둔다).
-              if (token !== renderToken) return;
-              if (IS_PROFILE) profileLoaded(requestedDate);
-              IS_PROFILE ? renderProfile(normalized) : renderDashboardWithLogos(normalized, token);
-          })
-          .catch(() => {
-              if (token !== renderToken) return;
-              if (IS_PROFILE) profileLoadFailed(requestedDate);
-              else if (gridEl) showLoadError(gridEl, () => { if (token === renderToken) applyData(); });
-          });
-  }
-
-  // 개인 페이지: 날짜를 바꾸는 동안에는 카드를 흐리게 하고, 실패하면 날짜를 지금 보이는 데이터의
-  // 날짜로 되돌린 뒤 알린다 - 새 날짜 옆에 이전 날짜의 수치가 그대로 남아 새 값처럼 보이지 않게.
-  let profileShownDate = null;
-  function profileBusy(on) {
-      const card = document.getElementById('profile-card');
-      if (!card) return;
-      card.style.opacity = on ? '0.5' : '';
-      if (on) card.setAttribute('aria-busy', 'true'); else card.removeAttribute('aria-busy');
-  }
-  function profileNotice() {
-      let el = document.getElementById('profile-load-notice');
-      const card = document.getElementById('profile-card');
-      if (!el && card) {
-          el = document.createElement('div');
-          el.id = 'profile-load-notice';
-          el.setAttribute('role', 'alert');
-          card.parentNode.insertBefore(el, card);
-      }
-      return el;
-  }
-  function profileLoaded(date) {
-      profileShownDate = date;
-      profileBusy(false);
-      const el = document.getElementById('profile-load-notice');
-      if (el) el.remove();
-  }
-  function profileLoadFailed(failedDate) {
-      profileBusy(false);
-      const host = profileNotice();
-      if (!host) return;
-      const retry = () => { currentDateStr = failedDate; applyData(); };
-      if (!profileShownDate) { showLoadError(host, retry); return; }
-      currentDateStr = profileShownDate;
-      updateDateChrome();
-      const label = d => { const p = d.split('-'); return `${Number(p[1])}월 ${Number(p[2])}일`; };
-      host.innerHTML = '<div style="padding:12px 16px;margin-bottom:12px;text-align:center;color:#c23636;">'
-          + escapeHtml(label(failedDate)) + ' 데이터를 불러오지 못해 ' + escapeHtml(label(profileShownDate))
-          + ' 데이터를 보여 줍니다.<br><button type="button" class="load-retry" style="margin-top:8px;padding:6px 14px;cursor:pointer;">다시 시도</button></div>';
-      host.querySelector('.load-retry').addEventListener('click', retry);
-  }
-
-  // 날짜 버튼·날짜 입력·뒤로가기 링크를 지금 날짜(currentDateStr)에 맞춘다
-  function updateDateChrome() {
-      const parts = currentDateStr.split('-');
-      if (calBtn) {
-          calBtn.innerHTML = escapeHtml(parts[0].slice(-2)) + '년 ' + escapeHtml(parts[1]) + '월 '
-              + escapeHtml(parts[2]) + '일 <span class="nav-chevron">▾</span>';
-      }
-      if (datePicker) datePicker.value = currentDateStr;
-
-      if (TARGET_TEAM && !IS_PROFILE) {
-          const teamBackLink = document.getElementById('back-link');
-          if (teamBackLink) {
-              teamBackLink.href = 'index.html?date=' + encodeURIComponent(currentDateStr)
-                  + '&metric=' + encodeURIComponent(currentMetric);
-          }
-      } else if (IS_PROFILE) {
-          // 날짜/지표가 바뀔 때마다 applyData()가 호출되므로 여기서 매번 다시
-          // 계산해야 뒤로가기 링크가 항상 지금 보고 있는 날짜를 들고 돌아간다.
-          const backHref = FROM_TEAM
-              ? `team.html?team=${encodeURIComponent(FROM_TEAM)}&date=${encodeURIComponent(currentDateStr)}&metric=${encodeURIComponent(currentMetric)}`
-              : `index.html?date=${encodeURIComponent(currentDateStr)}&metric=${encodeURIComponent(currentMetric)}`;
-          const backLinkEl = document.getElementById('back-link');
-          if (backLinkEl) backLinkEl.href = LOGO_PREFIX + backHref;
-      }
-  }
-
-  function findPrevMonthDate(dateStr) {
-      const [y, m] = dateStr.split('-').map(Number);
-      const prevYM = (m === 1) ? `${y - 1}-12` : `${y}-${String(m - 1).padStart(2, '0')}`;
-      const candidates = AVAILABLE_DATES.filter(d => d.startsWith(prevYM));
-      if (candidates.length === 0) return null;
-      return candidates.slice().sort().reverse()[0];
-  }
-
-  function computeTeamAggregates(members, def) {
-      const teams = Object.create(null);
-      (members || []).forEach(m => {
-          const t = m.team || '미분류';
-          if (['FA', '휴면', '미분류'].includes(t)) return;
-          if (!teams[t]) teams[t] = [];
-          teams[t].push(m);
-      });
-
-      const result = [];
-      for (const [tName, tMembers] of Object.entries(teams)) {
-          let mSum = 0, fSum = 0, mCount = 0, fCount = 0, tCount = 0;
-          let males = [], females = [];
-
-          tMembers.forEach(m => {
-              const v = m[def.field] || 0;
-              const counted = v !== 0 && !(def.excludeRoles && ['수장', '전력외'].includes(m.role));
-              m._gender = m.gender || '';
-              m._val = v;
-              m._counted = counted;
-
-              if (isFemale(m._gender)) {
-                  females.push(m); if (counted) { fSum += v; fCount++; tCount++; }
-              } else {
-                  males.push(m); if (counted) { mSum += v; mCount++; tCount++; }
-              }
-          });
-
-          males.sort((a, b) => b._val - a._val);
-          females.sort((a, b) => b._val - a._val);
-          const fAvg = fCount > 0 ? Math.round(fSum / fCount) : 0;
-          const tAvg = tCount > 0 ? Math.round((mSum + fSum) / tCount) : 0;
-
-          result.push({ name: tName, males, females, fAvg, tAvg, totalSum: mSum + fSum, rankVal: def.rankByFemale ? fAvg : tAvg });
-      }
-      return result;
-  }
-
-  function computeTeamRanks(data, metricKey) {
-      const def = ownGet(metricDefs, metricKey);
-      if (!def) return {};
-      const teamStats = computeTeamAggregates(data.members, def);
-      teamStats.sort((a, b) => b.rankVal - a.rankVal);
-      const ranks = Object.create(null);
-      teamStats.forEach((s, i) => { ranks[s.name] = i + 1; });
-      return ranks;
-  }
-
-  async function attachRankBadges(teamStats, dateStr, metricKey) {
-      if (TARGET_TEAM) return;
-      const currentRanks = {};
-      teamStats.forEach((s, i) => { currentRanks[s.name] = i + 1; });
-
-      const prevDate = findPrevMonthDate(dateStr);
-      if (!prevDate) return;
-
-      const token = renderToken;
-      let prevData = ownGet(fetchedData, prevDate) || ownGet(rankOnlyData, prevDate);
-      if (!prevData) {
-          try {
-              prevData = await loadOnce('light:' + prevDate, () => loadDailyData(prevDate, { light: true }).then(withDerivedFields));
-              rankOnlyData[prevDate] = prevData;
-          } catch (e) { return; }
-      }
-      // 이 함수는 async라서, 위 await 동안 사용자가 날짜/지표를 바꿨을 수
-      // 있다. 그러면 지금 화면의 팀 카드는 다른 기준으로 다시 그려진
-      // 상태라, 여기서 뱃지를 붙이면 엉뚱한 증감 화살표가 남는다.
-      if (token !== renderToken) return;
-
-      const prevRanks = computeTeamRanks(prevData, metricKey);
-      teamStats.forEach(s => {
-          const slot = document.querySelector('.rank-badge-slot[data-team="' + CSS.escape(s.name) + '"]');
-          if (!slot) return;
-          const curRank = currentRanks[s.name];
-          if (!Object.prototype.hasOwnProperty.call(prevRanks, s.name)) {
-              slot.innerHTML = '<span class="rank-change new">NEW</span>';
-          } else {
-              const prevRank = prevRanks[s.name];
-              if (curRank < prevRank) slot.innerHTML = '<span class="rank-change up">▲' + (prevRank - curRank) + '</span>';
-              else if (curRank > prevRank) slot.innerHTML = '<span class="rank-change down">▼' + (curRank - prevRank) + '</span>';
-              else slot.innerHTML = '<span class="rank-change same">-</span>';
-          }
-      });
-  }
-
-  const TIER_ORDER = ['갓', '킹', '잭', '조커', '스페이드', '0', '1', '2', '3', '4', '5', '6', '7', '8', '베이비'];
-
-  let faBarCollapsed = true;
-
-  function renderFaBar(data) {
-      if (TARGET_TEAM) return;
-      const faBar = document.getElementById('fa-bar');
-      if (!faBar) return;
-
-      const faMembers = (data.members || []).filter(m => m.team === 'FA').slice();
-      if (faMembers.length === 0) { faBar.style.display = 'none'; faBar.innerHTML = ''; return; }
-
-      faMembers.sort((a, b) => {
-          const ai = TIER_ORDER.indexOf(a.tier);
-          const bi = TIER_ORDER.indexOf(b.tier);
-          return (ai === -1 ? TIER_ORDER.length : ai) - (bi === -1 ? TIER_ORDER.length : bi);
-      });
-
-      const itemsHtml = faMembers.map(m => {
-          // m.id / 닉네임은 Supabase 로스터에서 온 임의 문자열이다.
-          // 속성값 자리에 그대로 넣으면 따옴표 하나로 속성을 탈출해
-          // onerror= 같은 걸 붙일 수 있다(저장형 XSS). 모든 삽입 지점을
-          // escapeHtml / attrUrlParam으로 감싼다.
-          const photoImg = `<img class="fa-bar-photo" src="${escapeHtml(soopPhotoUrl(m.id))}" alt="" loading="lazy" data-fallback="hidden">`;
-          const liveDot = m.id ? `<span class="live-dot" data-live-id="${escapeHtml(m.id)}"></span>` : '';
-          const inner = `${photoImg}${liveDot}<span class="member-name">${escapeHtml(m.nickname)}</span>`;
-          return m.id
-              ? `<div class="fa-bar-item"><a href="${escapeHtml(LOGO_PREFIX)}profile.html?id=${attrUrlParam(m.id)}&date=${attrUrlParam(currentDateStr)}&metric=${attrUrlParam(currentMetric)}&fromTeam=${attrUrlParam(TARGET_TEAM || '')}">${inner}</a></div>`
-              : `<div class="fa-bar-item"><span class="fa-bar-static">${inner}</span></div>`;
-      }).join('');
-
-      const collapsedClass = faBarCollapsed ? ' collapsed' : '';
-      faBar.innerHTML = `<button type="button" class="fa-bar-title${collapsedClass}" id="fa-bar-toggle"><span class="fa-bar-chevron">▾</span><span class="fa-bar-label">FA</span><span class="fa-bar-sub">${faMembers.length}명</span></button><div class="fa-bar-list${collapsedClass}" id="fa-bar-list">${itemsHtml}</div>`;
-      faBar.style.display = '';
-
-      const toggleEl = document.getElementById('fa-bar-toggle');
-      const listEl = document.getElementById('fa-bar-list');
-      if (toggleEl && listEl) {
-          toggleEl.addEventListener('click', () => {
-              faBarCollapsed = !faBarCollapsed;
-              toggleEl.classList.toggle('collapsed', faBarCollapsed);
-              listEl.classList.toggle('collapsed', faBarCollapsed);
-          });
-      }
-  }
-
-  function renderDashboard(data) {
-      const def = ownGet(metricDefs, currentMetric) || metricDefs.balloon;
-      const members = (data && data.members) || [];
-      const monthNum = parseInt(currentDateStr.split('-')[1], 10);
-      const upd = (currentMetric === 'sponsor' && data.sponsor_updated_at) ? data.sponsor_updated_at : data.updated_at;
-
-      const validTeams = new Set(members.map(m=>m.team).filter(t => t && t !== 'FA' && t !== '휴면'));
-      // 팀페이지(TARGET_TEAM 있음)에서는 이미 그 팀 하나만 보고 있는 화면이라
-      // "N팀 · M명" 전체 집계 문구는 안 보여준다 - 전체페이지에서만 표시.
-      const teamCountHtml = TARGET_TEAM ? '' : (validTeams.size + '팀 · ' +
-        members.filter(m => m.team && m.team !== 'FA' && m.team !== '휴면').length + '명 · ');
-      const inquiryHtml = ' <span style="color:#c2c5cc;">·</span> <a href="https://ygosu.com/board/pan_prison" target="_blank" rel="noopener" class="source-link">문의</a>';
-      const metaEl = document.getElementById('top-meta-text');
-      // upd는 데이터 파일에서 온 값이라 그대로 innerHTML에 넣으면 안 된다.
-      if (metaEl) {
-          metaEl.innerHTML = teamCountHtml +
-            '업데이트 ' + escapeHtml(upd || '-') + ' · 출처: <a href="' + escapeHtml(def.url)
-            + '" target="_blank" rel="noopener" class="source-link">' + escapeHtml(def.source) + '</a>' + inquiryHtml;
-      }
-
-      const roleLegend = document.getElementById('role-legend-item');
-      if(roleLegend) roleLegend.style.display = def.excludeRoles ? '' : 'none';
-
-      // 멤버 객체 자체를 키로 쓰는 Map이다(`nickname + '|' + team` 같은 문자열 키는 같은 팀
-      // 동명이인이면 한 명의 등급이 다른 사람에게도 칠해진다).
-      const tiers = new Map();
-      const pool = members.filter(m => {
-          const v = m[def.field] || 0;
-          if (v === 0) return false;
-          if (def.excludeRoles && ['수장', '전력외'].includes(m.role)) return false;
-          if (!m.team || ['FA', '휴면'].includes(m.team)) return false;
-          return true;
-      }).sort((a,b) => (b[def.field] || 0) - (a[def.field] || 0));
-
-      const n = pool.length;
-      const t1 = Math.max(1, Math.round(n * 0.01));
-      const t5 = Math.max(1, Math.round(n * 0.05));
-      const t10 = Math.max(1, Math.round(n * 0.10));
-      pool.forEach((m, i) => {
-          if (i < t1) tiers.set(m, 'tier1');
-          else if (i < t5) tiers.set(m, 'tier5');
-          else if (i < t10) tiers.set(m, 'tier10');
-      });
-
-      const teamStats = computeTeamAggregates(members, def);
-      teamStats.sort((a, b) => b.rankVal - a.rankVal);
-
-      let html = '';
-      const targetTeamStats = TARGET_TEAM ? teamStats.filter(t => t.name === TARGET_TEAM) : teamStats;
-
-      if (TARGET_TEAM && targetTeamStats.length === 0) {
-          html = '<div class="team-card" style="padding:24px;text-align:center;color:#999;font-size:13px;">이 날짜에는 팀 정보가 없습니다.</div>';
-      } else {
-          targetTeamStats.forEach(ts => {
-              // 색상값은 CSS 컨텍스트에 들어가므로(style="background:...") 화이트리스트로만 받는다.
-              const topColor = safeCssColor(ownGet(TEAM_COLORS, ts.name));
-              const logoUrl = teamLogoUrl(ts.name);
-              const logoHtml = logoUrl
-                  ? `<img src="${escapeHtml(logoUrl)}" class="team-logo" alt="" data-fallback="none">`
-                  : `<span class="team-logo team-logo-initial" style="background:${topColor}" aria-hidden="true">${escapeHtml(Array.from(ts.name)[0] || '')}</span>`;
-              const countHtml = `<span class="team-count">총 ${ts.males.length + ts.females.length}명 · 남 ${ts.males.length} · 여 ${ts.females.length}</span>`;
-              const headerLeft = TARGET_TEAM ? `<div class="team-header-left">${logoHtml}<span class="team-name">${escapeHtml(ts.name)}</span>${countHtml}</div>`
-                  : `<div class="team-header-left">${logoHtml}<a class="team-link team-name" href="team.html?team=${attrUrlParam(ts.name)}&date=${attrUrlParam(currentDateStr)}&metric=${attrUrlParam(currentMetric)}">${escapeHtml(ts.name)}</a>${countHtml}</div>`;
-              const rankSlot = TARGET_TEAM ? '' : `<span class="rank-badge-slot" data-team="${escapeHtml(ts.name)}"></span>`;
-
-              const makeRows = (list, padLen) => {
-                  let rHtml = list.map(m => {
-                      let cClass = [];
-                      if (def.excludeRoles && ['수장', '전력외'].includes(m.role)) {
-                          cClass.push('excluded');
-                      } else if (!m._counted && m._val !== 0) {
-                          cClass.push('excluded');
-                      }
-                      
-                      const tier = tiers.get(m);
-                      if (tier) cClass.push(tier);
-
-                      const isBday = m.birth_month === monthNum;
-                      const liveDot = m.id ? `<span class="live-dot" data-live-id="${escapeHtml(m.id)}"></span>` : '';
-                      const bdayMark = isBday ? '<span class="bday-mark">🎂</span>' : '';
-                      const nameContent = m.id
-                          ? `${liveDot}<a class="member-name-link" href="${escapeHtml(LOGO_PREFIX)}profile.html?id=${attrUrlParam(m.id)}&date=${attrUrlParam(currentDateStr)}&metric=${attrUrlParam(currentMetric)}&fromTeam=${attrUrlParam(TARGET_TEAM || '')}">${escapeHtml(m.nickname)}</a>${bdayMark}`
-                          : liveDot + escapeHtml(m.nickname) + bdayMark;
-                      return `<div class="member-row ${cClass.join(' ')}"><span class="member-name">${nameContent}</span><span class="member-value">${def.format(m._val)}</span></div>`;
-                  }).join('');
-
-                  for(let i=0; i < padLen - list.length; i++) rHtml += `<div class="member-row empty"><span class="member-name"></span><span class="member-value"></span></div>`;
-                  return rHtml;
-              };
-
-              const maxLen = Math.max(ts.males.length, ts.females.length);
-              html += `
+    const PAGE = JSON.parse(document.getElementById('page-config').textContent);
+    const TEAM_COLORS = PAGE.colors;
+    const TARGET_TEAM = PAGE.teamFromUrl
+        ? new URLSearchParams(window.location.search).get('team') || ''
+        : PAGE.targetTeam;
+    const LOGO_PREFIX = PAGE.logoPrefix;
+    const IS_PROFILE = PAGE.isProfile;
+    // 이미지를 못 불러오면 data-fallback대로 가린다(hidden: 자리는 두고 숨김, none: 자리까지 없앰).
+    // 인라인 onerror를 쓰지 않는다. 이 파일보다 먼저 실패한 HTML 속 이미지는 바로 아래에서 마저 처리한다.
+    const hideBrokenImage = img => {
+        img.style[img.dataset.fallback === 'none' ? 'display' : 'visibility'] = img.dataset.fallback;
+    };
+    document.addEventListener(
+        'error',
+        e => {
+            if (e.target instanceof HTMLImageElement && e.target.dataset.fallback) hideBrokenImage(e.target);
+        },
+        true
+    );
+    document.querySelectorAll('img[data-fallback]').forEach(img => {
+        if (img.complete && !img.naturalWidth) hideBrokenImage(img);
+    });
+    const PROFILE_ID = IS_PROFILE ? new URLSearchParams(window.location.search).get('id') : '';
+    // 프로필 페이지의 뒤로가기 목적지 계산용 - URL에 한 번만 실려오는 값이라
+    // 페이지 로드 시점에 딱 한 번만 읽어서 상수로 둔다(날짜/지표처럼 나중에
+    // 또 바뀌는 값이 아님). document.referrer(브라우저가 알려주는 "직전 페이지")
+    // 대신 이걸 쓰는 이유: referrer는 새 탭에서 열거나 브라우저 프라이버시
+    // 설정에 따라 아예 안 올 수도 있어서 불안정했다. fromTeam은 프로필 링크를
+    // 만드는 쪽(renderFaBar/renderDashboard)에서 항상 명시적으로 실어 보낸다.
+    const FROM_TEAM = new URLSearchParams(window.location.search).get('fromTeam');
+
+    const metricDefs = {
+        balloon: {
+            field: 'balloons',
+            label: '별풍선',
+            unit: '별풍선',
+            format: v => (v ? v.toLocaleString('ko-KR') : ''),
+            excludeRoles: true,
+            rankByFemale: false,
+            source: '풍고',
+            url: 'https://poonggo.com',
+        },
+        broadcast: {
+            field: 'broadcast_seconds',
+            label: '방송시간',
+            unit: '방송시간',
+            format: formatTime,
+            excludeRoles: true,
+            rankByFemale: false,
+            source: '풍고',
+            url: 'https://poonggo.com',
+        },
+        viewer: {
+            field: 'cumulative_viewers',
+            label: '누적시청자',
+            unit: '누적시청자',
+            format: v => (v ? v.toLocaleString('ko-KR') : ''),
+            excludeRoles: true,
+            rankByFemale: false,
+            source: '풍고',
+            url: 'https://poonggo.com',
+        },
+        sponsor: {
+            field: 'sponsor_games',
+            label: '스폰판수',
+            unit: '스폰판수',
+            format: v => (v ? v + '판' : ''),
+            excludeRoles: true,
+            rankByFemale: true,
+            source: 'Elo',
+            url: 'https://eloboard.co.kr/',
+        },
+    };
+
+    // SOOP 프로필 사진의 작은 판(약 66px WebP, 스타유니브 core.js getProfileImgUrl과 같은 주소).
+    // 화면에는 22~24px로만 쓰므로 원본 JPG(큰 것은 수백 KB) 대신 이것을 받는다.
+    function soopPhotoUrl(id) {
+        const safe = encodeURIComponent(
+            String(id || '')
+                .trim()
+                .toLowerCase()
+        );
+        return `https://stimg.sooplive.com/LOGO/${safe.substring(0, 2)}/${safe}/m/${safe}.webp`;
+    }
+
+    // URL 파라미터/속성 값으로 쓰이는 문자열 전용 헬퍼.
+    // escapeHtml만으로는 부족하다 - escapeHtml은 "속성 안에서 따옴표를 깨지
+    // 않게" 해줄 뿐이고, id에 &나 =가 들어가면 쿼리스트링의 의미 자체가
+    // 바뀐다(파라미터 주입). 그래서 URL 컴포넌트는 encodeURIComponent로 먼저
+    // 인코딩하고, 그 결과를 다시 속성용으로 escape한다.
+    function attrUrlParam(value) {
+        return escapeHtml(encodeURIComponent(value == null ? '' : value));
+    }
+
+    // 객체를 "맵"처럼 쓸 때 상속된 프로퍼티(constructor, __proto__, toString 등)가
+    // 값처럼 잡히는 걸 막는다. 예: ?metric=constructor 로 접속하면
+    // metricDefs['constructor']가 Object 생성자라 truthy로 통과해버리고,
+    // 곧바로 def.field가 undefined가 되면서 페이지 전체가 빈 화면이 됐다.
+    function ownGet(obj, key) {
+        if (!obj || key == null) return undefined;
+        return Object.prototype.hasOwnProperty.call(obj, key) ? obj[key] : undefined;
+    }
+
+    // style="background:..." 처럼 CSS 컨텍스트로 들어가는 값은 escapeHtml로는
+    // 부족하다(따옴표 없이도 `red;background-image:url(...)` 같은 주입이 가능).
+    // 이 사이트가 실제로 쓰는 건 #rrggbb 형태뿐이므로 그 형태만 통과시킨다.
+    const DEFAULT_TEAM_COLOR = '#4a5ce0';
+    function safeCssColor(value) {
+        return /^#[0-9a-fA-F]{3,8}$/.test(String(value || '')) ? String(value) : DEFAULT_TEAM_COLOR;
+    }
+
+    // 닉네임/팀명처럼 Supabase 로스터(궁극적으로는 외부 입력)에서
+    // 온 문자열을 innerHTML에 꽂기 전에 반드시 이 함수를 거친다. 새 선수는
+    // 어드민이 후보(tier_member_candidates)를 검토해서 명단에 올리지만, 그 검토는
+    // 사람 눈에 의존하는 방어일 뿐이고 최종적으로 이 값들은
+    // daily_member_stats를 거쳐 사이트 방문자 전원에게 그대로 렌더링된다.
+    // <, >, & 같은 문자가 실수로라도 섞이면 화면이 깨지거나(레이아웃 손상),
+    // 악의적인 경우 스크립트가 실행(XSS)될 수 있어 코드 레벨 방어가 필요하다.
+    // 성별 표기는 '남자'/'여자'로 통일돼 있다(DB가 저장할 때 맞춤). 예전 표기('f'·'여'·'여성'·'female')도 여자로 센다.
+    function isFemale(g) {
+        const v = String(g || '')
+            .trim()
+            .toLowerCase();
+        return v === '여자' || v === '여' || v === '여성' || v === 'f' || v === 'female';
+    }
+    function escapeHtml(s) {
+        return String(s ?? '').replace(
+            /[&<>"']/g,
+            c =>
+                ({
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    '"': '&quot;',
+                    "'": '&#39;',
+                })[c]
+        );
+    }
+
+    // 방송 중 여부: ststat live-status가 2분마다 채우는 live_broadcasts_current(스타유니브와 같은 표)에서
+    // 이 사람 한 줄만 읽는다. 시청자 수는 최대 2분 전 값이다. 못 읽거나 방송 중이 아니면 null.
+    async function checkIsLiveRealtime(soopId) {
+        const client = synergySupabaseClient();
+        if (!client || !soopId) return null;
+        // 휴면 선수 프로필에서도 보이도록 한 사람용 함수(player_live, ststat.sql)로 읽는다
+        const { data, error } = await client.rpc('player_live', { p_soop_id: soopId });
+        const row = !error && Array.isArray(data) ? data[0] : null;
+        if (!row || !row.broad_no) return null;
+        return { broad: row, broadStart: row.broad_start || null };
+    }
+
+    function fitTextToWidth(el, fullText) {
+        if (!el) return;
+        fullText = fullText || '';
+        el.dataset.fullText = fullText;
+        el.textContent = fullText;
+        if (!fullText || el.scrollWidth <= el.clientWidth) return;
+        // 한 글자씩 줄이면 글자 수만큼 레이아웃을 다시 계산하게 된다(긴 방송
+        // 제목에서 수십~수백 번의 강제 리플로우). 들어갈 수 있는 최대 길이를
+        // 이분 탐색으로 찾으면 log(n)번이면 충분하고 결과는 동일하다.
+        let lo = 0,
+            hi = fullText.length,
+            best = 0;
+        while (lo <= hi) {
+            const mid = (lo + hi) >> 1;
+            el.textContent = fullText.slice(0, mid) + '…';
+            if (el.scrollWidth <= el.clientWidth) {
+                best = mid;
+                lo = mid + 1;
+            } else {
+                hi = mid - 1;
+            }
+        }
+        el.textContent = fullText.slice(0, Math.max(1, best)) + '…';
+    }
+
+    function refitLiveTexts() {
+        document.querySelectorAll('#profile-live-embed [data-full-text]').forEach(el => {
+            fitTextToWidth(el, el.dataset.fullText);
+        });
+    }
+
+    let liveFitResizeTimer = null;
+    window.addEventListener('resize', () => {
+        clearTimeout(liveFitResizeTimer);
+        liveFitResizeTimer = setTimeout(refitLiveTexts, 150);
+    });
+
+    // 방송 중 여부: ststat live-status(Supabase Edge Function)가 2분마다 SOOP 전체 방송 목록을 훑어
+    // 채우는 live_broadcasts_current(5분 안에 갱신된 것만)를 읽는다.
+    // 렌더링이 일어날 때마다(날짜/지표를 빠르게 바꾸면 연달아 일어난다) 매번
+    // 요청을 보내면 클릭 몇 번에 요청 폭주가 된다. 마지막 요청 이후
+    // 최소 간격을 두고, 늦게 온 이전 응답은 버린다.
+    const LIVE_DOTS_MIN_INTERVAL_MS = 3000;
+    let liveDotsLastRun = 0;
+    let liveDotsTimer = null;
+    let liveDotsSeq = 0;
+
+    function scheduleLiveDots() {
+        clearTimeout(liveDotsTimer);
+        const wait = Math.max(0, LIVE_DOTS_MIN_INTERVAL_MS - (Date.now() - liveDotsLastRun));
+        liveDotsTimer = setTimeout(refreshLiveDots, wait);
+    }
+
+    // 방송 중인 SOOP ID 목록(소문자 Set). 첫 그리기 전에 미리 받아 둔 것(liveIdsPrefetch)은 처음 한 번만 쓴다.
+    let liveIdsPrefetch = null;
+    async function fetchLiveIds() {
+        const client = synergySupabaseClient();
+        if (!client) throw new Error('Supabase browser client is not configured');
+        const { data, error } = await client.from('live_broadcasts_current').select('soop_id').range(0, 4999);
+        if (error || !Array.isArray(data)) throw error || new Error('Invalid live status');
+        return new Set(data.filter(r => r && r.soop_id).map(r => String(r.soop_id).toLowerCase()));
+    }
+
+    async function refreshLiveDots() {
+        liveDotsLastRun = Date.now();
+        const dotEls = Array.from(document.querySelectorAll('.live-dot[data-live-id]'));
+        if (dotEls.length === 0) return;
+
+        const idToEls = Object.create(null);
+        dotEls.forEach(el => {
+            const id = el.dataset.liveId;
+            (idToEls[id] = idToEls[id] || []).push(el);
+        });
+        const ids = Object.keys(idToEls);
+
+        const seq = ++liveDotsSeq;
+        const prefetched = liveIdsPrefetch;
+        liveIdsPrefetch = null;
+        // 생방송 점은 부가 정보라, 실패해도 페이지 본문에는 아무 영향이 없어야 한다.
+        const live = (prefetched && (await prefetched)) || (await fetchLiveIds().catch(() => null));
+        if (!live || seq !== liveDotsSeq) return;
+        ids.forEach(id => {
+            if (live.has(id.toLowerCase())) idToEls[id].forEach(el => el.classList.add('is-live'));
+        });
+    }
+
+    function withDerivedFields(data) {
+        // data가 null이거나 members가 배열이 아닐 수 있다(파일이 깨졌거나,
+        // 배포 중간에 받은 경우). 여기서 정상화해두면 아래 모든 렌더 함수가
+        // members를 항상 배열로 믿고 쓸 수 있다.
+        if (!data || typeof data !== 'object') data = {};
+        if (!Array.isArray(data.members)) data.members = [];
+        data.members.forEach(m => {
+            m.sponsor_games = (m.sponsor_wins || 0) + (m.sponsor_losses || 0);
+        });
+        return data;
+    }
+
+    function formatTime(sec) {
+        if (!sec) return '';
+        let h = Math.floor(sec / 3600);
+        let m = Math.floor((sec % 3600) / 60);
+        let s = Math.floor(sec % 60);
+        return (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+    }
+
+    function fitSelectWidth(selectEl) {
+        if (!selectEl || selectEl.selectedIndex < 0) return;
+        const text = selectEl.options[selectEl.selectedIndex].text;
+        const probe = document.createElement('span');
+        probe.style.cssText = 'position:absolute;visibility:hidden;white-space:pre;';
+        probe.style.font = getComputedStyle(selectEl).font;
+        probe.textContent = text;
+        document.body.appendChild(probe);
+        selectEl.style.width = probe.getBoundingClientRect().width + 2 + 'px';
+        document.body.removeChild(probe);
+    }
+
+    // Supabase timestamptz는 UTC로 전달된다. 문자열을 잘라 표시하면 한국보다
+    // 9시간 느리게 보이므로, 모든 데이터 갱신 시각은 명시적으로 KST로 변환한다.
+    function formatKstTimestamp(value) {
+        if (!value) return '';
+        const parsed = new Date(value);
+        if (!Number.isFinite(parsed.getTime())) return String(value).replace('T', ' ').slice(0, 19);
+        const parts = new Intl.DateTimeFormat('en-CA', {
+            timeZone: 'Asia/Seoul',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hourCycle: 'h23',
+        })
+            .formatToParts(parsed)
+            .reduce((out, part) => {
+                if (part.type !== 'literal') out[part.type] = part.value;
+                return out;
+            }, {});
+        // 한국 시간으로 바꿔 보여 주되 'KST' 글자는 붙이지 않는다(사이트가 한국 시간 기준)
+        return `${parts.year}-${parts.month}-${parts.day} ${parts.hour}:${parts.minute}:${parts.second}`;
+    }
+
+    // (그냥 진행하면 AVAILABLE_DATES[0]이 undefined라 currentDateStr.split()에서 페이지 전체가
+    // 백지가 된다.) 원인을 알 수 있는 메시지를 보여주고 조용히 멈춘다.
+    // Supabase 공개 읽기(REST). 이 페이지는 표 두 개를 select·eq·order·range로 읽기만 하므로
+    // supabase-js(213KB) 없이 fetch 몇 줄이면 된다.
+    const REQUEST_TIMEOUT_MS = 8000;
+    function synergySupabaseClient() {
+        const cfg = window.SYNERGY_SUPABASE_CONFIG;
+        if (!cfg || !cfg.url || !cfg.key) return null;
+        // 응답이 끝내 오지 않으면(연결만 붙고 멈춤 등) 8초에 끊는다 - 본문 받기까지 포함.
+        // 재시도 1번까지 해도 20초 안에 안내 화면으로 넘어간다.
+        const get = (path, params) => {
+            const ctrl = typeof AbortController === 'function' ? new AbortController() : null;
+            const timer = ctrl ? setTimeout(() => ctrl.abort(), REQUEST_TIMEOUT_MS) : null;
+            return fetch(`${cfg.url}/rest/v1/${path}?${params}`, {
+                headers: { apikey: cfg.key, Authorization: `Bearer ${cfg.key}` },
+                signal: ctrl ? ctrl.signal : undefined,
+            })
+                .then(async res => {
+                    const body = await res.json().catch(() => null);
+                    if (ctrl && ctrl.signal.aborted) throw new Error('요청 시간 초과');
+                    return res.ok
+                        ? { data: body, error: null }
+                        : { data: null, error: new Error((body && body.message) || `HTTP ${res.status}`) };
+                })
+                .catch(err => ({ data: null, error: err }))
+                .finally(() => {
+                    if (timer) clearTimeout(timer);
+                });
+        };
+        return {
+            from(table) {
+                const params = new URLSearchParams();
+                let rangeFrom = 0,
+                    rangeTo = null;
+                const q = {
+                    select(cols) {
+                        params.set('select', cols);
+                        return q;
+                    },
+                    eq(col, val) {
+                        params.append(col, `eq.${val}`);
+                        return q;
+                    },
+                    // 값마다 큰따옴표로 감싼다(이름에 쉼표·괄호가 있어도 PostgREST가 한 값으로 읽게)
+                    in(col, vals) {
+                        params.append(
+                            col,
+                            `in.(${vals.map(v => '"' + String(v).replace(/["\\]/g, '\\$&') + '"').join(',')})`
+                        );
+                        return q;
+                    },
+                    // 여러 번 부르면 PostgREST 형식(order=a.asc,b.asc)으로 이어 붙인다
+                    order(col, opt) {
+                        const term = `${col}.${opt && opt.ascending === false ? 'desc' : 'asc'}`;
+                        params.set('order', params.has('order') ? params.get('order') + ',' + term : term);
+                        return q;
+                    },
+                    range(from, to) {
+                        rangeFrom = from;
+                        rangeTo = to;
+                        return q;
+                    },
+                    then(resolve, reject) {
+                        if (rangeTo !== null) {
+                            params.set('offset', rangeFrom);
+                            params.set('limit', rangeTo - rangeFrom + 1);
+                        }
+                        return get(table, params).then(resolve, reject);
+                    },
+                };
+                return q;
+            },
+            // 읽기 전용(STABLE) 함수는 GET으로 부른다. 값이 null/빈 문자열인 인자는 보내지 않는다(기본값 사용).
+            rpc(fn, args) {
+                const params = new URLSearchParams();
+                Object.entries(args || {}).forEach(([k, v]) => {
+                    if (v !== null && v !== undefined && v !== '') params.set(k, v);
+                });
+                return get(`rpc/${fn}`, params);
+            },
+        };
+    }
+
+    async function loadAvailableDates() {
+        const client = synergySupabaseClient();
+        if (!client) throw new Error('Supabase browser client is not configured');
+        const data = [];
+        const pageSize = 1000;
+        for (let from = 0; ; from += pageSize) {
+            const { data: batch, error } = await client
+                .from('synergy_daily_dates')
+                .select('stat_date')
+                .order('stat_date', { ascending: false })
+                .range(from, from + pageSize - 1);
+            if (error) throw error;
+            const rows = Array.isArray(batch) ? batch : [];
+            data.push(...rows);
+            if (rows.length < pageSize) break;
+        }
+        return data.map(r => String(r.stat_date || '')).filter(Boolean);
+    }
+
+    // 화면에 쓰는 칸만 받는다. 목록 화면은 생일 표시(🎂)에 달만 쓰므로 birth_month만 받고 생년월일·종족은
+    // 받지 않는다(공개 권한도 없다). 개인 페이지는 player_profile_stats 함수로 그 한 명의 전체 칸을 받는다.
+    // light는 지난달 대학 순위 증감(▲▼) 계산용 - 소속·직책·성별·지표 값만.
+    // light 결과는 rankOnlyData에 따로 둬서 그 날짜를 직접 열면 전체를 새로 받는다.
+    const DAILY_COLUMNS =
+        'soop_id,nickname,role,affiliation,tier,gender,birth_month,balloons,broadcast_seconds,cumulative_viewers,sponsor_wins,sponsor_losses,updated_at,sponsor_updated_at';
+    const DAILY_RANK_COLUMNS =
+        'role,affiliation,gender,balloons,broadcast_seconds,cumulative_viewers,sponsor_wins,sponsor_losses';
+    // latest: 날짜 대신 가장 최근 날짜의 뷰(daily_member_stats_latest, ststat.sql)에서 받는다 - 날짜 목록을
+    // 기다리지 않고 첫 화면을 받으려고 쓴다. 이때 dateStr은 받은 행의 날짜로 정해진다.
+    async function loadDailyData(dateStr, { light = false, latest = false } = {}) {
+        const client = synergySupabaseClient();
+        if (!client) throw new Error('Supabase browser client is not configured');
+
+        const data = [];
+        const pageSize = 1000;
+        // 개인 페이지는 그 한 명만 받는다(휴면 선수도 보이도록 함수로 읽는다). 팀 페이지는 상위 1·5·10% 표시를
+        // 전체페이지와 같이 전체 선수 기준으로 매기므로 전체를 받고, 화면에는 그 팀만 그린다.
+        if (IS_PROFILE && PROFILE_ID) {
+            const { data: rows, error } = await client.rpc('player_profile_stats', {
+                p_soop_id: PROFILE_ID,
+                p_date: latest ? null : dateStr,
+            });
+            if (error) throw error;
+            if (Array.isArray(rows)) data.push(...rows);
+        } else
+            for (let from = 0; ; from += pageSize) {
+                let query = latest
+                    ? client.from('daily_member_stats_latest').select('stat_date,' + DAILY_COLUMNS)
+                    : client
+                          .from('daily_member_stats')
+                          .select(light ? DAILY_RANK_COLUMNS : DAILY_COLUMNS)
+                          .eq('stat_date', dateStr);
+                if (!light) query = query.order('nickname', { ascending: true });
+                const { data: batch, error } = await query
+                    .order('soop_id', { ascending: true }) // 닉네임이 겹쳐도 페이지 경계 순서가 고정되게
+                    .range(from, from + pageSize - 1);
+                if (error) throw error;
+
+                const rows = Array.isArray(batch) ? batch : [];
+                data.push(...rows);
+                if (rows.length < pageSize) break;
+            }
+
+        if (latest) {
+            dateStr = data.length ? String(data[0].stat_date || '') : '';
+            if (!dateStr) throw new Error('No latest daily stats');
+        }
+        if (data.length === 0 && !TARGET_TEAM && !IS_PROFILE) {
+            throw new Error(`No daily stats for ${dateStr}`);
+        }
+
+        let updated = '';
+        let sponsorUpdated = '';
+        const members = data.map(r => {
+            updated = !updated || String(r.updated_at || '') > updated ? String(r.updated_at || '') : updated;
+            sponsorUpdated =
+                !sponsorUpdated || String(r.sponsor_updated_at || '') > sponsorUpdated
+                    ? String(r.sponsor_updated_at || '')
+                    : sponsorUpdated;
+
+            return {
+                id: r.soop_id,
+                nickname: r.nickname,
+                role: r.role || '',
+                team: r.affiliation || null,
+                race: r.race || null,
+                tier: r.tier || null,
+                gender: r.gender || null,
+                birthdate: r.birth_date || null,
+                birth_month:
+                    Number(r.birth_month) || (r.birth_date ? parseInt(String(r.birth_date).split('-')[1], 10) : null),
+                balloons: Number(r.balloons || 0),
+                broadcast_seconds: Number(r.broadcast_seconds || 0),
+                cumulative_viewers: Number(r.cumulative_viewers || 0),
+                sponsor_wins: Number(r.sponsor_wins || 0),
+                sponsor_losses: Number(r.sponsor_losses || 0),
+            };
+        });
+
+        const [year, month] = dateStr.split('-').map(Number);
+        return {
+            updated_at: formatKstTimestamp(updated),
+            date: dateStr,
+            year,
+            month,
+            members,
+            sponsor_updated_at: formatKstTimestamp(sponsorUpdated),
+            sponsor_month: `${year}-${String(month).padStart(2, '0')}`,
+        };
+    }
+
+    // 대학 로고: 스타유니브 어드민(전적 > 팀 관리)에서 올린 것. university_logos 표의 이름 → 주소·카드 색.
+    // 화면에 카드가 그려지는 대학 것만 받는다(날짜를 바꿔 새 대학이 나오면 그 대학만 더 받는다).
+    // 표에 없는 대학(신생 등)은 이미지를 요청하지 않고 이름 첫 글자 배지로 대신한다.
+    const LOGO_URLS = Object.create(null);
+    const logoRequests = Object.create(null);
+    function loadUniversityLogos(names) {
+        const missing = names.filter(n => !logoRequests[n]);
+        const client = synergySupabaseClient();
+        if (missing.length && client) {
+            const request = client
+                .from('university_logos')
+                .select('name,path,color')
+                .in('name', missing)
+                .then(({ data, error }) => {
+                    if (error) throw error;
+                    const base = String(window.SYNERGY_SUPABASE_CONFIG.url).replace(/\/$/, '');
+                    (Array.isArray(data) ? data : []).forEach(r => {
+                        if (!r || !r.name || !r.path) return;
+                        LOGO_URLS[r.name] = `${base}/storage/v1/object/public/staruniv-media/${r.path}`;
+                        if (r.color) TEAM_COLORS[r.name] = r.color;
+                    });
+                })
+                .catch(e => {
+                    // 실패한 대학은 다음 그리기 때 다시 묻는다
+                    missing.forEach(n => {
+                        if (logoRequests[n] === request) delete logoRequests[n];
+                    });
+                    console.warn('대학 로고를 불러오지 못했습니다(이름 첫 글자 배지로 대신합니다)', e);
+                });
+            missing.forEach(n => {
+                logoRequests[n] = request;
+            });
+        }
+        return Promise.all(names.map(n => logoRequests[n]));
+    }
+    // 개인 페이지는 로고를 그리지 않고 윗줄 색만 쓴다: 그 사람 대학의 색 하나만 받는다(대학별 한 번).
+    const teamColorRequests = Object.create(null);
+    function loadTeamColor(team) {
+        if (!team) return Promise.resolve(null);
+        if (!teamColorRequests[team]) {
+            const client = synergySupabaseClient();
+            teamColorRequests[team] = !client
+                ? Promise.resolve(null)
+                : client
+                      .from('university_logos')
+                      .select('color')
+                      .eq('name', team)
+                      .range(0, 0)
+                      .then(({ data, error }) => {
+                          const color = !error && Array.isArray(data) && data[0] ? data[0].color : null;
+                          if (color) TEAM_COLORS[team] = color;
+                          return color;
+                      });
+        }
+        return teamColorRequests[team];
+    }
+    function teamLogoUrl(name) {
+        return LOGO_URLS[name] || '';
+    }
+
+    // 일시 오류(네트워크 끊김 등)는 1초 뒤 한 번 더 시도한다
+    async function retryOnce(fn) {
+        try {
+            return await fn();
+        } catch (e) {
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            return fn();
+        }
+    }
+    // 불러오기 실패 안내와 '다시 시도' 버튼(기본은 페이지 새로고침)
+    function showLoadError(
+        host = document.getElementById('grid-container') || document.body,
+        onRetry = () => location.reload()
+    ) {
+        host.innerHTML =
+            '<div style="padding:40px;text-align:center;color:#c23636;">데이터를 불러오지 못했습니다.' +
+            '<br><button type="button" class="load-retry" style="margin-top:12px;padding:8px 16px;cursor:pointer;">다시 시도</button></div>';
+        host.querySelector('.load-retry').addEventListener('click', onRetry);
+    }
+
+    // 주소에 날짜가 없으면 첫 화면은 최신 날짜다: 날짜 목록을 기다리지 않고 최신 통계를 같이 받기 시작한다
+    // (뷰가 아직 없거나 실패하면 applyData가 날짜로 다시 받는다). 방송 중 표시도 그리기 전에 미리 받는다.
+    // 주소에 날짜가 있으면 그 날짜를 바로 받는다(날짜 목록과 같이). 받은 게 비어 있으면(없는 날짜) 예전처럼 목록을 보고 고른다.
+    const URL_DATE = new URLSearchParams(window.location.search).get('date') || '';
+    const latestPrefetch = URL_DATE ? null : loadDailyData('', { latest: true }).catch(() => null);
+    const urlDatePrefetch =
+        URL_DATE && /^\d{4}-\d{2}-\d{2}$/.test(URL_DATE)
+            ? loadDailyData(URL_DATE).then(
+                  d => (d && d.members.length ? d : null),
+                  () => null
+              )
+            : null;
+    // 방송 중 표시: 목록 화면은 점 찍을 ID 목록을, 개인 페이지는 그 사람의 방송 정보를 미리 받는다(처음 한 번만 쓴다)
+    let profileLivePrefetch = null;
+    if (IS_PROFILE) {
+        if (PROFILE_ID) profileLivePrefetch = checkIsLiveRealtime(PROFILE_ID).catch(() => null);
+    } else liveIdsPrefetch = fetchLiveIds().catch(() => null);
+    // 날짜 목록은 달력(고를 수 있는 범위)과 지난달 순위 비교에만 쓴다. 첫 화면 통계(최신 또는 주소의 날짜)를 이미 받았으면
+    // 목록을 기다리지 않고 그 날짜로 먼저 그리고, 목록이 오면 달력·순위 비교를 채운다. 목록만 실패해도 화면은 그대로 보인다.
+    // 첫 화면 통계를 못 받았으면 예전처럼 목록을 받은 뒤 시작한다.
+    const datesRequest = retryOnce(loadAvailableDates);
+    datesRequest.catch(() => {});
+    const latestFirst = latestPrefetch ? await latestPrefetch : urlDatePrefetch ? await urlDatePrefetch : null;
+    let AVAILABLE_DATES;
+    if (latestFirst && latestFirst.date) {
+        AVAILABLE_DATES = [latestFirst.date];
+        datesRequest.then(
+            list => {
+                if (!Array.isArray(list) || !list.length) return;
+                AVAILABLE_DATES = list.includes(latestFirst.date) ? list : [...list, latestFirst.date].sort().reverse();
+                applyDateRange();
+                if (!IS_PROFILE && ownGet(fetchedData, currentDateStr)) applyData(); // 지난달 순위 비교(▲▼)를 붙인다
+            },
+            e => console.warn('날짜 목록을 불러오지 못했습니다(최신 날짜만 보여 줍니다)', e)
+        );
+    } else {
+        try {
+            AVAILABLE_DATES = await datesRequest;
+        } catch (e) {
+            console.error('날짜 목록을 불러오지 못했습니다', e);
+            showLoadError();
+            return;
+        }
+    }
+    if (AVAILABLE_DATES.length === 0) {
+        const host = document.getElementById('grid-container') || document.body;
+        host.innerHTML = '<div style="padding:40px;text-align:center;color:#c23636;">표시할 데이터가 없습니다.</div>';
+        return;
+    }
+
+    let currentDateStr = AVAILABLE_DATES[0];
+    let currentMetric = 'balloon';
+    const fetchedData = Object.create(null);
+    const rankOnlyData = Object.create(null); // 지난달 순위 계산용 가벼운 데이터(loadDailyData light)
+    // 같은 날짜를 받는 중에 또 부르면(지표를 빠르게 바꾸는 등) 새로 요청하지 않고 떠 있는 요청을 같이 기다린다
+    const pendingLoads = Object.create(null);
+    function loadOnce(key, load) {
+        if (!pendingLoads[key])
+            pendingLoads[key] = load().finally(() => {
+                delete pendingLoads[key];
+            });
+        return pendingLoads[key];
+    }
+    // 날짜를 빠르게 여러 번 바꾸면 여러 fetch가 동시에 떠 있게 되고, 먼저 보낸
+    // 느린 응답이 나중에 도착해 최신 화면을 이전 데이터로 덮어쓸 수 있다
+    // (렌더 경합). 요청마다 번호를 매겨서, 도착한 응답이 "지금도
+    // 최신인 요청"의 것일 때만 그린다.
+    let renderToken = 0;
+
+    const calBtn = document.getElementById('calendar-btn');
+    const datePicker = document.getElementById('date-picker');
+    function applyDateRange() {
+        if (!datePicker) return;
+        datePicker.min = AVAILABLE_DATES[AVAILABLE_DATES.length - 1];
+        datePicker.max = AVAILABLE_DATES[0];
+    }
+    applyDateRange();
+
+    function initializePage() {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('date') && AVAILABLE_DATES.includes(params.get('date'))) currentDateStr = params.get('date');
+        if (ownGet(metricDefs, params.get('metric'))) currentMetric = params.get('metric');
+
+        const metricSel = document.getElementById('ms-metric-select');
+        if (metricSel) {
+            metricSel.value = currentMetric;
+            fitSelectWidth(metricSel);
+
+            const wrapper = metricSel.closest('.select-wrapper');
+            const revealSelect = () => {
+                fitSelectWidth(metricSel);
+                if (wrapper) wrapper.classList.add('ready');
+            };
+
+            if (document.fonts && document.fonts.ready) {
+                document.fonts.ready.then(revealSelect);
+            } else {
+                revealSelect();
+            }
+        }
+
+        applyData();
+    }
+
+    if (document.readyState === 'loading') {
+        window.addEventListener('DOMContentLoaded', initializePage, { once: true });
+    } else {
+        initializePage();
+    }
+
+    // 대학 카드 화면: 그 날짜에 카드가 그려지는 대학의 로고를 받은 뒤 그린다. 로고는 부가 정보라 본문을 오래
+    // 막지 않는다 - 1.5초 안에 오면 첫 화면부터 쓰고, 늦으면 이름 첫 글자 배지로 먼저 그린 뒤 도착했을 때 다시 그린다.
+    // 개인 페이지는 로고를 그리지 않는다(윗줄 색은 loadTeamColor로 그 대학 것만).
+    function renderDashboardWithLogos(data, token) {
+        const names = TARGET_TEAM ? [TARGET_TEAM] : [...new Set(data.members.map(m => m.team).filter(Boolean))];
+        let done = false;
+        const ready = loadUniversityLogos(names).then(() => {
+            done = true;
+        });
+        return Promise.race([ready, new Promise(resolve => setTimeout(resolve, 1500))]).then(() => {
+            if (token !== renderToken) return;
+            renderDashboard(data);
+            if (!done)
+                ready.then(() => {
+                    if (token === renderToken) renderDashboard(data);
+                });
+        });
+    }
+
+    function applyData() {
+        const token = ++renderToken;
+        updateDateChrome();
+
+        const cached = ownGet(fetchedData, currentDateStr);
+        if (cached) {
+            if (IS_PROFILE) profileLoaded(currentDateStr);
+            IS_PROFILE ? renderProfile(cached) : renderDashboardWithLogos(cached, token);
+            return;
+        }
+
+        const gridEl = document.getElementById('grid-container');
+        if (!IS_PROFILE && gridEl) {
+            gridEl.innerHTML = '<div style="padding:40px;text-align:center;">불러오는 중...</div>';
+        }
+        if (IS_PROFILE) profileBusy(true);
+        const requestedDate = currentDateStr;
+        // 미리 받은 최신 통계가 이 날짜면 그것을 쓴다(한 번만)
+        const prefetched =
+            (requestedDate === AVAILABLE_DATES[0] && latestPrefetch) || (requestedDate === URL_DATE && urlDatePrefetch);
+        const load = () =>
+            (prefetched || Promise.resolve(null)).then(data =>
+                data && data.date === requestedDate ? data : retryOnce(() => loadDailyData(requestedDate))
+            );
+        loadOnce('full:' + requestedDate, () => load().then(withDerivedFields))
+            .then(normalized => {
+                fetchedData[requestedDate] = normalized;
+                // 내가 요청을 보낸 뒤 사용자가 날짜/지표를 또 바꿨다면, 이
+                // 응답은 이미 낡은 것이므로 그리지 않는다(캐시에는 남겨둔다).
+                if (token !== renderToken) return;
+                if (IS_PROFILE) profileLoaded(requestedDate);
+                IS_PROFILE ? renderProfile(normalized) : renderDashboardWithLogos(normalized, token);
+            })
+            .catch(() => {
+                if (token !== renderToken) return;
+                if (IS_PROFILE) profileLoadFailed(requestedDate);
+                else if (gridEl)
+                    showLoadError(gridEl, () => {
+                        if (token === renderToken) applyData();
+                    });
+            });
+    }
+
+    // 개인 페이지: 날짜를 바꾸는 동안에는 카드를 흐리게 하고, 실패하면 날짜를 지금 보이는 데이터의
+    // 날짜로 되돌린 뒤 알린다 - 새 날짜 옆에 이전 날짜의 수치가 그대로 남아 새 값처럼 보이지 않게.
+    let profileShownDate = null;
+    function profileBusy(on) {
+        const card = document.getElementById('profile-card');
+        if (!card) return;
+        card.style.opacity = on ? '0.5' : '';
+        if (on) card.setAttribute('aria-busy', 'true');
+        else card.removeAttribute('aria-busy');
+    }
+    function profileNotice() {
+        let el = document.getElementById('profile-load-notice');
+        const card = document.getElementById('profile-card');
+        if (!el && card) {
+            el = document.createElement('div');
+            el.id = 'profile-load-notice';
+            el.setAttribute('role', 'alert');
+            card.parentNode.insertBefore(el, card);
+        }
+        return el;
+    }
+    function profileLoaded(date) {
+        profileShownDate = date;
+        profileBusy(false);
+        const el = document.getElementById('profile-load-notice');
+        if (el) el.remove();
+    }
+    function profileLoadFailed(failedDate) {
+        profileBusy(false);
+        const host = profileNotice();
+        if (!host) return;
+        const retry = () => {
+            currentDateStr = failedDate;
+            applyData();
+        };
+        if (!profileShownDate) {
+            showLoadError(host, retry);
+            return;
+        }
+        currentDateStr = profileShownDate;
+        updateDateChrome();
+        const label = d => {
+            const p = d.split('-');
+            return `${Number(p[1])}월 ${Number(p[2])}일`;
+        };
+        host.innerHTML =
+            '<div style="padding:12px 16px;margin-bottom:12px;text-align:center;color:#c23636;">' +
+            escapeHtml(label(failedDate)) +
+            ' 데이터를 불러오지 못해 ' +
+            escapeHtml(label(profileShownDate)) +
+            ' 데이터를 보여 줍니다.<br><button type="button" class="load-retry" style="margin-top:8px;padding:6px 14px;cursor:pointer;">다시 시도</button></div>';
+        host.querySelector('.load-retry').addEventListener('click', retry);
+    }
+
+    // 날짜 버튼·날짜 입력·뒤로가기 링크를 지금 날짜(currentDateStr)에 맞춘다
+    function updateDateChrome() {
+        const parts = currentDateStr.split('-');
+        if (calBtn) {
+            calBtn.innerHTML =
+                escapeHtml(parts[0].slice(-2)) +
+                '년 ' +
+                escapeHtml(parts[1]) +
+                '월 ' +
+                escapeHtml(parts[2]) +
+                '일 <span class="nav-chevron">▾</span>';
+        }
+        if (datePicker) datePicker.value = currentDateStr;
+
+        if (TARGET_TEAM && !IS_PROFILE) {
+            const teamBackLink = document.getElementById('back-link');
+            if (teamBackLink) {
+                teamBackLink.href =
+                    'index.html?date=' +
+                    encodeURIComponent(currentDateStr) +
+                    '&metric=' +
+                    encodeURIComponent(currentMetric);
+            }
+        } else if (IS_PROFILE) {
+            // 날짜/지표가 바뀔 때마다 applyData()가 호출되므로 여기서 매번 다시
+            // 계산해야 뒤로가기 링크가 항상 지금 보고 있는 날짜를 들고 돌아간다.
+            const backHref = FROM_TEAM
+                ? `team.html?team=${encodeURIComponent(FROM_TEAM)}&date=${encodeURIComponent(currentDateStr)}&metric=${encodeURIComponent(currentMetric)}`
+                : `index.html?date=${encodeURIComponent(currentDateStr)}&metric=${encodeURIComponent(currentMetric)}`;
+            const backLinkEl = document.getElementById('back-link');
+            if (backLinkEl) backLinkEl.href = LOGO_PREFIX + backHref;
+        }
+    }
+
+    function findPrevMonthDate(dateStr) {
+        const [y, m] = dateStr.split('-').map(Number);
+        const prevYM = m === 1 ? `${y - 1}-12` : `${y}-${String(m - 1).padStart(2, '0')}`;
+        const candidates = AVAILABLE_DATES.filter(d => d.startsWith(prevYM));
+        if (candidates.length === 0) return null;
+        return candidates.slice().sort().reverse()[0];
+    }
+
+    function computeTeamAggregates(members, def) {
+        const teams = Object.create(null);
+        (members || []).forEach(m => {
+            const t = m.team || '미분류';
+            if (['FA', '휴면', '미분류'].includes(t)) return;
+            if (!teams[t]) teams[t] = [];
+            teams[t].push(m);
+        });
+
+        const result = [];
+        for (const [tName, tMembers] of Object.entries(teams)) {
+            let mSum = 0,
+                fSum = 0,
+                mCount = 0,
+                fCount = 0,
+                tCount = 0;
+            let males = [],
+                females = [];
+
+            tMembers.forEach(m => {
+                const v = m[def.field] || 0;
+                const counted = v !== 0 && !(def.excludeRoles && ['수장', '전력외'].includes(m.role));
+                m._gender = m.gender || '';
+                m._val = v;
+                m._counted = counted;
+
+                if (isFemale(m._gender)) {
+                    females.push(m);
+                    if (counted) {
+                        fSum += v;
+                        fCount++;
+                        tCount++;
+                    }
+                } else {
+                    males.push(m);
+                    if (counted) {
+                        mSum += v;
+                        mCount++;
+                        tCount++;
+                    }
+                }
+            });
+
+            males.sort((a, b) => b._val - a._val);
+            females.sort((a, b) => b._val - a._val);
+            const fAvg = fCount > 0 ? Math.round(fSum / fCount) : 0;
+            const tAvg = tCount > 0 ? Math.round((mSum + fSum) / tCount) : 0;
+
+            result.push({
+                name: tName,
+                males,
+                females,
+                fAvg,
+                tAvg,
+                totalSum: mSum + fSum,
+                rankVal: def.rankByFemale ? fAvg : tAvg,
+            });
+        }
+        return result;
+    }
+
+    function computeTeamRanks(data, metricKey) {
+        const def = ownGet(metricDefs, metricKey);
+        if (!def) return {};
+        const teamStats = computeTeamAggregates(data.members, def);
+        teamStats.sort((a, b) => b.rankVal - a.rankVal);
+        const ranks = Object.create(null);
+        teamStats.forEach((s, i) => {
+            ranks[s.name] = i + 1;
+        });
+        return ranks;
+    }
+
+    async function attachRankBadges(teamStats, dateStr, metricKey) {
+        if (TARGET_TEAM) return;
+        const currentRanks = {};
+        teamStats.forEach((s, i) => {
+            currentRanks[s.name] = i + 1;
+        });
+
+        const prevDate = findPrevMonthDate(dateStr);
+        if (!prevDate) return;
+
+        const token = renderToken;
+        let prevData = ownGet(fetchedData, prevDate) || ownGet(rankOnlyData, prevDate);
+        if (!prevData) {
+            try {
+                prevData = await loadOnce('light:' + prevDate, () =>
+                    loadDailyData(prevDate, { light: true }).then(withDerivedFields)
+                );
+                rankOnlyData[prevDate] = prevData;
+            } catch (e) {
+                return;
+            }
+        }
+        // 이 함수는 async라서, 위 await 동안 사용자가 날짜/지표를 바꿨을 수
+        // 있다. 그러면 지금 화면의 팀 카드는 다른 기준으로 다시 그려진
+        // 상태라, 여기서 뱃지를 붙이면 엉뚱한 증감 화살표가 남는다.
+        if (token !== renderToken) return;
+
+        const prevRanks = computeTeamRanks(prevData, metricKey);
+        teamStats.forEach(s => {
+            const slot = document.querySelector('.rank-badge-slot[data-team="' + CSS.escape(s.name) + '"]');
+            if (!slot) return;
+            const curRank = currentRanks[s.name];
+            if (!Object.prototype.hasOwnProperty.call(prevRanks, s.name)) {
+                slot.innerHTML = '<span class="rank-change new">NEW</span>';
+            } else {
+                const prevRank = prevRanks[s.name];
+                if (curRank < prevRank)
+                    slot.innerHTML = '<span class="rank-change up">▲' + (prevRank - curRank) + '</span>';
+                else if (curRank > prevRank)
+                    slot.innerHTML = '<span class="rank-change down">▼' + (curRank - prevRank) + '</span>';
+                else slot.innerHTML = '<span class="rank-change same">-</span>';
+            }
+        });
+    }
+
+    const TIER_ORDER = ['갓', '킹', '잭', '조커', '스페이드', '0', '1', '2', '3', '4', '5', '6', '7', '8', '베이비'];
+
+    let faBarCollapsed = true;
+
+    function renderFaBar(data) {
+        if (TARGET_TEAM) return;
+        const faBar = document.getElementById('fa-bar');
+        if (!faBar) return;
+
+        const faMembers = (data.members || []).filter(m => m.team === 'FA').slice();
+        if (faMembers.length === 0) {
+            faBar.style.display = 'none';
+            faBar.innerHTML = '';
+            return;
+        }
+
+        faMembers.sort((a, b) => {
+            const ai = TIER_ORDER.indexOf(a.tier);
+            const bi = TIER_ORDER.indexOf(b.tier);
+            return (ai === -1 ? TIER_ORDER.length : ai) - (bi === -1 ? TIER_ORDER.length : bi);
+        });
+
+        const itemsHtml = faMembers
+            .map(m => {
+                // m.id / 닉네임은 Supabase 로스터에서 온 임의 문자열이다.
+                // 속성값 자리에 그대로 넣으면 따옴표 하나로 속성을 탈출해
+                // onerror= 같은 걸 붙일 수 있다(저장형 XSS). 모든 삽입 지점을
+                // escapeHtml / attrUrlParam으로 감싼다.
+                const photoImg = `<img class="fa-bar-photo" src="${escapeHtml(soopPhotoUrl(m.id))}" alt="" loading="lazy" data-fallback="hidden">`;
+                const liveDot = m.id ? `<span class="live-dot" data-live-id="${escapeHtml(m.id)}"></span>` : '';
+                const inner = `${photoImg}${liveDot}<span class="member-name">${escapeHtml(m.nickname)}</span>`;
+                return m.id
+                    ? `<div class="fa-bar-item"><a href="${escapeHtml(LOGO_PREFIX)}profile.html?id=${attrUrlParam(m.id)}&date=${attrUrlParam(currentDateStr)}&metric=${attrUrlParam(currentMetric)}&fromTeam=${attrUrlParam(TARGET_TEAM || '')}">${inner}</a></div>`
+                    : `<div class="fa-bar-item"><span class="fa-bar-static">${inner}</span></div>`;
+            })
+            .join('');
+
+        const collapsedClass = faBarCollapsed ? ' collapsed' : '';
+        faBar.innerHTML = `<button type="button" class="fa-bar-title${collapsedClass}" id="fa-bar-toggle"><span class="fa-bar-chevron">▾</span><span class="fa-bar-label">FA</span><span class="fa-bar-sub">${faMembers.length}명</span></button><div class="fa-bar-list${collapsedClass}" id="fa-bar-list">${itemsHtml}</div>`;
+        faBar.style.display = '';
+
+        const toggleEl = document.getElementById('fa-bar-toggle');
+        const listEl = document.getElementById('fa-bar-list');
+        if (toggleEl && listEl) {
+            toggleEl.addEventListener('click', () => {
+                faBarCollapsed = !faBarCollapsed;
+                toggleEl.classList.toggle('collapsed', faBarCollapsed);
+                listEl.classList.toggle('collapsed', faBarCollapsed);
+            });
+        }
+    }
+
+    function renderDashboard(data) {
+        const def = ownGet(metricDefs, currentMetric) || metricDefs.balloon;
+        const members = (data && data.members) || [];
+        const monthNum = parseInt(currentDateStr.split('-')[1], 10);
+        const upd = currentMetric === 'sponsor' && data.sponsor_updated_at ? data.sponsor_updated_at : data.updated_at;
+
+        const validTeams = new Set(members.map(m => m.team).filter(t => t && t !== 'FA' && t !== '휴면'));
+        // 팀페이지(TARGET_TEAM 있음)에서는 이미 그 팀 하나만 보고 있는 화면이라
+        // "N팀 · M명" 전체 집계 문구는 안 보여준다 - 전체페이지에서만 표시.
+        const teamCountHtml = TARGET_TEAM
+            ? ''
+            : validTeams.size +
+              '팀 · ' +
+              members.filter(m => m.team && m.team !== 'FA' && m.team !== '휴면').length +
+              '명 · ';
+        const inquiryHtml =
+            ' <span style="color:#c2c5cc;">·</span> <a href="https://ygosu.com/board/pan_prison" target="_blank" rel="noopener" class="source-link">문의</a>';
+        const metaEl = document.getElementById('top-meta-text');
+        // upd는 데이터 파일에서 온 값이라 그대로 innerHTML에 넣으면 안 된다.
+        if (metaEl) {
+            metaEl.innerHTML =
+                teamCountHtml +
+                '업데이트 ' +
+                escapeHtml(upd || '-') +
+                ' · 출처: <a href="' +
+                escapeHtml(def.url) +
+                '" target="_blank" rel="noopener" class="source-link">' +
+                escapeHtml(def.source) +
+                '</a>' +
+                inquiryHtml;
+        }
+
+        const roleLegend = document.getElementById('role-legend-item');
+        if (roleLegend) roleLegend.style.display = def.excludeRoles ? '' : 'none';
+
+        // 멤버 객체 자체를 키로 쓰는 Map이다(`nickname + '|' + team` 같은 문자열 키는 같은 팀
+        // 동명이인이면 한 명의 등급이 다른 사람에게도 칠해진다).
+        const tiers = new Map();
+        const pool = members
+            .filter(m => {
+                const v = m[def.field] || 0;
+                if (v === 0) return false;
+                if (def.excludeRoles && ['수장', '전력외'].includes(m.role)) return false;
+                if (!m.team || ['FA', '휴면'].includes(m.team)) return false;
+                return true;
+            })
+            .sort((a, b) => (b[def.field] || 0) - (a[def.field] || 0));
+
+        const n = pool.length;
+        const t1 = Math.max(1, Math.round(n * 0.01));
+        const t5 = Math.max(1, Math.round(n * 0.05));
+        const t10 = Math.max(1, Math.round(n * 0.1));
+        pool.forEach((m, i) => {
+            if (i < t1) tiers.set(m, 'tier1');
+            else if (i < t5) tiers.set(m, 'tier5');
+            else if (i < t10) tiers.set(m, 'tier10');
+        });
+
+        const teamStats = computeTeamAggregates(members, def);
+        teamStats.sort((a, b) => b.rankVal - a.rankVal);
+
+        let html = '';
+        const targetTeamStats = TARGET_TEAM ? teamStats.filter(t => t.name === TARGET_TEAM) : teamStats;
+
+        if (TARGET_TEAM && targetTeamStats.length === 0) {
+            html =
+                '<div class="team-card" style="padding:24px;text-align:center;color:#999;font-size:13px;">이 날짜에는 팀 정보가 없습니다.</div>';
+        } else {
+            targetTeamStats.forEach(ts => {
+                // 색상값은 CSS 컨텍스트에 들어가므로(style="background:...") 화이트리스트로만 받는다.
+                const topColor = safeCssColor(ownGet(TEAM_COLORS, ts.name));
+                const logoUrl = teamLogoUrl(ts.name);
+                const logoHtml = logoUrl
+                    ? `<img src="${escapeHtml(logoUrl)}" class="team-logo" alt="" data-fallback="none">`
+                    : `<span class="team-logo team-logo-initial" style="background:${topColor}" aria-hidden="true">${escapeHtml(Array.from(ts.name)[0] || '')}</span>`;
+                const countHtml = `<span class="team-count">총 ${ts.males.length + ts.females.length}명 · 남 ${ts.males.length} · 여 ${ts.females.length}</span>`;
+                const headerLeft = TARGET_TEAM
+                    ? `<div class="team-header-left">${logoHtml}<span class="team-name">${escapeHtml(ts.name)}</span>${countHtml}</div>`
+                    : `<div class="team-header-left">${logoHtml}<a class="team-link team-name" href="team.html?team=${attrUrlParam(ts.name)}&date=${attrUrlParam(currentDateStr)}&metric=${attrUrlParam(currentMetric)}">${escapeHtml(ts.name)}</a>${countHtml}</div>`;
+                const rankSlot = TARGET_TEAM
+                    ? ''
+                    : `<span class="rank-badge-slot" data-team="${escapeHtml(ts.name)}"></span>`;
+
+                const makeRows = (list, padLen) => {
+                    let rHtml = list
+                        .map(m => {
+                            let cClass = [];
+                            if (def.excludeRoles && ['수장', '전력외'].includes(m.role)) {
+                                cClass.push('excluded');
+                            } else if (!m._counted && m._val !== 0) {
+                                cClass.push('excluded');
+                            }
+
+                            const tier = tiers.get(m);
+                            if (tier) cClass.push(tier);
+
+                            const isBday = m.birth_month === monthNum;
+                            const liveDot = m.id
+                                ? `<span class="live-dot" data-live-id="${escapeHtml(m.id)}"></span>`
+                                : '';
+                            const bdayMark = isBday ? '<span class="bday-mark">🎂</span>' : '';
+                            const nameContent = m.id
+                                ? `${liveDot}<a class="member-name-link" href="${escapeHtml(LOGO_PREFIX)}profile.html?id=${attrUrlParam(m.id)}&date=${attrUrlParam(currentDateStr)}&metric=${attrUrlParam(currentMetric)}&fromTeam=${attrUrlParam(TARGET_TEAM || '')}">${escapeHtml(m.nickname)}</a>${bdayMark}`
+                                : liveDot + escapeHtml(m.nickname) + bdayMark;
+                            return `<div class="member-row ${cClass.join(' ')}"><span class="member-name">${nameContent}</span><span class="member-value">${def.format(m._val)}</span></div>`;
+                        })
+                        .join('');
+
+                    for (let i = 0; i < padLen - list.length; i++)
+                        rHtml += `<div class="member-row empty"><span class="member-name"></span><span class="member-value"></span></div>`;
+                    return rHtml;
+                };
+
+                const maxLen = Math.max(ts.males.length, ts.females.length);
+                html += `
               <div class="team-card">
                 <div class="team-card-topbar" style="background:${topColor};"></div>
                 <div class="team-header">${headerLeft}${rankSlot}</div>
@@ -900,71 +1135,82 @@
                   <div class="stat-card total-avg"><div class="stat-card-header"><svg class="stat-icon" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M12 20V4M20 20v-7"/></svg><span class="stat-label">전체 평균</span></div><div class="stat-value">${def.format(ts.tAvg)}</div></div>
                 </div>
               </div>`;
-          });
-      }
-      const gridEl = document.getElementById('grid-container');
-      if (gridEl) gridEl.innerHTML = `<div class="grid ${TARGET_TEAM ? 'single-team' : ''}">${html}</div>`;
-      attachRankBadges(teamStats, currentDateStr, currentMetric);
-      renderFaBar(data);
-      if (TARGET_TEAM) document.title = TARGET_TEAM + ' 현황';
-      scheduleLiveDots();
-  }
+            });
+        }
+        const gridEl = document.getElementById('grid-container');
+        if (gridEl) gridEl.innerHTML = `<div class="grid ${TARGET_TEAM ? 'single-team' : ''}">${html}</div>`;
+        attachRankBadges(teamStats, currentDateStr, currentMetric);
+        renderFaBar(data);
+        if (TARGET_TEAM) document.title = TARGET_TEAM + ' 현황';
+        scheduleLiveDots();
+    }
 
-  function renderProfile(data) {
-      const tid = PROFILE_ID;
-      const member = ((data && data.members) || []).find(m => m.id === tid);
-      const metaEl = document.getElementById('top-meta-text');
-      const cardEl = document.getElementById('profile-card');
-      if (!member) {
-          if (cardEl) cardEl.style.display = 'none';
-          if (metaEl) metaEl.textContent = '데이터 없음';
-          return;
-      }
+    function renderProfile(data) {
+        const tid = PROFILE_ID;
+        const member = ((data && data.members) || []).find(m => m.id === tid);
+        const metaEl = document.getElementById('top-meta-text');
+        const cardEl = document.getElementById('profile-card');
+        if (!member) {
+            if (cardEl) cardEl.style.display = 'none';
+            if (metaEl) metaEl.textContent = '데이터 없음';
+            return;
+        }
 
-      // 프로필을 다시 그릴 때(날짜 변경 등) 이전 화면의 생방송 임베드가 남아
-      // 있으면, 아래 비동기 조회가 끝나기 전까지 엉뚱한 사람의 방송이 잠깐
-      // 보인다. 먼저 비워두고 시작한다.
-      const prevLiveEl = document.getElementById('profile-live-embed');
-      if (prevLiveEl) { prevLiveEl.innerHTML = ''; prevLiveEl.style.display = 'none'; }
+        // 프로필을 다시 그릴 때(날짜 변경 등) 이전 화면의 생방송 임베드가 남아
+        // 있으면, 아래 비동기 조회가 끝나기 전까지 엉뚱한 사람의 방송이 잠깐
+        // 보인다. 먼저 비워두고 시작한다.
+        const prevLiveEl = document.getElementById('profile-live-embed');
+        if (prevLiveEl) {
+            prevLiveEl.innerHTML = '';
+            prevLiveEl.style.display = 'none';
+        }
 
-      const topbar = document.getElementById('profile-topbar');
-      topbar.style.background = safeCssColor(ownGet(TEAM_COLORS, member.team));
-      loadTeamColor(member.team).then(color => {
-          if (color && topbar.dataset.team === member.team) topbar.style.background = safeCssColor(color);
-      }).catch(() => {});
-      topbar.dataset.team = member.team || '';
-      document.getElementById('profile-nickname').textContent = member.nickname || '';
-      document.getElementById('profile-card').style.display = '';
+        const topbar = document.getElementById('profile-topbar');
+        topbar.style.background = safeCssColor(ownGet(TEAM_COLORS, member.team));
+        loadTeamColor(member.team)
+            .then(color => {
+                if (color && topbar.dataset.team === member.team) topbar.style.background = safeCssColor(color);
+            })
+            .catch(() => {});
+        topbar.dataset.team = member.team || '';
+        document.getElementById('profile-nickname').textContent = member.nickname || '';
+        document.getElementById('profile-card').style.display = '';
 
-      const photoImg = document.getElementById('profile-photo');
-      photoImg.onerror = function() { this.style.visibility = 'hidden'; };
-      photoImg.onload = function() { this.style.visibility = ''; };
-      photoImg.src = soopPhotoUrl(tid);
+        const photoImg = document.getElementById('profile-photo');
+        photoImg.onerror = function () {
+            this.style.visibility = 'hidden';
+        };
+        photoImg.onload = function () {
+            this.style.visibility = '';
+        };
+        photoImg.src = soopPhotoUrl(tid);
 
-      const liveEmbedEl = document.getElementById('profile-live-embed');
-      if (tid && liveEmbedEl) {
-          const liveToken = renderToken;
-          const prefetchedLive = profileLivePrefetch && tid === PROFILE_ID ? profileLivePrefetch : null;
-          profileLivePrefetch = null;
-          (prefetchedLive || checkIsLiveRealtime(tid)).then(result => {
-              // 조회가 끝났을 때 화면이 이미 다른 날짜/사람으로 넘어갔다면
-              // 그 화면 위에 이전 방송 정보를 얹지 않는다.
-              if (liveToken !== renderToken) return;
-              if (result && result.broad) {
-                  const { broad, broadStart } = result;
-                  const viewerText = broad.current_sum_viewer != null
-                      ? broad.current_sum_viewer.toLocaleString('ko-KR') + '명 시청 중' : '';
-                  let elapsedText = '';
-                  if (broadStart) {
-                      const startDate = new Date(broadStart.replace(' ', 'T'));
-                      if (!isNaN(startDate.getTime())) {
-                          const elapsedSec = Math.max(0, Math.floor((Date.now() - startDate.getTime()) / 1000));
-                          const eh = Math.floor(elapsedSec / 3600);
-                          const em = Math.floor((elapsedSec % 3600) / 60);
-                          elapsedText = (eh > 0 ? `${eh}시간 ${em}분` : `${em}분`) + ' 방송중';
-                      }
-                  }
-                  liveEmbedEl.innerHTML = `
+        const liveEmbedEl = document.getElementById('profile-live-embed');
+        if (tid && liveEmbedEl) {
+            const liveToken = renderToken;
+            const prefetchedLive = profileLivePrefetch && tid === PROFILE_ID ? profileLivePrefetch : null;
+            profileLivePrefetch = null;
+            (prefetchedLive || checkIsLiveRealtime(tid)).then(result => {
+                // 조회가 끝났을 때 화면이 이미 다른 날짜/사람으로 넘어갔다면
+                // 그 화면 위에 이전 방송 정보를 얹지 않는다.
+                if (liveToken !== renderToken) return;
+                if (result && result.broad) {
+                    const { broad, broadStart } = result;
+                    const viewerText =
+                        broad.current_sum_viewer != null
+                            ? broad.current_sum_viewer.toLocaleString('ko-KR') + '명 시청 중'
+                            : '';
+                    let elapsedText = '';
+                    if (broadStart) {
+                        const startDate = new Date(broadStart.replace(' ', 'T'));
+                        if (!isNaN(startDate.getTime())) {
+                            const elapsedSec = Math.max(0, Math.floor((Date.now() - startDate.getTime()) / 1000));
+                            const eh = Math.floor(elapsedSec / 3600);
+                            const em = Math.floor((elapsedSec % 3600) / 60);
+                            elapsedText = (eh > 0 ? `${eh}시간 ${em}분` : `${em}분`) + ' 방송중';
+                        }
+                    }
+                    liveEmbedEl.innerHTML = `
                     <div class="profile-live-row">
                       <a class="profile-live-thumb-link" href="https://play.sooplive.co.kr/${attrUrlParam(tid)}" target="_blank" rel="noopener">
                         <img class="profile-live-thumb" src="https://liveimg.sooplive.co.kr/m/${attrUrlParam(broad.broad_no)}" alt="방송 화면">
@@ -976,110 +1222,117 @@
                         <span class="profile-live-elapsed"></span>
                       </div>
                     </div>`;
-                  liveEmbedEl.style.display = '';
-                  fitTextToWidth(liveEmbedEl.querySelector('.profile-live-title'), broad.broad_title);
-                  fitTextToWidth(liveEmbedEl.querySelector('.profile-live-viewer'), viewerText);
-                  fitTextToWidth(liveEmbedEl.querySelector('.profile-live-elapsed'), elapsedText);
-              } else {
-                  liveEmbedEl.innerHTML = '';
-                  liveEmbedEl.style.display = 'none';
-              }
-          });
-      }
+                    liveEmbedEl.style.display = '';
+                    fitTextToWidth(liveEmbedEl.querySelector('.profile-live-title'), broad.broad_title);
+                    fitTextToWidth(liveEmbedEl.querySelector('.profile-live-viewer'), viewerText);
+                    fitTextToWidth(liveEmbedEl.querySelector('.profile-live-elapsed'), elapsedText);
+                } else {
+                    liveEmbedEl.innerHTML = '';
+                    liveEmbedEl.style.display = 'none';
+                }
+            });
+        }
 
-      const sInfo = {
-          gender: member.gender || '',
-          birthdate: member.birthdate || '-',
-      };
-      document.getElementById('profile-gender').textContent =
-          isFemale(sInfo.gender) ? '여자' : (sInfo.gender ? '남자' : '-');
-      document.getElementById('profile-birthdate').textContent = sInfo.birthdate || '-';
-      document.getElementById('profile-team').textContent = member.team || '-';
-      document.getElementById('profile-role').textContent = member.role || '-';
-      document.getElementById('profile-race').textContent = member.race || '-';
-      document.getElementById('profile-tier').textContent = member.tier || '-';
-      document.getElementById('profile-station-link').href =
-          `https://www.sooplive.com/station/${encodeURIComponent(tid)}`;
+        const sInfo = {
+            gender: member.gender || '',
+            birthdate: member.birthdate || '-',
+        };
+        document.getElementById('profile-gender').textContent = isFemale(sInfo.gender)
+            ? '여자'
+            : sInfo.gender
+              ? '남자'
+              : '-';
+        document.getElementById('profile-birthdate').textContent = sInfo.birthdate || '-';
+        document.getElementById('profile-team').textContent = member.team || '-';
+        document.getElementById('profile-role').textContent = member.role || '-';
+        document.getElementById('profile-race').textContent = member.race || '-';
+        document.getElementById('profile-tier').textContent = member.tier || '-';
+        document.getElementById('profile-station-link').href =
+            `https://www.sooplive.com/station/${encodeURIComponent(tid)}`;
 
-      const fmt = n => n ? n.toLocaleString('ko-KR') : '-';
-      document.getElementById('profile-balloons').textContent = fmt(member.balloons);
-      document.getElementById('profile-viewers').textContent = fmt(member.cumulative_viewers);
-      document.getElementById('profile-broadcast').textContent = formatTime(member.broadcast_seconds) || '-';
+        const fmt = n => (n ? n.toLocaleString('ko-KR') : '-');
+        document.getElementById('profile-balloons').textContent = fmt(member.balloons);
+        document.getElementById('profile-viewers').textContent = fmt(member.cumulative_viewers);
+        document.getElementById('profile-broadcast').textContent = formatTime(member.broadcast_seconds) || '-';
 
-      const sponsorEl = document.getElementById('profile-sponsor');
-      // interval뿐 아니라 그 안에서 예약된 setTimeout까지 반드시 같이 정리해야
-      // 한다(남은 timeout이 300ms 뒤에 깨어나 새로 그린 사람의 전적 위에 이전 사람의
-      // 문자열을 덮어쓴다).
-      if (window.__sponsorToggleTimer) clearInterval(window.__sponsorToggleTimer);
-      if (window.__sponsorFadeTimer) clearTimeout(window.__sponsorFadeTimer);
-      const sGames = member.sponsor_games || 0;
-      if (sGames > 0) {
-          const sWins = member.sponsor_wins || 0;
-          const sLosses = member.sponsor_losses || 0;
-          const sRate = Math.round((sWins/sGames)*100);
-          const texts = [sWins + '승 ' + sLosses + '패', sRate + '%'];
-          let idx = 0;
-          sponsorEl.textContent = texts[0];
-          sponsorEl.style.color = '';
-          sponsorEl.style.opacity = '1';
-          window.__sponsorToggleTimer = setInterval(() => {
-              sponsorEl.style.opacity = '0';
-              window.__sponsorFadeTimer = setTimeout(() => {
-                  idx = 1 - idx;
-                  sponsorEl.textContent = texts[idx];
-                  sponsorEl.style.opacity = '1';
-              }, 300);
-          }, 2000);
-      } else {
-          sponsorEl.textContent = '-';
-          sponsorEl.style.color = '#71747b';
-          sponsorEl.style.opacity = '1';
-      }
+        const sponsorEl = document.getElementById('profile-sponsor');
+        // interval뿐 아니라 그 안에서 예약된 setTimeout까지 반드시 같이 정리해야
+        // 한다(남은 timeout이 300ms 뒤에 깨어나 새로 그린 사람의 전적 위에 이전 사람의
+        // 문자열을 덮어쓴다).
+        if (window.__sponsorToggleTimer) clearInterval(window.__sponsorToggleTimer);
+        if (window.__sponsorFadeTimer) clearTimeout(window.__sponsorFadeTimer);
+        const sGames = member.sponsor_games || 0;
+        if (sGames > 0) {
+            const sWins = member.sponsor_wins || 0;
+            const sLosses = member.sponsor_losses || 0;
+            const sRate = Math.round((sWins / sGames) * 100);
+            const texts = [sWins + '승 ' + sLosses + '패', sRate + '%'];
+            let idx = 0;
+            sponsorEl.textContent = texts[0];
+            sponsorEl.style.color = '';
+            sponsorEl.style.opacity = '1';
+            window.__sponsorToggleTimer = setInterval(() => {
+                sponsorEl.style.opacity = '0';
+                window.__sponsorFadeTimer = setTimeout(() => {
+                    idx = 1 - idx;
+                    sponsorEl.textContent = texts[idx];
+                    sponsorEl.style.opacity = '1';
+                }, 300);
+            }, 2000);
+        } else {
+            sponsorEl.textContent = '-';
+            sponsorEl.style.color = '#71747b';
+            sponsorEl.style.opacity = '1';
+        }
 
-      document.title = (member.nickname || tid) + ' 프로필';
-      if (metaEl) {
-          metaEl.innerHTML = '업데이트 ' + escapeHtml(data.updated_at || '-')
-            + ' · 출처: <a href="https://poonggo.com" target="_blank" rel="noopener" class="source-link">풍고</a>, '
-            + '<a href="https://eloboard.co.kr/" target="_blank" rel="noopener" class="source-link">Elo</a>';
-      }
-  }
+        document.title = (member.nickname || tid) + ' 프로필';
+        if (metaEl) {
+            metaEl.innerHTML =
+                '업데이트 ' +
+                escapeHtml(data.updated_at || '-') +
+                ' · 출처: <a href="https://poonggo.com" target="_blank" rel="noopener" class="source-link">풍고</a>, ' +
+                '<a href="https://eloboard.co.kr/" target="_blank" rel="noopener" class="source-link">Elo</a>';
+        }
+    }
 
-  if (calBtn && datePicker) calBtn.onclick = function() {
-      // 보이는 버튼("2026년 09월 04일 ▾")을 클릭하면, 화면엔 안 보이지만
-      // 뒤에 숨겨둔 네이티브 date input의 브라우저 기본 달력을 대신 열어준다
-      // (showPicker는 비교적 최신 API라 없는 구형 브라우저에서는 그냥
-      // 포커스+클릭으로 대체 시도한다).
-      if (datePicker.showPicker) {
-          datePicker.showPicker();
-      } else {
-          datePicker.focus();
-          datePicker.click();
-      }
-  };
+    if (calBtn && datePicker)
+        calBtn.onclick = function () {
+            // 보이는 버튼("2026년 09월 04일 ▾")을 클릭하면, 화면엔 안 보이지만
+            // 뒤에 숨겨둔 네이티브 date input의 브라우저 기본 달력을 대신 열어준다
+            // (showPicker는 비교적 최신 API라 없는 구형 브라우저에서는 그냥
+            // 포커스+클릭으로 대체 시도한다).
+            if (datePicker.showPicker) {
+                datePicker.showPicker();
+            } else {
+                datePicker.focus();
+                datePicker.click();
+            }
+        };
 
-  if (datePicker) datePicker.addEventListener('change', function() {
-      const picked = datePicker.value;
-      if (AVAILABLE_DATES.includes(picked)) {
-          currentDateStr = picked;
-          applyData();
-      } else {
-          // 네이티브 date input은 min/max 범위 안의 특정 날짜만 콕 집어서
-          // 선택 못 하게 막는 기능 자체가 없다(브라우저 표준의 한계) - 그래서
-          // 범위 안이지만 실제 데이터가 없는 날짜(드물게 워크플로우가 하루
-          // 건너뛴 경우 등)를 고르면, 여기서 즉시 원래 날짜로 되돌린다.
-          datePicker.value = currentDateStr;
-      }
-  });
+    if (datePicker)
+        datePicker.addEventListener('change', function () {
+            const picked = datePicker.value;
+            if (AVAILABLE_DATES.includes(picked)) {
+                currentDateStr = picked;
+                applyData();
+            } else {
+                // 네이티브 date input은 min/max 범위 안의 특정 날짜만 콕 집어서
+                // 선택 못 하게 막는 기능 자체가 없다(브라우저 표준의 한계) - 그래서
+                // 범위 안이지만 실제 데이터가 없는 날짜(드물게 워크플로우가 하루
+                // 건너뛴 경우 등)를 고르면, 여기서 즉시 원래 날짜로 되돌린다.
+                datePicker.value = currentDateStr;
+            }
+        });
 
-  const metricSel = document.getElementById('ms-metric-select');
-  if(metricSel) {
-      metricSel.addEventListener('change', function() {
-          // select의 option은 우리가 만든 4개뿐이지만, 확장 프로그램이나
-          // 개발자도구로 바뀔 수 있으므로 알고 있는 지표인지 확인한다.
-          if (!ownGet(metricDefs, metricSel.value)) return;
-          currentMetric = metricSel.value;
-          fitSelectWidth(metricSel);
-          applyData();
-      });
-  }
+    const metricSel = document.getElementById('ms-metric-select');
+    if (metricSel) {
+        metricSel.addEventListener('change', function () {
+            // select의 option은 우리가 만든 4개뿐이지만, 확장 프로그램이나
+            // 개발자도구로 바뀔 수 있으므로 알고 있는 지표인지 확인한다.
+            if (!ownGet(metricDefs, metricSel.value)) return;
+            currentMetric = metricSel.value;
+            fitSelectWidth(metricSel);
+            applyData();
+        });
+    }
 })();

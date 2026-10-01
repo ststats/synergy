@@ -3,7 +3,9 @@
   "private": true,
   "description": "배포용 HTML 안 JS·CSS 압축(scripts/minify_assets.mjs). 웹 빌드는 파이썬(scripts/).",
   "scripts": {
-    "minify": "node scripts/minify_assets.mjs docs"
+    "minify": "node scripts/minify_assets.mjs docs",
+    "format": "prettier --write 'templates/app.js'",
+    "format:check": "prettier --check 'templates/app.js'"
   },
   "engines": {
     "node": ">=24"
@@ -11,6 +13,7 @@
   "devDependencies": {
     "acorn": "8.15.0",
     "esbuild": "0.25.10",
+    "prettier": "3.9.9",
     "terser": "5.44.0"
   }
 }
