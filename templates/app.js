@@ -32,12 +32,13 @@
     // 만드는 쪽(renderFaBar/renderDashboard)에서 항상 명시적으로 실어 보낸다.
     const FROM_TEAM = new URLSearchParams(window.location.search).get('fromTeam');
 
+    const formatCount = v => (v ? v.toLocaleString('ko-KR') : '');
     const metricDefs = {
         balloon: {
             field: 'balloons',
             label: '별풍선',
             unit: '별풍선',
-            format: v => (v ? v.toLocaleString('ko-KR') : ''),
+            format: formatCount,
             excludeRoles: true,
             rankByFemale: false,
             source: '풍고',
@@ -57,7 +58,7 @@
             field: 'cumulative_viewers',
             label: '누적시청자',
             unit: '누적시청자',
-            format: v => (v ? v.toLocaleString('ko-KR') : ''),
+            format: formatCount,
             excludeRoles: true,
             rankByFemale: false,
             source: '풍고',
@@ -378,22 +379,28 @@
         };
     }
 
-    async function loadAvailableDates() {
-        const client = synergySupabaseClient();
-        if (!client) throw new Error('Supabase browser client is not configured');
+    // 한 번에 최대 1000줄씩 끝까지 받는다. query(from, to)는 그 구간의 조회를 돌려준다.
+    async function fetchAllPages(query, pageSize = 1000) {
         const data = [];
-        const pageSize = 1000;
         for (let from = 0; ; from += pageSize) {
-            const { data: batch, error } = await client
-                .from('synergy_daily_dates')
-                .select('stat_date')
-                .order('stat_date', { ascending: false })
-                .range(from, from + pageSize - 1);
+            const { data: batch, error } = await query(from, from + pageSize - 1);
             if (error) throw error;
             const rows = Array.isArray(batch) ? batch : [];
             data.push(...rows);
-            if (rows.length < pageSize) break;
+            if (rows.length < pageSize) return data;
         }
+    }
+
+    async function loadAvailableDates() {
+        const client = synergySupabaseClient();
+        if (!client) throw new Error('Supabase browser client is not configured');
+        const data = await fetchAllPages((from, to) =>
+            client
+                .from('synergy_daily_dates')
+                .select('stat_date')
+                .order('stat_date', { ascending: false })
+                .range(from, to)
+        );
         return data.map(r => String(r.stat_date || '')).filter(Boolean);
     }
 
@@ -411,8 +418,7 @@
         const client = synergySupabaseClient();
         if (!client) throw new Error('Supabase browser client is not configured');
 
-        const data = [];
-        const pageSize = 1000;
+        let data = [];
         // 개인 페이지는 그 한 명만 받는다(휴면 선수도 보이도록 함수로 읽는다). 팀 페이지는 상위 1·5·10% 표시를
         // 전체페이지와 같이 전체 선수 기준으로 매기므로 전체를 받고, 화면에는 그 팀만 그린다.
         if (IS_PROFILE && PROFILE_ID) {
@@ -422,8 +428,8 @@
             });
             if (error) throw error;
             if (Array.isArray(rows)) data.push(...rows);
-        } else
-            for (let from = 0; ; from += pageSize) {
+        } else {
+            data = await fetchAllPages((from, to) => {
                 let query = latest
                     ? client.from('daily_member_stats_latest').select('stat_date,' + DAILY_COLUMNS)
                     : client
@@ -431,15 +437,10 @@
                           .select(light ? DAILY_RANK_COLUMNS : DAILY_COLUMNS)
                           .eq('stat_date', dateStr);
                 if (!light) query = query.order('nickname', { ascending: true });
-                const { data: batch, error } = await query
-                    .order('soop_id', { ascending: true }) // 닉네임이 겹쳐도 페이지 경계 순서가 고정되게
-                    .range(from, from + pageSize - 1);
-                if (error) throw error;
-
-                const rows = Array.isArray(batch) ? batch : [];
-                data.push(...rows);
-                if (rows.length < pageSize) break;
-            }
+                // 닉네임이 겹쳐도 페이지 경계 순서가 고정되게
+                return query.order('soop_id', { ascending: true }).range(from, to);
+            });
+        }
 
         if (latest) {
             dateStr = data.length ? String(data[0].stat_date || '') : '';
