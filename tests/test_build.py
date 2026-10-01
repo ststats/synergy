@@ -60,8 +60,8 @@ def test_validate_and_clean_members_drops_incomplete_rows():
 
 def test_daily_queries_fetch_only_used_columns():
     src = (ROOT / "templates" / "app.js").read_text(encoding="utf-8")
-    full = re.search(r"const DAILY_COLUMNS = '([^']+)'", src).group(1).split(",")
-    rank = re.search(r"const DAILY_RANK_COLUMNS = '([^']+)'", src).group(1).split(",")
+    full = re.search(r"const DAILY_COLUMNS =\s*'([^']+)'", src).group(1).split(",")
+    rank = re.search(r"const DAILY_RANK_COLUMNS =\s*'([^']+)'", src).group(1).split(",")
     # 화면에서 안 쓰는 칸은 받지 않는다
     assert "month_start" not in full and "elo_id" not in full
     # 목록 화면은 생일 달만 쓴다: 생년월일·종족은 받지 않는다(공개 권한도 없다)
@@ -108,5 +108,5 @@ def test_font_subset_includes_app_js_text():
 def test_first_render_does_not_wait_for_date_list():
     """최신(또는 주소의) 통계를 받았으면 날짜 목록을 기다리지 않고 그린다(목록은 달력·순위 비교용)."""
     src = (ROOT / "templates" / "app.js").read_text(encoding="utf-8")
-    assert "const latestFirst = latestPrefetch ? await latestPrefetch : (urlDatePrefetch ? await urlDatePrefetch : null);" in src
+    assert "const latestFirst = latestPrefetch ? await latestPrefetch : urlDatePrefetch ? await urlDatePrefetch : null;" in src
     assert "AVAILABLE_DATES = [latestFirst.date];" in src

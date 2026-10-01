@@ -20,3 +20,11 @@ jobs:
           cache: pip
       - run: pip install -r requirements.txt -r requirements-dev.txt
       - run: python -m pytest -q
+      # 코드 모양(.prettierrc.json)은 PR에서만 본다 - 모양 때문에 정기 배포가 막히지 않게. 고칠 땐 npm run format
+      - if: github.event_name == 'pull_request'
+        uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+          cache: npm
+      - if: github.event_name == 'pull_request'
+        run: npm ci && npm run format:check
