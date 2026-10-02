@@ -1401,6 +1401,26 @@
         return sheet;
     }
 
+    // 숫자 칸의 글자를 한 자씩 같은 폭 칸으로 나눈다(캔버스가 tabular-nums를 못 그려서 간격이 들쭉날쭉해지는 것 막기).
+    // 칸 폭은 그 칸 글꼴의 tabular 숫자 폭을 em으로 재서 쓴다 - 폰(작은 글씨)에서 재도 PC 크기 판에서 그대로 맞는다.
+    function tabularizeDigits(sheet) {
+        sheet.querySelectorAll('.member-value, .stat-value, .rank-no, .rank-value').forEach(el => {
+            const text = el.textContent;
+            if (!/\d/.test(text)) return;
+            const probe = document.createElement('span');
+            probe.style.cssText =
+                'position:absolute;visibility:hidden;white-space:nowrap;font-size:100px;font-variant-numeric:tabular-nums';
+            probe.textContent = '0000000000';
+            el.appendChild(probe);
+            const digitEm = probe.getBoundingClientRect().width / 1000;
+            probe.remove();
+            if (digitEm > 0) el.style.setProperty('--digit-w', digitEm + 'em');
+            el.innerHTML = Array.from(text)
+                .map(ch => (/\d/.test(ch) ? `<span class="png-digit">${ch}</span>` : escapeHtml(ch)))
+                .join('');
+        });
+    }
+
     async function savePng(btn) {
         const sheet = buildPngSheet();
         if (!sheet) return;
@@ -1409,6 +1429,7 @@
         try {
             const html2canvas = await loadHtml2canvas();
             if (document.fonts && document.fonts.ready) await document.fonts.ready;
+            tabularizeDigits(sheet);
             const w = sheet.offsetWidth;
             const h = sheet.offsetHeight;
             // iOS 사파리는 캔버스 넓이가 약 1,670만 화소를 넘으면 빈 그림이 나온다 - 그 안에서 2배까지
