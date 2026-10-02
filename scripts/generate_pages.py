@@ -43,6 +43,7 @@ DEFAULT_TOPBAR_COLOR = "#4a5ce0"
 # 검색엔진용 사이트 주소(JSON-LD). 다른 주소로 배포하면 환경변수 SITE_URL로 바꾼다(끝의 / 없이).
 SITE_URL = os.environ.get("SITE_URL", "https://ststats.github.io/synergy").rstrip("/")
 APP_JS = TEMPLATES_DIR / "app.js"
+HTML2CANVAS_JS = TEMPLATES_DIR / "vendor" / "html2canvas.min.js"  # 1.4.1, MIT
 
 
 def json_for_script(value) -> str:
@@ -127,9 +128,11 @@ def generate_html(title, target_team, is_profile, logo_prefix, team_colors, team
 
 
 def build_static_files() -> None:
-    """app.js와 홈 화면 아이콘(파비콘을 180px 정사각형에 채운 PNG)을 docs에 둔다."""
+    """app.js, 이미지 저장용 html2canvas(누를 때만 받는다), 홈 화면 아이콘(파비콘을 180px 정사각형에 채운 PNG)을
+    docs에 둔다."""
     DOCS_DIR.mkdir(parents=True, exist_ok=True)
     _write_if_changed(DOCS_DIR / "app.js", APP_JS.read_text(encoding="utf-8"))
+    _write_if_changed(DOCS_DIR / "html2canvas.min.js", HTML2CANVAS_JS.read_text(encoding="utf-8"))
     with Image.open(LOGOS_DIR / "파비콘.webp") as im:
         im = im.convert("RGBA")
         square = Image.new("RGBA", im.size, im.getpixel((im.width // 10, im.height // 2))[:3] + (255,))

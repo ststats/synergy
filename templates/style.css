@@ -119,3 +119,16 @@ body { font-family: 'Pretendard Variable', sans-serif; background: #f4f5f7; marg
 .fa-bar-item a:hover { background: #f4f6fe; border-color: #d8ddfa; }
 .fa-bar-item a:hover .member-name { color: #4a5ce0; }
 .fa-bar-photo { width: 22px; height: 22px; border-radius: 50%; object-fit: cover; background: #f2f3f5; flex-shrink: 0; }
+
+/* 이미지 저장: 화면 밖에 고정 폭 판(.png-sheet)을 그려 PNG로 찍는다 - 보는 기기와 상관없이 같은 이미지 */
+.png-btn { background: none; border: 0; padding: 0; font: inherit; font-size: 10px; font-weight: 600; color: #4a5ce0; cursor: pointer; }
+.png-btn:hover { text-decoration: underline; }
+.png-btn:disabled { opacity: 0.5; cursor: progress; text-decoration: none; }
+.png-sheet { position: absolute; left: -10000px; top: 0; width: 760px; padding: 20px; background: #f4f5f7; }
+.png-sheet.single { width: 520px; }
+.png-sheet .grid { grid-template-columns: 1fr 1fr; max-width: none; }
+.png-sheet.single .grid { grid-template-columns: 1fr; }
+.png-head { background: #fff; border-radius: 20px; padding: 14px 20px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; box-shadow: 0 1px 2px rgba(20,20,30,0.04), 0 4px 12px rgba(20,20,30,0.05); }
+.png-title { font-size: 20px; font-weight: 800; color: #141821; }
+.png-meta { font-size: 10px; color: #71747b; }
+.png-sheet .legend { max-width: none; }

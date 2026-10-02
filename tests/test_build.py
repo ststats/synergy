@@ -103,6 +103,19 @@ def test_font_subset_includes_app_js_text():
     """app.js가 그려 넣는 문구(불러오기 안내 등) 글자도 글꼴에 넣는다(빠지면 그 글자만 다른 글꼴로 보인다)."""
     src = (ROOT / "scripts" / "subset_font.py").read_text(encoding="utf-8")
     assert 'DOCS_DIR.glob("*.js")' in src
+    assert 'not p.name.endswith(".min.js")' in src
+
+
+def test_png_button_only_on_table_pages_and_library_is_copied():
+    """이미지 저장 버튼은 전체·팀 페이지에만, html2canvas는 누를 때 받으므로 docs에 함께 둔다."""
+    colors = {"테스트대": "#123456"}
+    assert 'id="png-btn"' in generate_pages.generate_html("시너지", "", False, "", colors)
+    assert 'id="png-btn"' in generate_pages.generate_html("팀별 현황", "테스트대", False, "", colors)
+    assert 'id="png-btn"' not in generate_pages.generate_html("프로필", "", True, "", colors)
+    assert generate_pages.HTML2CANVAS_JS.read_text(encoding="utf-8").startswith("/*!\n * html2canvas 1.4.1")
+    src = (ROOT / "templates" / "app.js").read_text(encoding="utf-8")
+    assert "LOGO_PREFIX + 'html2canvas.min.js'" in src
+    assert "windowWidth: 1280" in src
 
 
 def test_first_render_does_not_wait_for_date_list():

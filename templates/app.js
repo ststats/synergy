@@ -1296,6 +1296,105 @@
         }
     }
 
+    // 이미지 저장: 지금 표를 화면 밖의 고정 폭 판(.png-sheet, 2열·줄 맞춤)에 옮겨 PNG로 내려받는다.
+    // 찍을 때 창 폭을 PC로 두어(windowWidth) 폰에서 눌러도 mobile.css가 안 걸린 같은 이미지가 나온다.
+    // html2canvas(약 200KB)는 처음 누를 때만 받는다.
+    let html2canvasRequest = null;
+    function loadHtml2canvas() {
+        if (window.html2canvas) return Promise.resolve(window.html2canvas);
+        if (!html2canvasRequest) {
+            html2canvasRequest = new Promise((resolve, reject) => {
+                const s = document.createElement('script');
+                s.src = LOGO_PREFIX + 'html2canvas.min.js';
+                s.onload = () => (window.html2canvas ? resolve(window.html2canvas) : reject(new Error('html2canvas')));
+                s.onerror = () => {
+                    html2canvasRequest = null;
+                    s.remove();
+                    reject(new Error('html2canvas.min.js를 받지 못했습니다'));
+                };
+                document.head.appendChild(s);
+            });
+        }
+        return html2canvasRequest;
+    }
+
+    function buildPngSheet() {
+        const grid = document.querySelector('#grid-container .grid');
+        if (!grid || !grid.querySelector('.member-columns')) return null;
+        const sheet = document.createElement('div');
+        sheet.className = 'png-sheet' + (TARGET_TEAM ? ' single' : '');
+        sheet.setAttribute('aria-hidden', 'true');
+        const head = document.createElement('div');
+        head.className = 'png-head';
+        const title = document.createElement('div');
+        title.className = 'png-title';
+        const metricSel = document.getElementById('ms-metric-select');
+        const metricLabel = metricSel && metricSel.selectedOptions[0] ? metricSel.selectedOptions[0].textContent : '';
+        title.textContent = [
+            TARGET_TEAM,
+            calBtn ? calBtn.textContent.replace(/▾/g, '').trim() : currentDateStr,
+            metricLabel,
+        ]
+            .filter(Boolean)
+            .join(' · ');
+        const meta = document.createElement('div');
+        meta.className = 'png-meta';
+        const metaEl = document.getElementById('top-meta-text');
+        meta.textContent = metaEl ? metaEl.textContent.replace(/\s*·\s*문의\s*$/, '') : '';
+        head.append(title, meta);
+        const gridCopy = grid.cloneNode(true);
+        gridCopy.querySelectorAll('.live-dot').forEach(el => el.remove());
+        sheet.append(head, gridCopy);
+        const legend = document.querySelector('.legend');
+        if (legend) sheet.appendChild(legend.cloneNode(true));
+        return sheet;
+    }
+
+    async function savePng(btn) {
+        const sheet = buildPngSheet();
+        if (!sheet) return;
+        btn.disabled = true;
+        document.body.appendChild(sheet);
+        try {
+            const html2canvas = await loadHtml2canvas();
+            if (document.fonts && document.fonts.ready) await document.fonts.ready;
+            const w = sheet.offsetWidth;
+            const h = sheet.offsetHeight;
+            // iOS 사파리는 캔버스 넓이가 약 1,670만 화소를 넘으면 빈 그림이 나온다 - 그 안에서 2배까지
+            const scale = Math.max(1, Math.min(2, Math.sqrt(16000000 / (w * h))));
+            const canvas = await html2canvas(sheet, {
+                scale,
+                useCORS: true,
+                backgroundColor: '#f4f5f7',
+                windowWidth: 1280,
+                windowHeight: 900,
+                logging: false,
+                onclone: doc => {
+                    const copy = doc.querySelector('.png-sheet');
+                    if (copy) copy.style.left = '0';
+                },
+            });
+            const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+            if (!blob) throw new Error('PNG를 만들지 못했습니다');
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = ['시너지', TARGET_TEAM, currentDateStr, currentMetric].filter(Boolean).join('_') + '.png';
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+        } catch (e) {
+            console.error('이미지 저장 실패', e);
+            alert('이미지를 만들지 못했습니다. 잠시 뒤 다시 시도해 주세요.');
+        } finally {
+            sheet.remove();
+            btn.disabled = false;
+        }
+    }
+
+    const pngBtn = document.getElementById('png-btn');
+    if (pngBtn) pngBtn.addEventListener('click', () => savePng(pngBtn));
+
     if (calBtn && datePicker)
         calBtn.onclick = function () {
             // 보이는 버튼("2026년 09월 04일 ▾")을 클릭하면, 화면엔 안 보이지만
