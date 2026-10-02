@@ -44,8 +44,10 @@
     .legend span { margin: 0 3px; }
     .legend .sw { width: 6px; height: 6px; margin-right: 2px; }
     .png-btn, .png-sep { font-size: 5px; }
+    /* 윗줄 묶음 간격(6px)이 5px 글씨에 비해 넓어서, 구분점 양옆을 글 속 " · "와 비슷하게(약 2px) 좁힌다 */
+    .png-sep { margin: 0 -4px; }
     .png-btn { padding: 6px 0; margin: -6px 0; }
-    .rank-summary { gap: 6px; margin-top: 8px; }
+    .rank-summary { grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
     .rank-card { border-radius: 10px; }
     .rank-card-title { font-size: 8px; padding: 6px 8px; }
     .rank-list { padding: 3px 0; }
