@@ -54,6 +54,10 @@
         <span class="top-meta-sep" id="back-sep">·</span>
       {% endif %}
       <span class="top-meta" id="top-meta-text"></span>
+      {% if not is_profile %}
+      <span class="top-meta-sep">·</span>
+      <button id="png-btn" class="png-btn" type="button" title="지금 보이는 표를 PNG 이미지로 내려받습니다">이미지 저장</button>
+      {% endif %}
     </span>
   </div>
 

@@ -82,7 +82,9 @@ def collect_used_characters() -> set:
 
     # 화면 글자는 페이지 HTML뿐 아니라 app.js가 그려 넣는 문구(불러오기 안내·팀 인원 등)에도 있다
     if DOCS_DIR.exists():
-        for p in [*DOCS_DIR.glob("*.html"), *DOCS_DIR.glob("*.js")]:
+        # *.min.js는 남이 만든 라이브러리(html2canvas 등)라 화면 글자가 아니다 - 넣으면 글꼴만 커진다
+        js = [p for p in DOCS_DIR.glob("*.js") if not p.name.endswith(".min.js")]
+        for p in [*DOCS_DIR.glob("*.html"), *js]:
             try:
                 chars.update(p.read_text(encoding="utf-8"))
             except Exception as e:
