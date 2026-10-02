@@ -144,9 +144,11 @@ body { font-family: 'Pretendard Variable', sans-serif; background: #f4f5f7; marg
 .png-sheet.single { width: 520px; }
 .png-sheet .grid { grid-template-columns: 1fr 1fr; max-width: none; }
 .png-sheet.single .grid { grid-template-columns: 1fr; }
-/* 캔버스는 tabular-nums(고정폭 숫자)를 못 그려서, 칸은 고정폭으로 잡히고 글자는 기본 폭으로 그려져
-   숫자 오른쪽 끝이 줄마다 어긋난다 - 이미지에서는 기본 숫자 폭으로 칸과 글자를 맞춘다 */
-.png-sheet .member-value, .png-sheet .stat-value, .png-sheet .rank-no, .png-sheet .rank-value { font-variant-numeric: normal; }
+/* 캔버스는 tabular-nums(고정폭 숫자)를 못 그린다 - 이미지에서는 숫자 한 자씩을 고정폭 칸(.png-digit,
+   폭은 app.js가 그 칸의 tabular 숫자 폭을 재서 --digit-w로 준다)에 넣어 사이트와 같은 간격으로 그린다 */
+.png-digit { display: inline-block; width: var(--digit-w, 0.6em); text-align: center; }
+/* html2canvas는 SVG 아이콘 크기를 원래 화면에서 읽어서, 폰에서 누르면 mobile.css의 6px 아이콘이 찍힌다 - 판 안에서는 PC 크기로 고정 */
+.png-sheet .stat-icon { width: 12px; height: 12px; }
 /* 순위 카드도 이미지에서는 팀 카드와 같은 2열 칸에 맞춘다 */
 .png-sheet .rank-summary { grid-template-columns: 1fr 1fr; }
 .png-head { background: #fff; border-radius: 20px; padding: 14px 20px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; box-shadow: 0 1px 2px rgba(20,20,30,0.04), 0 4px 12px rgba(20,20,30,0.05); }
