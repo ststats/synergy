@@ -956,6 +956,53 @@
         });
     }
 
+    // 전체 페이지 맨 아래 순위표 3개. 개인 TOP 10은 상위 1%·5%·10% 색칠과 같은 기준(pool)으로 센다
+    // (값 0, FA·휴면, 지표가 빼는 수장·전력외 제외).
+    function renderRankSummary(teamStats, pool, def) {
+        const box = document.getElementById('rank-summary');
+        if (!box || TARGET_TEAM) return;
+        if (!teamStats.length) {
+            box.style.display = 'none';
+            box.innerHTML = '';
+            return;
+        }
+        const link = (href, text) => `<a href="${href}">${escapeHtml(text)}</a>`;
+        const query = `&date=${attrUrlParam(currentDateStr)}&metric=${attrUrlParam(currentMetric)}`;
+        const teamName = ts => {
+            const logoUrl = teamLogoUrl(ts.name);
+            const logo = logoUrl
+                ? `<img src="${escapeHtml(logoUrl)}" class="rank-logo" alt="" data-fallback="none">`
+                : `<span class="rank-logo team-logo-initial" style="background:${safeCssColor(ownGet(TEAM_COLORS, ts.name))}" aria-hidden="true">${escapeHtml(Array.from(ts.name)[0] || '')}</span>`;
+            return logo + link(`team.html?team=${attrUrlParam(ts.name)}${query}`, ts.name);
+        };
+        const card = (title, rows) =>
+            `<div class="rank-card"><div class="rank-card-title">${title}</div><ol class="rank-list">` +
+            rows
+                .map(
+                    (r, i) =>
+                        `<li class="rank-row"><span class="rank-no">${i + 1}</span><span class="rank-name">${r.name}</span><span class="rank-value">${r.value}</span></li>`
+                )
+                .join('') +
+            '</ol></div>';
+        const teamsBy = key =>
+            teamStats
+                .slice()
+                .sort((a, b) => b[key] - a[key])
+                .map(ts => ({ name: teamName(ts), value: def.format(ts[key]) }));
+        const people = pool.slice(0, 10).map(m => ({
+            name:
+                (m.id
+                    ? link(`${escapeHtml(LOGO_PREFIX)}profile.html?id=${attrUrlParam(m.id)}${query}`, m.nickname)
+                    : escapeHtml(m.nickname)) + `<span class="rank-sub">${escapeHtml(m.team)}</span>`,
+            value: def.format(m[def.field] || 0),
+        }));
+        box.innerHTML =
+            card('전체 합계 순위', teamsBy('totalSum')) +
+            card('전체 평균 순위', teamsBy('tAvg')) +
+            card('개인 TOP 10', people);
+        box.style.display = '';
+    }
+
     const TIER_ORDER = ['갓', '킹', '잭', '조커', '스페이드', '0', '1', '2', '3', '4', '5', '6', '7', '8', '베이비'];
 
     let faBarCollapsed = true;
@@ -1142,6 +1189,7 @@
         if (gridEl) gridEl.innerHTML = `<div class="grid ${TARGET_TEAM ? 'single-team' : ''}">${html}</div>`;
         attachRankBadges(teamStats, currentDateStr, currentMetric);
         renderFaBar(data);
+        renderRankSummary(teamStats, pool, def);
         if (TARGET_TEAM) document.title = TARGET_TEAM + ' 현황';
         scheduleLiveDots();
     }
@@ -1330,11 +1378,8 @@
         title.className = 'png-title';
         const metricSel = document.getElementById('ms-metric-select');
         const metricLabel = metricSel && metricSel.selectedOptions[0] ? metricSel.selectedOptions[0].textContent : '';
-        title.textContent = [
-            TARGET_TEAM,
-            calBtn ? calBtn.textContent.replace(/▾/g, '').trim() : currentDateStr,
-            metricLabel,
-        ]
+        // 팀 페이지도 팀 이름은 바로 아래 카드에 있으므로 제목은 날짜·지표만
+        title.textContent = [calBtn ? calBtn.textContent.replace(/▾/g, '').trim() : currentDateStr, metricLabel]
             .filter(Boolean)
             .join(' · ');
         const meta = document.createElement('div');
@@ -1345,6 +1390,12 @@
         const gridCopy = grid.cloneNode(true);
         gridCopy.querySelectorAll('.live-dot').forEach(el => el.remove());
         sheet.append(head, gridCopy);
+        const summary = document.getElementById('rank-summary');
+        if (summary && summary.style.display !== 'none') {
+            const summaryCopy = summary.cloneNode(true);
+            summaryCopy.removeAttribute('id');
+            sheet.appendChild(summaryCopy);
+        }
         const legend = document.querySelector('.legend');
         if (legend) sheet.appendChild(legend.cloneNode(true));
         return sheet;
