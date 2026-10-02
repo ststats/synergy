@@ -43,5 +43,17 @@
     .fa-bar-photo { width: 11px; height: 11px; }
     .legend span { margin: 0 3px; }
     .legend .sw { width: 6px; height: 6px; margin-right: 2px; }
-    .png-btn { font-size: 7px; }
+    .png-btn, .png-sep { font-size: 5px; }
+    .png-btn { padding: 6px 0; margin: -6px 0; }
+    .rank-summary { gap: 6px; margin-top: 8px; }
+    .rank-card { border-radius: 10px; }
+    .rank-card-title { font-size: 8px; padding: 6px 8px; }
+    .rank-list { padding: 3px 0; }
+    .rank-row { gap: 3px; padding: 3px 6px; min-height: 13px; }
+    .rank-no { width: 8px; font-size: 6px; }
+    .rank-name { gap: 3px; font-size: 6px; }
+    .rank-logo { width: 8px; height: 8px; border-radius: 3px; }
+    .rank-logo.team-logo-initial { font-size: 5px; }
+    .rank-sub { font-size: 5px; }
+    .rank-value { font-size: 6px; }
 }

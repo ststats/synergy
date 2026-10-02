@@ -120,6 +120,22 @@ body { font-family: 'Pretendard Variable', sans-serif; background: #f4f5f7; marg
 .fa-bar-item a:hover .member-name { color: #4a5ce0; }
 .fa-bar-photo { width: 22px; height: 22px; border-radius: 50%; object-fit: cover; background: #f2f3f5; flex-shrink: 0; }
 
+/* 전체 페이지 맨 아래: 전체 합계 순위 · 전체 평균 순위 · 개인 TOP 10 */
+.rank-summary { max-width: 1080px; margin: 16px auto 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; align-items: start; }
+.rank-card { background: #fff; border-radius: 20px; overflow: hidden; box-shadow: 0 1px 2px rgba(20,20,30,0.04), 0 8px 24px rgba(20,20,30,0.06); }
+.rank-card-title { font-size: 14px; font-weight: 800; color: #141821; padding: 12px 16px; border-bottom: 1px solid #f2f3f5; }
+.rank-list { list-style: none; margin: 0; padding: 6px 0; }
+.rank-row { display: flex; align-items: center; gap: 8px; padding: 6px 16px; min-height: 28px; }
+.rank-no { width: 18px; flex-shrink: 0; text-align: right; font-size: 11px; font-weight: 800; color: #9a9da6; font-variant-numeric: tabular-nums; }
+.rank-row:nth-child(-n+3) .rank-no { color: #4a5ce0; }
+.rank-name { flex: 1; min-width: 0; display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: #3a3d47; white-space: nowrap; overflow: hidden; }
+.rank-name a { color: inherit; text-decoration: none; overflow: hidden; text-overflow: ellipsis; }
+.rank-name a:hover { text-decoration: underline; }
+.rank-logo { width: 16px; height: 16px; border-radius: 5px; object-fit: contain; flex-shrink: 0; }
+.rank-logo.team-logo-initial { font-size: 9px; }
+.rank-sub { font-size: 10px; color: #9a9da6; font-weight: 500; flex-shrink: 0; }
+.rank-value { flex-shrink: 0; font-size: 12px; font-weight: 700; color: #1a1d29; font-variant-numeric: tabular-nums; }
+
 /* 이미지 저장: 화면 밖에 고정 폭 판(.png-sheet)을 그려 PNG로 찍는다 - 보는 기기와 상관없이 같은 이미지 */
 .png-btn { background: none; border: 0; padding: 0; font: inherit; font-size: 10px; font-weight: 600; color: #4a5ce0; cursor: pointer; }
 .png-btn:hover { text-decoration: underline; }
@@ -131,4 +147,4 @@ body { font-family: 'Pretendard Variable', sans-serif; background: #f4f5f7; marg
 .png-head { background: #fff; border-radius: 20px; padding: 14px 20px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; box-shadow: 0 1px 2px rgba(20,20,30,0.04), 0 4px 12px rgba(20,20,30,0.05); }
 .png-title { font-size: 20px; font-weight: 800; color: #141821; }
 .png-meta { font-size: 10px; color: #71747b; }
-.png-sheet .legend { max-width: none; }
+.png-sheet .legend, .png-sheet .rank-summary { max-width: none; }

@@ -55,7 +55,7 @@
       {% endif %}
       <span class="top-meta" id="top-meta-text"></span>
       {% if not is_profile %}
-      <span class="top-meta-sep">·</span>
+      <span class="top-meta-sep png-sep">·</span>
       <button id="png-btn" class="png-btn" type="button" title="지금 보이는 표를 PNG 이미지로 내려받습니다">이미지 저장</button>
       {% endif %}
     </span>
@@ -110,6 +110,7 @@
   <div id="grid-container"></div>
   {% if not target_team %}
   <div id="fa-bar" class="fa-bar" style="display:none;"></div>
+  <div id="rank-summary" class="rank-summary" style="display:none;"></div>
   {% endif %}
   <div class="legend">
     <span><span class="sw" style="background:#d6e9fb;"></span>상위 1%</span>

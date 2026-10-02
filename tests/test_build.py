@@ -118,6 +118,16 @@ def test_png_button_only_on_table_pages_and_library_is_copied():
     assert "windowWidth: 1280" in src
 
 
+def test_rank_summary_only_on_index_page():
+    """전체 합계·전체 평균 순위와 개인 TOP 10은 전체 페이지 맨 아래에만 둔다."""
+    colors = {"테스트대": "#123456"}
+    assert 'id="rank-summary"' in generate_pages.generate_html("시너지", "", False, "", colors)
+    assert 'id="rank-summary"' not in generate_pages.generate_html("팀별 현황", "테스트대", False, "", colors)
+    src = (ROOT / "templates" / "app.js").read_text(encoding="utf-8")
+    assert "renderRankSummary(teamStats, pool, def);" in src
+    assert "pool.slice(0, 10)" in src
+
+
 def test_first_render_does_not_wait_for_date_list():
     """최신(또는 주소의) 통계를 받았으면 날짜 목록을 기다리지 않고 그린다(목록은 달력·순위 비교용)."""
     src = (ROOT / "templates" / "app.js").read_text(encoding="utf-8")
