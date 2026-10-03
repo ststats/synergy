@@ -211,7 +211,7 @@
     async function fetchLiveIds() {
         const client = synergySupabaseClient();
         if (!client) throw new Error('Supabase browser client is not configured');
-        const { data, error } = await client.from('live_broadcasts_current').select('soop_id').range(0, 4999);
+        const { data, error } = await client.rpc('api_live_ids');
         if (error || !Array.isArray(data)) throw error || new Error('Invalid live status');
         return new Set(data.filter(r => r && r.soop_id).map(r => String(r.soop_id).toLowerCase()));
     }
@@ -298,8 +298,8 @@
 
     // (그냥 진행하면 AVAILABLE_DATES[0]이 undefined라 currentDateStr.split()에서 페이지 전체가
     // 백지가 된다.) 원인을 알 수 있는 메시지를 보여주고 조용히 멈춘다.
-    // Supabase 공개 읽기(REST). 이 페이지는 표 두 개를 select·eq·order·range로 읽기만 하므로
-    // supabase-js(213KB) 없이 fetch 몇 줄이면 된다.
+    // Supabase 공개 읽기 함수(REST rpc). 표는 읽지 않고 공개 읽기 함수(api_*·player_*, ststat.sql)만 GET으로
+    // 부르므로 supabase-js(213KB) 없이 fetch 몇 줄이면 된다. 함수가 결과 전체를 JSON 하나로 돌려준다(쪽 나눔 없음).
     const REQUEST_TIMEOUT_MS = 8000;
     function synergySupabaseClient() {
         const cfg = window.SYNERGY_SUPABASE_CONFIG;
@@ -326,48 +326,6 @@
                 });
         };
         return {
-            from(table) {
-                const params = new URLSearchParams();
-                let rangeFrom = 0,
-                    rangeTo = null;
-                const q = {
-                    select(cols) {
-                        params.set('select', cols);
-                        return q;
-                    },
-                    eq(col, val) {
-                        params.append(col, `eq.${val}`);
-                        return q;
-                    },
-                    // 값마다 큰따옴표로 감싼다(이름에 쉼표·괄호가 있어도 PostgREST가 한 값으로 읽게)
-                    in(col, vals) {
-                        params.append(
-                            col,
-                            `in.(${vals.map(v => '"' + String(v).replace(/["\\]/g, '\\$&') + '"').join(',')})`
-                        );
-                        return q;
-                    },
-                    // 여러 번 부르면 PostgREST 형식(order=a.asc,b.asc)으로 이어 붙인다
-                    order(col, opt) {
-                        const term = `${col}.${opt && opt.ascending === false ? 'desc' : 'asc'}`;
-                        params.set('order', params.has('order') ? params.get('order') + ',' + term : term);
-                        return q;
-                    },
-                    range(from, to) {
-                        rangeFrom = from;
-                        rangeTo = to;
-                        return q;
-                    },
-                    then(resolve, reject) {
-                        if (rangeTo !== null) {
-                            params.set('offset', rangeFrom);
-                            params.set('limit', rangeTo - rangeFrom + 1);
-                        }
-                        return get(table, params).then(resolve, reject);
-                    },
-                };
-                return q;
-            },
             // 읽기 전용(STABLE) 함수는 GET으로 부른다. 값이 null/빈 문자열인 인자는 보내지 않는다(기본값 사용).
             rpc(fn, args) {
                 const params = new URLSearchParams();
@@ -379,41 +337,20 @@
         };
     }
 
-    // 한 번에 최대 1000줄씩 끝까지 받는다. query(from, to)는 그 구간의 조회를 돌려준다.
-    async function fetchAllPages(query, pageSize = 1000) {
-        const data = [];
-        for (let from = 0; ; from += pageSize) {
-            const { data: batch, error } = await query(from, from + pageSize - 1);
-            if (error) throw error;
-            const rows = Array.isArray(batch) ? batch : [];
-            data.push(...rows);
-            if (rows.length < pageSize) return data;
-        }
-    }
-
     async function loadAvailableDates() {
         const client = synergySupabaseClient();
         if (!client) throw new Error('Supabase browser client is not configured');
-        const data = await fetchAllPages((from, to) =>
-            client
-                .from('synergy_daily_dates')
-                .select('stat_date')
-                .order('stat_date', { ascending: false })
-                .range(from, to)
-        );
-        return data.map(r => String(r.stat_date || '')).filter(Boolean);
+        const { data, error } = await client.rpc('api_stats_dates');
+        if (error) throw error;
+        return (Array.isArray(data) ? data : []).map(r => String(r.stat_date || '')).filter(Boolean);
     }
 
-    // 화면에 쓰는 칸만 받는다. 목록 화면은 생일 표시(🎂)에 달만 쓰므로 birth_month만 받고 생년월일·종족은
-    // 받지 않는다(공개 권한도 없다). 개인 페이지는 player_profile_stats 함수로 그 한 명의 전체 칸을 받는다.
+    // 화면에 쓰는 칸만 받는다(api_daily_stats, ststat.sql). 목록 화면은 생일 표시(🎂)에 달만 쓰므로 birth_month만
+    // 오고 생년월일·종족은 오지 않는다. 개인 페이지는 player_profile_stats 함수로 그 한 명의 전체 칸을 받는다.
     // light는 지난달 대학 순위 증감(▲▼) 계산용 - 소속·직책·성별·지표 값만.
     // light 결과는 rankOnlyData에 따로 둬서 그 날짜를 직접 열면 전체를 새로 받는다.
-    const DAILY_COLUMNS =
-        'soop_id,nickname,role,affiliation,tier,gender,birth_month,balloons,broadcast_seconds,cumulative_viewers,sponsor_wins,sponsor_losses,updated_at,sponsor_updated_at';
-    const DAILY_RANK_COLUMNS =
-        'role,affiliation,gender,balloons,broadcast_seconds,cumulative_viewers,sponsor_wins,sponsor_losses';
-    // latest: 날짜 대신 가장 최근 날짜의 뷰(daily_member_stats_latest, ststat.sql)에서 받는다 - 날짜 목록을
-    // 기다리지 않고 첫 화면을 받으려고 쓴다. 이때 dateStr은 받은 행의 날짜로 정해진다.
+    // latest: 날짜를 비워 가장 최근 날짜를 받는다 - 날짜 목록을 기다리지 않고 첫 화면을 받으려고 쓴다.
+    // 이때 dateStr은 받은 행의 날짜로 정해진다.
     async function loadDailyData(dateStr, { light = false, latest = false } = {}) {
         const client = synergySupabaseClient();
         if (!client) throw new Error('Supabase browser client is not configured');
@@ -429,17 +366,12 @@
             if (error) throw error;
             if (Array.isArray(rows)) data.push(...rows);
         } else {
-            data = await fetchAllPages((from, to) => {
-                let query = latest
-                    ? client.from('daily_member_stats_latest').select('stat_date,' + DAILY_COLUMNS)
-                    : client
-                          .from('daily_member_stats')
-                          .select(light ? DAILY_RANK_COLUMNS : DAILY_COLUMNS)
-                          .eq('stat_date', dateStr);
-                if (!light) query = query.order('nickname', { ascending: true });
-                // 닉네임이 겹쳐도 페이지 경계 순서가 고정되게
-                return query.order('soop_id', { ascending: true }).range(from, to);
+            const { data: rows, error } = await client.rpc('api_daily_stats', {
+                p_date: latest ? null : dateStr,
+                p_light: light && !latest ? true : null,
             });
+            if (error) throw error;
+            if (Array.isArray(rows)) data = rows;
         }
 
         if (latest) {
@@ -500,9 +432,7 @@
         const client = synergySupabaseClient();
         if (missing.length && client) {
             const request = client
-                .from('university_logos')
-                .select('name,path,color')
-                .in('name', missing)
+                .rpc('api_university_logos', { p_names: JSON.stringify(missing) })
                 .then(({ data, error }) => {
                     if (error) throw error;
                     const base = String(window.SYNERGY_SUPABASE_CONFIG.url).replace(/\/$/, '');
@@ -533,16 +463,11 @@
             const client = synergySupabaseClient();
             teamColorRequests[team] = !client
                 ? Promise.resolve(null)
-                : client
-                      .from('university_logos')
-                      .select('color')
-                      .eq('name', team)
-                      .range(0, 0)
-                      .then(({ data, error }) => {
-                          const color = !error && Array.isArray(data) && data[0] ? data[0].color : null;
-                          if (color) TEAM_COLORS[team] = color;
-                          return color;
-                      });
+                : client.rpc('api_university_logos', { p_names: JSON.stringify([team]) }).then(({ data, error }) => {
+                      const color = !error && Array.isArray(data) && data[0] ? data[0].color : null;
+                      if (color) TEAM_COLORS[team] = color;
+                      return color;
+                  });
         }
         return teamColorRequests[team];
     }
