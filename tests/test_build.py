@@ -58,19 +58,18 @@ def test_validate_and_clean_members_drops_incomplete_rows():
     assert [(m["id"], m["elo_id"]) for m in cleaned] == [("abc", 12)]
 
 
-def test_daily_queries_fetch_only_used_columns():
+def test_page_reads_only_public_functions_not_tables():
+    """표는 읽지 않고 공개 읽기 함수(ststat.sql 14번 api_*·player_*)만 부른다. 열 구성은 그 함수가 정한다
+    (목록은 생일 달만·생년월일·종족 없음, 지난달 순위용은 지표 칸만 - ststat tests/test_public_privacy.py)."""
     src = (ROOT / "templates" / "app.js").read_text(encoding="utf-8")
-    full = re.search(r"const DAILY_COLUMNS =\s*'([^']+)'", src).group(1).split(",")
-    rank = re.search(r"const DAILY_RANK_COLUMNS =\s*'([^']+)'", src).group(1).split(",")
-    # 화면에서 안 쓰는 칸은 받지 않는다
-    assert "month_start" not in full and "elo_id" not in full
-    # 목록 화면은 생일 달만 쓴다: 생년월일·종족은 받지 않는다(공개 권한도 없다)
-    assert "birth_month" in full and "birth_date" not in full and "race" not in full
-    # 개인 페이지(휴면 선수 포함)는 한 사람용 함수로 읽는다
+    assert ".from(" not in src.replace("Array.from(", "")
+    assert "from(table)" not in src
+    for fn in ("api_live_ids", "api_stats_dates", "api_daily_stats", "api_university_logos",
+               "player_profile_stats", "player_live"):
+        assert f"client.rpc('{fn}'" in src or f".rpc('{fn}'" in src, fn
+    # 개인 페이지(휴면 선수 포함)는 한 사람용 함수로, 지난달 순위 계산은 지표 칸만 받는 가벼운 조회로
     assert "client.rpc('player_profile_stats'" in src and "client.rpc('player_live'" in src
-    # 지난달 순위 계산용은 소속·직책·성별·지표만(생일·닉네임 등 개인 정보는 받지 않는다)
-    assert set(rank) == {"role", "affiliation", "gender", "balloons", "broadcast_seconds",
-                         "cumulative_viewers", "sponsor_wins", "sponsor_losses"}
+    assert "p_light: light && !latest ? true : null" in src
     assert "loadDailyData(prevDate, { light: true })" in src
 
 
