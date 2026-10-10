@@ -1,0 +1,31 @@
+name: Test
+
+# Build가 배포 전에 이 워크플로를 부른다. 실패하면 배포하지 않는다.
+on:
+  pull_request:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+      - run: python3 scripts/build_tools/build_scope.py --verify
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt -r requirements-dev.txt
+      - run: python -m pytest -q
+      # 수동 빌드(workflow_dispatch)는 코드 모양 때문에 배포가 막히지 않게 검사를 건너뛴다. 고칠 땐 npm run format
+      - if: github.event_name == 'pull_request' || github.event_name == 'push'
+        uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+          cache: npm
+      - if: github.event_name == 'pull_request' || github.event_name == 'push'
+        run: npm ci && npm run format:check
