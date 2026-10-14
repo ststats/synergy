@@ -1,5 +1,5 @@
-# Generated from ststats/staruniv/scripts/build_tools/browser_config.py; do not edit.
-"""Write the public browser configuration atomically for either site."""
+# ststats/staruniv/scripts/build_tools/browser_config.py에서 만든 사본. 직접 고치지 않는다.
+"""두 사이트(스타유니브·시너지)의 공개 브라우저 설정 파일을 한 번에 바꿔 쓴다(중간 상태가 남지 않게)."""
 import json
 import os
 from pathlib import Path

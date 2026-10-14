@@ -1,5 +1,5 @@
-# Generated from ststats/staruniv/scripts/build_tools/build_scope.py; do not edit.
-"""Decide deployment scope; the Build workflow still tests every main push."""
+# ststats/staruniv/scripts/build_tools/build_scope.py에서 만든 사본. 직접 고치지 않는다.
+"""배포 범위를 정한다. main 푸시마다 검사는 Build 워크플로가 항상 한다."""
 import fnmatch
 import hashlib
 import json
@@ -27,8 +27,8 @@ def main():
     before = event.get("before", "")
     deploy = os.environ["GITHUB_EVENT_NAME"] != "push" or not before.strip("0")
     if not deploy:
-        # A force-push can remove the previous commit from a fresh checkout.
-        # Without a baseline, build everything rather than guessing the diff.
+        # 강제 푸시 뒤에는 이전 커밋이 새 checkout에 없을 수 있다.
+        # 비교할 기준이 없으면 차이를 짐작하지 않고 전부 빌드한다.
         baseline = subprocess.run(
             ["git", "cat-file", "-e", f"{before}^{{commit}}"],
             stdout=subprocess.DEVNULL,

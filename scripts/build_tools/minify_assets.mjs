@@ -1,4 +1,4 @@
-// Generated from ststats/staruniv/scripts/build_tools/minify_assets.mjs; do not edit.
+// ststats/staruniv/scripts/build_tools/minify_assets.mjs에서 만든 사본. 직접 고치지 않는다.
 // 배포용 docs/의 JS·CSS·HTML에서 주석과 공백을 뺀다. 사용: node scripts/minify_assets.mjs docs
 // JS는 mangle 없이 다시 출력만 한다 - data-click="함수"가 부르는 전역 이름이 그대로여야 한다.
 // 압축본의 구문 트리가 원본과 다르면 그 조각은 원본을 둔다.
