@@ -79,7 +79,7 @@
     };
     const SOURCES = {
         trackify: { name: 'Trackify', url: 'https://www.trackify.kr' },
-        elo: { name: 'Elo', url: 'https://eloboard.co.kr/' },
+        elo: { name: 'Elo', url: 'https://eloboard.com/' },
     };
 
     // SOOP 프로필 사진의 작은 판(약 66px WebP, 스타유니브 core.js getProfileImgUrl과 같은 주소).
