@@ -1,0 +1,114 @@
+name: Build
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+# docs/는 커밋하지 않고 Pages에 바로 배포한다(Settings → Pages → Source: GitHub Actions).
+# Pages 쓰기 권한은 배포 job에만 준다.
+permissions:
+  contents: read
+
+concurrency:
+  group: synergy-web-build
+  cancel-in-progress: false
+
+jobs:
+  scope:
+    runs-on: ubuntu-24.04
+    outputs:
+      deploy: ${{ steps.scope.outputs.deploy }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - id: scope
+        run: python3 scripts/build_tools/build_scope.py
+
+  # 테스트가 통과해야 빌드·배포한다.
+  test:
+    uses: ./.github/workflows/test.yml
+
+  build:
+    needs: [test, scope]
+    if: needs.scope.outputs.deploy == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    # configure-pages가 Pages 주소를 읽는다
+    permissions:
+      contents: read
+      pages: read
+    env:
+      PYTHONUNBUFFERED: "1"
+      SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+      # 공개 키(브라우저와 같은 권한). 페이지 설정과 글꼴용 선수 이름 읽기에 쓴다
+      SUPABASE_PUBLISHABLE_KEY: ${{ vars.SUPABASE_PUBLISHABLE_KEY }}
+      # 선택. 검색엔진용 사이트 주소(비우면 generate_pages.py의 기본값)
+      SITE_URL: ${{ vars.SITE_URL }}
+
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+
+      - name: Generate static page shell
+        run: python scripts/generate_pages.py
+
+      - name: Write browser Supabase config
+        run: python scripts/write_supabase_browser_config.py
+
+      # 글꼴 서브셋이 docs/*.html을 읽으므로 압축을 그 전에 한다.
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+          cache: npm
+      - run: npm ci
+      - name: Minify assets
+        run: node scripts/minify_assets.mjs docs
+
+      - id: pages
+        uses: actions/configure-pages@v6
+
+      # 서브셋이 실패해도 글꼴이 비지 않게 배포된 글꼴을 먼저 받아 둔다
+      - name: Keep last published font
+        run: |
+          mkdir -p docs/fonts
+          curl -fsSL "${{ steps.pages.outputs.base_url }}/fonts/PretendardVariable.woff2" -o docs/fonts/PretendardVariable.woff2 || true
+
+      - name: Subset font
+        id: subset
+        continue-on-error: true
+        run: python scripts/subset_font.py
+
+      # 서브셋 실패는 경고로 남기고, 글꼴 파일이 아예 없으면 배포하지 않는다
+      - name: Check font
+        run: |
+          if [ "${{ steps.subset.outcome }}" = "failure" ]; then
+            echo "::warning::글꼴 서브셋에 실패해 지난 배포 글꼴을 그대로 씁니다(새 이름 글자가 빠질 수 있음)"
+          fi
+          if [ ! -s docs/fonts/PretendardVariable.woff2 ]; then
+            echo "::error::docs/fonts/PretendardVariable.woff2가 없습니다"
+            exit 1
+          fi
+
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: docs
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5
+
