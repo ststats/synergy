@@ -16,6 +16,8 @@ if (!root || !fs.existsSync(root)) {
 }
 
 // 구문 트리 비교용: 위치·raw와 의미가 같은 표기 차이({a} = {a: a}, "a": = a: 등)만 맞춘다
+// terser는 한글 키({우등반: …})를 따옴표 키로 내보내므로 키 이름 판정은 유니코드 식별자 규칙을 쓴다.
+const IDENTIFIER = /^[\p{ID_Start}$_][\p{ID_Continue}$‌‍]*$/u;
 function normalize(n) {
     if (Array.isArray(n)) return n.map(normalize);
     if (!n || typeof n !== 'object') return n;
@@ -24,7 +26,7 @@ function normalize(n) {
         n = { ...n, expression: true, body: n.body.body[0].argument };
     }
     if (n.type === 'Property' && !n.computed && n.key && n.key.type === 'Literal' && typeof n.key.value === 'string'
-        && /^[A-Za-z_$][\w$]*$/.test(n.key.value)) {
+        && IDENTIFIER.test(n.key.value)) {
         n = { ...n, key: { type: 'Identifier', name: n.key.value } };
     }
     const out = {};

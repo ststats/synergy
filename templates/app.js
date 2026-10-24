@@ -305,11 +305,12 @@
         const cfg = window.SYNERGY_SUPABASE_CONFIG;
         if (!cfg || !cfg.url || !cfg.key) return null;
         // 응답이 멈추면 본문 받기까지 포함해 8초에 끊는다. 재시도 1번까지 20초 안에 안내 화면으로 넘어간다.
+        // 공개 키는 헤더 대신 주소(apikey)에 넣는다. 사용자 정의 헤더가 있으면 브라우저가 요청마다 CORS 사전 확인(OPTIONS)을 한 번 더 보낸다.
         const get = (path, params) => {
             const ctrl = typeof AbortController === 'function' ? new AbortController() : null;
             const timer = ctrl ? setTimeout(() => ctrl.abort(), REQUEST_TIMEOUT_MS) : null;
+            params.set('apikey', cfg.key);
             return fetch(`${cfg.url}/rest/v1/${path}?${params}`, {
-                headers: { apikey: cfg.key, Authorization: `Bearer ${cfg.key}` },
                 signal: ctrl ? ctrl.signal : undefined,
             })
                 .then(async res => {
