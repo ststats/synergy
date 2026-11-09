@@ -1,0 +1,15 @@
+[
+  "templates/**",
+  "scripts/generate_pages.py",
+  "scripts/subset_font.py",
+  "scripts/write_supabase_browser_config.py",
+  "scripts/minify_assets.mjs",
+  "requirements.txt",
+  "package.json",
+  "package-lock.json",
+  "assets/logos/**",
+  "scripts/build_tools/**",
+  ".github/build-paths.json",
+  ".github/build-tools.json",
+  ".github/workflows/build.yml"
+]
