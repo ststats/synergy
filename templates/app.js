@@ -68,7 +68,9 @@
             format: v => formatCount(Math.round((v || 0) / 3600)),
             source: 'trackify',
         },
+        // EloBoard 경기 수집을 멈춰(2026-11-09) 숨긴다. 다시 보이려면 hidden을 뺀다
         sponsor: {
+            hidden: true,
             field: 'sponsor_games',
             label: '스폰판수',
             unit: '스폰판수',
@@ -725,7 +727,8 @@
     function initializePage() {
         const urlDate = URL_PARAMS.get('date');
         if (urlDate && AVAILABLE_DATES.includes(urlDate)) currentDateStr = urlDate;
-        if (ownGet(metricDefs, URL_PARAMS.get('metric'))) currentMetric = URL_PARAMS.get('metric');
+        const urlMetric = ownGet(metricDefs, URL_PARAMS.get('metric'));
+        if (urlMetric && !urlMetric.hidden) currentMetric = URL_PARAMS.get('metric');
 
         updateMetricChrome();
         applyData();
@@ -1786,7 +1789,7 @@
             metricMenu,
             () => {
                 metricMenu.innerHTML = Object.keys(metricDefs)
-                    .filter(key => key !== 'viewership' || viewershipAvailable)
+                    .filter(key => !metricDefs[key].hidden && (key !== 'viewership' || viewershipAvailable))
                     .map(
                         key =>
                             `<button type="button" class="pick-menu-item" role="menuitem" data-metric="${escapeHtml(key)}"${

@@ -785,16 +785,10 @@ button.cal-day[aria-current='true'] {
 .stat-value.is-empty {
     color: var(--c-text-meta);
 }
-/* 개인 페이지 요약 카드: 위 3칸, 아래 2칸 */
+/* 개인 페이지 요약 카드: 두 칸씩 두 줄(스폰전적은 숨김) */
 .profile-footer {
     display: grid;
-    grid-template-columns: repeat(6, 1fr);
-}
-.profile-footer .stat-card {
-    grid-column: span 2;
-}
-.profile-footer .stat-card:nth-child(n + 4) {
-    grid-column: span 3;
+    grid-template-columns: repeat(2, 1fr);
 }
 .stat-card.female-avg :is(.stat-value, .stat-icon) {
     color: var(--c-female-text);
