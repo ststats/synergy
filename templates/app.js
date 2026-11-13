@@ -32,7 +32,7 @@
     const isExcludedRole = m => m.role === '수장' || m.role === '전력외';
     const formatCount = v => (v ? v.toLocaleString('ko-KR') : '');
     // unit: 표 열 머리 글자. count: 순위 패널 값 뒤 세는 단위(값에 이미 단위가 보이면 비움)
-    // source: 출처(SOURCES). 월 누적 지표는 트래키파이
+    // source: 출처(SOURCES). 월 누적 지표는 풍고, 뷰어십은 트래키파이만 준다
     const metricDefs = {
         balloon: {
             field: 'balloons',
@@ -40,7 +40,7 @@
             unit: '별풍선',
             count: '개',
             format: formatCount,
-            source: 'trackify',
+            source: 'poonggo',
         },
         broadcast: {
             field: 'broadcast_seconds',
@@ -48,7 +48,7 @@
             unit: '방송시간',
             count: '',
             format: formatTime,
-            source: 'trackify',
+            source: 'poonggo',
         },
         viewer: {
             field: 'cumulative_viewers',
@@ -56,11 +56,13 @@
             unit: '누적시청자',
             count: '명',
             format: formatCount,
-            source: 'trackify',
+            source: 'poonggo',
         },
         // 뷰어십 = 시청자 수 × 방송 시간. 초로 오는 값을 시간으로 보인다.
-        // 값이 있는 날짜에서만 고를 수 있다(syncViewershipMetric)
+        // 값이 있는 날짜에서만 고를 수 있다(syncViewershipMetric).
+        // 트래키파이가 막혀 풍고로 돌려(2026-11-13) 숨긴다. 다시 보이려면 hidden을 뺀다
         viewership: {
+            hidden: true,
             field: 'viewership_seconds',
             label: '뷰어십',
             unit: '뷰어십(시간)',
@@ -80,6 +82,7 @@
         },
     };
     const SOURCES = {
+        poonggo: { name: 'Poonggo', url: 'https://poonggo.com' },
         trackify: { name: 'Trackify', url: 'https://www.trackify.kr' },
         elo: { name: 'Elo', url: 'https://eloboard.com/' },
     };
@@ -1473,7 +1476,7 @@
                 '갱신 ' +
                 escapeHtml(data.updated_at || '-') +
                 ' · 출처 ' +
-                [SOURCES.trackify, SOURCES.elo]
+                [SOURCES.poonggo, SOURCES.elo]
                     .map(
                         src =>
                             `<a href="${escapeHtml(src.url)}" target="_blank" rel="noopener" class="source-link">${escapeHtml(src.name)}</a>`

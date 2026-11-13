@@ -785,11 +785,6 @@ button.cal-day[aria-current='true'] {
 .stat-value.is-empty {
     color: var(--c-text-meta);
 }
-/* 개인 페이지 요약 카드: 두 칸씩 두 줄(스폰전적은 숨김) */
-.profile-footer {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-}
 .stat-card.female-avg :is(.stat-value, .stat-icon) {
     color: var(--c-female-text);
 }
