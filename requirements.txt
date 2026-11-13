@@ -1,0 +1,22 @@
+# 상한(<N)을 두는 이유: 워크플로우는 매 실행마다 pip이 인덱스에서 최신
+# 버전을 새로 해석한다(setup-python의 cache: "pip"는 다운로드 캐시일 뿐
+# 버전을 고정해주지 않는다). 상한이 없으면 코드를 한 줄도 안 고친 날에
+# 상위 호환이 깨지는 메이저 버전이 올라와 웹 빌드·배포가 실패할 수 있고,
+# 원인을 찾기도 어렵다. 하한은 보안 패치를 계속 받기 위해 열어둔다.
+
+# 사이트 아이콘 축소·변환 (generate_pages.py). 팀 카드 색은 공개 API에서 받는다.
+Pillow>=10,<13
+
+# 글꼴 서브셋(subset_font.py): 공개 읽기 함수로 선수 이름 조회, 글꼴 원본 다운로드
+requests>=2.31,<3
+
+# 폰트 서브셋 (subset_font.py에서 python -m fontTools.subset으로 호출)
+# [woff] extra가 brotli>=1.0.1을 함께 설치하며, 이게 없으면 --flavor=woff2가
+# 실패한다. 해당 워크플로우 스텝은 continue-on-error라 경고만 남기고 지난
+# 글꼴로 배포하므로, 이 extra를 빠뜨리면 글꼴이 갱신되지 않는다.
+fonttools[woff]>=4.44,<5
+
+# 페이지 템플릿 렌더링 (generate_pages.py)
+# 주의: autoescape를 끄고 쓴다(<script> 안의 JSON은 HTML escape하면 깨진다).
+# <script> 안에 들어가는 값은 반드시 generate_pages.json_for_script()를 거칠 것.
+jinja2>=3.1,<4

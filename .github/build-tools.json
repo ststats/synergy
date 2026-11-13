@@ -1,0 +1,8 @@
+{
+  "source": "ststats/staruniv:scripts/build_tools",
+  "sha256": {
+    "minify_assets.mjs": "1c6792a9c0fb7de6dc99262fafb1bc5bc79cce6791f8c270d68631805f232e35",
+    "browser_config.py": "f482b11de0300d73173defa7b92d6a7f3c172f26cb82110fdfbdcea85735182e",
+    "build_scope.py": "ffc53ab1f6f488bfb6f3451a4975b1fdd49d1c9d9859594552d7c6b93d049538"
+  }
+}
